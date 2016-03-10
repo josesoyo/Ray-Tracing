@@ -3,21 +3,22 @@
 module Octree =
     open Types.ObjectTypes
     open BBoxMethods
-    open Microsoft.FSharp.Data.UnitSystems.SI.UnitNames
     open OctreeCulling
+    open Types.Algebra
+    //open Microsoft.FSharp.Data.UnitSystems.SI.UnitSymbols
 
-    let OctBucle(aa,bb,cc,group: group [] , vertices:float<metre> [] [], space:BBox, maxEle:int ,depth:int ,maxDepth:int) =
-        let stepx = (space.Pmax.[0]- space.Pmin.[0])/2.
-        let stepy = (space.Pmax.[1]- space.Pmin.[1])/2.
-        let stepz = (space.Pmax.[2]- space.Pmin.[2])/2.
+    let OctBucle(aa,bb,cc,group: group [] , vertices:Point [], space:BBox, maxEle:int ,depth:int ,maxDepth:int) =
+        let stepx = (space.Pmax.X- space.Pmin.X)/2.
+        let stepy = (space.Pmax.Y- space.Pmin.Y)/2.
+        let stepz = (space.Pmax.Z- space.Pmin.Z)/2.
         // Boundaries of the partition
-        let xmin = stepx*float(aa-1)+ space.Pmin.[0]
-        let xmax = stepx*float(aa)+ space.Pmin.[0]
-        let ymin = stepy*float(bb-1)+ space.Pmin.[1]
-        let ymax = stepy*float(bb)+ space.Pmin.[1]
-        let zmin = stepz*float(cc-1)+ space.Pmin.[2]
-        let zmax = stepz*float(cc)+ space.Pmin.[2]
-        let thisbox = {Pmin=[|xmin;ymin;zmin|]; Pmax = [|xmax;ymax;zmax|]}
+        let xmin = stepx*float(aa-1)+ space.Pmin.X
+        let xmax = stepx*float(aa)+ space.Pmin.X
+        let ymin = stepy*float(bb-1)+ space.Pmin.Y
+        let ymax = stepy*float(bb)+ space.Pmin.Y
+        let zmin = stepz*float(cc-1)+ space.Pmin.Z
+        let zmax = stepz*float(cc)+ space.Pmin.Z
+        let thisbox = {Pmin=Point(xmin,ymin,zmin); Pmax = Point(xmax,ymax,zmax)}
 
         let subgroups = PartitionateGroup(thisbox,
                                            group,
@@ -32,10 +33,10 @@ module Octree =
 
 
     // Objectives of this module: Partitionate the meshes with an Octree algorithm
-    let rec CreateOctree (group:group [] , vert:float<metre> [] [], space:BBox, maxEle:int ,depth:int ,maxDepth:int):OctreeSystem []=
+    let rec CreateOctree (group:group [] , vert:Point [], space:BBox, maxEle:int ,depth:int ,maxDepth:int):OctreeSystem []=
         // Function to create the octree based on the current situation of the types
         // The output of the octree will be a group array
-        let infi:float<metre> = (infinity |> LanguagePrimitives.FloatWithMeasure)     //inifinity with unit of measure
+        
         let partition = [|1..2|] |> Array.collect(fun aa -> 
                           [|1..2|] |> Array.collect(fun bb ->
                             [|1..2|] |> Array.collect(fun cc -> 
@@ -46,12 +47,12 @@ module Octree =
                                      [|Partition(out)|]
                                  else  
                                      // Compute bbox of elements
-                                     let mutable reducedBox = {Pmin = [|infi; infi;infi|];
-                                                               Pmax = [|-infi;-infi;-infi|]}
+                                     let mutable reducedBox = {Pmin = Point(infinity, infinity,infinity);
+                                                               Pmax = Point(-infinity,-infinity,-infinity)}
                                      // Compute union of two bboxes                           
                                      out |> Array.iter(fun n -> reducedBox <- BoxofUnion((snd n).Bbox, reducedBox))
 
-                                     [|Octree({Bbox =reducedBox ; Octree =CreateOctree (group, vert, space, maxEle,depth+1,maxDepth) })|]
+                                     [|Octree({Bbox =reducedBox ; Octree =CreateOctree (group, vert, reducedBox, maxEle,depth+1,maxDepth) })|]
                                 )
                                 
                               |]

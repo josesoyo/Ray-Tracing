@@ -51,11 +51,14 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Algebra.fs" />
+    <Compile Include="Algebra2.fs" />
     <Compile Include="MainTypes.fs" />
     <Compile Include="ObjectTypes.fs" />
     <Compile Include="BBoxMethods.fs" />
     <None Include="Script.fsx" />
     <Content Include="packages.config" />
+    <None Include="Structure_test.fsx" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="MathNet.Numerics">

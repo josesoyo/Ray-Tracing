@@ -75,3 +75,36 @@ let all =
     bar2 |> Array.collect(fun x -> x)
     |> ignore
 #time
+
+let st = ["sds"; "kkk"; "l ll"; " mm"]
+st.[0].[0..1]
+st |> List.iter(fun xi -> match xi.[0..1] with 
+                         |"sd" -> printfn "opt firs"
+                         |"kk" -> printfn "opt5"
+                         |" m" -> printfn "starting with a space..."
+                         |"l " -> printfn "can it read a space!")
+match first.[0..1] with
+| "vn" ->
+| "v " ->
+| "g " ->
+| "mt" ->   // mtlib
+| "us" ->   // usemtl
+ 
+#time
+let st = ["sds"; "kkk"; "l ll"; " mm"]
+[0..10000000] |> List.iter( fun x -> 
+                            match st.Length > 2 with
+                            | true -> false |> ignore // printfn "trueee" |>
+                            | false -> true |> ignore //printfn "pooot" |> 
+                            )
+#time
+
+#time
+let st = ["sds"; "kkk"; "l ll"; " mm"]
+for i in  [0..10000000] do
+    if st.Length > 2 then
+     false |> ignore
+    else
+     true |> ignore
+#time
+List.map(fun stri -> stri.StartsWith("s"))
