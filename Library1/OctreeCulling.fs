@@ -136,7 +136,7 @@ let tinside(vertBool:bool [], vertices: Point [],triangles:int list [] ,box:BBox
 let SubMeshBox(onLimits: Point [] ,boolv:bool [], vertices: Point [] ) =
     // Check the limits of the box inside the octree.Z
     let vertlim= boolv |> Array.exists(fun elem -> elem = true)     // If there are points inside
-    let limlim = onLimits |> Array.isEmpty                          // If there are points on the boundaries
+    let limlim = onLimits |> Array.isEmpty |> not                   // If there are points on the boundaries
 
     match (vertlim, limlim) with
     |(false,false) -> // Error, empty empty shouldn't exit

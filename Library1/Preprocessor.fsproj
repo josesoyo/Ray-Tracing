@@ -63,6 +63,7 @@
     <Compile Include="Octree.fs" />
     <None Include="Script.fsx" />
     <Content Include="packages.config" />
+    <None Include="test_octree_paral.fsx" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="MathNet.Numerics">

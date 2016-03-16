@@ -10,9 +10,19 @@ module Algebra =
     //      - dotprod:  *  v1*v2
     //      - crospro   >< v1^v1
     //      - this.IsParallelTo(v2, tolerance)
-
+    //
+    // Matrix -> initialized as zeromatrix
+    //      - ID
+    //      - sum   +
+    //      - prod  * (scalar*Matrix), (MAtrix*Matrix)
+    //      - RotateVector(v1 to v2)
+    //      - Determinant3X3
+    //      - Minor (det of the minor)
+    //      - invert3X3
 
     open Microsoft.FSharp.Data.UnitSystems.SI.UnitSymbols
+
+
 
     type Point(xp, yp , zp) =
         // must be in metre, but problematic if I use it
@@ -177,4 +187,56 @@ module Algebra =
                 (id + vx + cuadrado) //+ (mult*cuadrado)
                 //(vx,cuadrado, mult)
          
+        member this.Determinant3X3() =
+            // Determinant of matrix 3x3
+            let xn = this.RotMat.[2,0]*(this.RotMat.[0,1]*this.RotMat.[1,2] - this.RotMat.[0,2]*this.RotMat.[1,1])
+            let yn = this.RotMat.[2,1]*(-this.RotMat.[0,0]*this.RotMat.[1,2] + this.RotMat.[0,2]*this.RotMat.[1,0])
+            let zn = this.RotMat.[2,2]*(this.RotMat.[0,0]*this.RotMat.[1,1] - this.RotMat.[0,1]*this.RotMat.[1,0])
+            xn+yn+zn
+        
+        member this.Minor (a1:int,b1:int) =
+            let Det2X2 (a:float) (b:float) (c:float) (d:float) =
+                a*d-b*c
+            let SelectInd a =
+                match a with
+                | 0 -> (1,2)
+                | 1 -> (0,2)
+                | 2 -> (0,1)
+                | _ ->  printfn "Error on index: SelectInd"
+                        (0,0) //error
+             
+            let pass1 (a:int*int) =
+                let prim = SelectInd (fst a)
+                let secn = SelectInd (snd a)  
+                (prim,secn)
 
+            let pass2 (ma:Matrix) (a1:((int*int)*(int*int)))=
+                let d1, d2 = fst a1 , snd a1
+                // matrix elements
+                let a , b = ma.RotMat.[(fst d1), (fst d2)] , ma.RotMat.[fst d1, snd d2]
+                let c ,d = ma.RotMat.[snd d1, fst d2], ma.RotMat.[snd d1, snd d2]
+                Det2X2 a b c d
+            let Minori (mn:Matrix) = pass1 >> pass2 mn  // minor
+
+            (a1,b1)|> Minori this
+        member this.Invert3X3 () =
+            // nvert a matrix 3X3
+            let deter = this.Determinant3X3()
+            if abs deter < 1e-10 then
+                // error matrix not invertible
+                printfn "This matrix cannot be inverted, returns an empty matrix"
+                Matrix(3,3)
+            else
+                let newM = Matrix(3,3) // Generate an empty matrix
+                [|0..2|] 
+                |>  Array.iter(fun x -> ([|0..2|]
+                             // Transpose of the cofactor matrix
+                             |> Array.iter( fun y -> (x,y) |> this.Minor |> (fun minor -> (newM.RotMat.[y,x] <- (((-1.)**(float(y+x)))*( minor))))
+                            ))
+                     )
+
+                (1./deter)*newM // return the transpose matrix
+                               
+                               
+
+  

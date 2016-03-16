@@ -17,6 +17,8 @@ let (scene,matPath) = ReadMeshWavefront2(thingPath)
 // Construct the octree
 printfn "finished to read"
 //Octree (group:group [] , vert:float<metre> [] [], space:BBox, maxEle:int ,depth:int ,maxDepth:int)
+// async version creates 8 parts (no recursive nodes)
+//let octree = OctreeAsync(scene.groups , scene.Vertices, scene.Bbox , 1000 ,0 ,20)
 let octree = CreateOctree(scene.groups , scene.Vertices, scene.Bbox , 1000 ,0 ,20)
 
 printfn "Finished"

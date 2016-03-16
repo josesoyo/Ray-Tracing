@@ -32,6 +32,7 @@ module Octree =
 
 
 
+
     // Objectives of this module: Partitionate the meshes with an Octree algorithm
     let rec CreateOctree (group:group [] , vert:Point [], space:BBox, maxEle:int ,depth:int ,maxDepth:int):OctreeSystem []=
         // Function to create the octree based on the current situation of the types
@@ -63,3 +64,53 @@ module Octree =
         
        
         partition
+
+
+
+    //
+    //      Async part
+    //
+
+    let rec OctreeAsync(group:group [] , vert:Point [], space:BBox, maxEle:int ,depth:int ,maxDepth:int):OctreeSystem []=
+
+        // Prepare the List to asyncronize
+        let order = [1..2] |> List.collect( fun x -> 
+                     [1..2]  |> List.collect(fun y ->
+                         [1..2] |> List.map(fun z -> (x,y,z))
+                         ))
+
+
+                        
+        
+
+        let asyncOct(orderi,group,vert,space,maxEle,depth,maxDepth ) = async { let (aa,bb,cc)= orderi
+                                                                              return OctreeCore(aa,bb,cc,group,vert,space,maxEle,depth,maxDepth ) }
+
+        let partition = order 
+                          |> List.collect(fun x -> [asyncOct(x,group,vert,space,maxEle,depth,maxDepth )])
+                          |> Async.Parallel |> Async.RunSynchronously
+                          |> Array.collect(fun x -> x) 
+
+                          
+
+        partition
+    //
+    and OctreeCore(aa,bb,cc,group,vert,space,maxEle,depth,maxDepth )=
+        // to be executed inside OctreeAsync, it was a lambda
+        let tupleResult =OctBucle(aa,bb,cc,group,vert,space,maxEle,depth,maxDepth )
+        printfn "aa bb cc and detph are %d %d %d %d" aa bb cc depth
+        let out = (fst tupleResult)
+        if snd tupleResult < maxEle then // the maxEle should count the maxDepth counter  
+            [|Partition(out)|]
+        else  
+            // Compute bbox of elements
+            let mutable reducedBox = {Pmin = Point(infinity, infinity,infinity);
+                                    Pmax = Point(-infinity,-infinity,-infinity)}
+            // Compute union of two bboxes                           
+            out |> Array.iter(fun n -> reducedBox <- BoxofUnion((snd n).Bbox, reducedBox))
+            //  Not recursive the creation of async because I use the non parallel version for recursivity.
+            [|Octree({Bbox =reducedBox ; Octree =CreateOctree (group, vert, reducedBox, maxEle,depth+1,maxDepth) })|]
+
+
+
+    //
