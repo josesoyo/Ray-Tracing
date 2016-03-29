@@ -5,6 +5,7 @@ module Algebra =
     // Point(x,y,z)
     //      - this.move(dx,dy,dz)
     // Vector(v,u,w) & UnitVector(v,u,w)
+    //      - To UnitVector & ToPoint
     //      - sum:      +
     //      - prod      *  scalar*vect
     //      - dotprod:  *  v1*v2
@@ -59,6 +60,7 @@ module Algebra =
         //member
         member this.Module() = sqrt(x*x+y*y+z*z)
         member this.ToUnitVector() = UnitVector(this.X,this.Y,this.Z)
+        member this.ToPoint() = Point(this.X,this.Y,this.Z)
         // operations that can be done
         // Sum vectors
         static member (+) (v1:Vector, v2:Vector) = Vector(v1.X + v2.X,v1.Y + v2.Y,v1.Z + v2.Z)
@@ -93,7 +95,7 @@ module Algebra =
         member this.IsParallelTo(v2:Vector, tol: float) =
             let cros = this><v2     // Cross product x
             let tol = tol |> LanguagePrimitives.FloatWithMeasure
-            if abs(cros.X) < tol && abs(cros.Y) < tol && abs(cros.Z) > tol then true
+            if abs(cros.X) < tol && abs(cros.Y) < tol && abs(cros.Z) < tol then true
             else false
     and UnitVector(xv:float, yv:float , zv:float) =
         let modulo = float (sqrt(xv*xv+yv*yv+zv*zv)) 
@@ -117,7 +119,7 @@ module Algebra =
         static member (><) (v1:UnitVector, v2:UnitVector) =
             let xn = v1.Y*v2.Z - v1.Z*v2.Y
             let yn = -v1.X*v2.Z + v1.Z*v2.X
-            let zn = v1.X*v2.Y - v1.X*v2.Y
+            let zn = v1.X*v2.Y - v1.Y*v2.X
             UnitVector(xn,yn,zn)
     // still lacks the rotation matrix:
     // http://math.stackexchange.com/questions/180418/calculate-rotation-matrix-to-align-vector-a-to-vector-b-in-3d
