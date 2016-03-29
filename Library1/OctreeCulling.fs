@@ -22,7 +22,7 @@ let vinside(vertice:Point , box:BBox) =
     //               CAREFULL!!!
     //               One side should be < and the other >=, but I create a problem on the edges...
     //              To solve: if npart=nmax then pmax=pmax+0.01
-    if vertice.X < box.Pmax.X && vertice.Y < box.Pmax.Y && vertice.Z < box.Pmax.Z then 
+    if vertice.X <= box.Pmax.X && vertice.Y <= box.Pmax.Y && vertice.Z <= box.Pmax.Z then 
         if vertice.X >= box.Pmin.X && vertice.Y >= box.Pmin.Y && vertice.Z >= box.Pmin.Z then true
         else false     
     else false
@@ -70,7 +70,7 @@ let Edges2RayFrom (box:BBox) =
     let CubeTriangles = [|[1;2;4];[1;4;3];[1;2;3]; [8;5;6];[8;7;6];[8;7;5]|]
     //let CubeDummyNormals = [|UnitVector3D(0.,0.,-1.)|] 
 
-    let CubeMesh = {Vertices = CubeVertices |>Array.map(fun x -> Point(x.X, x.Y, x.X));
+    let CubeMesh = {Vertices = CubeVertices //|>Array.map(fun x -> Point(x.X, x.Y, x.Z));
                     Triangles=CubeTriangles;
                     Bbox=box}
     (Array.append (Array.append vfirst vsecond) vlast, CubeMesh)
@@ -103,10 +103,10 @@ let RealBoolean(vertBool: bool [], tri:int list,vertices: Point [], edgeRays:Ray
                 from = vertices.[tri.[1]-1];
                 travelled = 0.};
             {uvec= r2.ToUnitVector();length = r2.Module();
-                from =vertices.[tri.[1]-1];
+                from =vertices.[tri.[2]-1];
                 travelled = 0.}
             {uvec= r3.ToUnitVector();length = r3.Module();
-                from = vertices.[tri.[2]-1]
+                from = vertices.[tri.[0]-1]
                 ;travelled = 0.}
                 |]
         let cubeIntersected (triangleRay:RayFrom, cubeMesh:OLDmesh): Intersection [] =

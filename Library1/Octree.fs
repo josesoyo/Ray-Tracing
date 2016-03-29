@@ -44,22 +44,25 @@ module Octree =
                               [|(let tupleResult = OctBucle(aa,bb,cc,group,vert,space,maxEle,depth,maxDepth ) 
                                  printfn "aa bb cc are %d %d %d" aa bb cc
                                  let out = (fst tupleResult)
-                                 if snd tupleResult < maxEle then // the maxEle should count the maxDepth counter  
-                                     [|Partition(out)|]
-                                 else  
-                                     // Compute bbox of elements
-                                     let mutable reducedBox = {Pmin = Point(infinity, infinity,infinity);
-                                                               Pmax = Point(-infinity,-infinity,-infinity)}
-                                     // Compute union of two bboxes                           
-                                     out |> Array.iter(fun n -> reducedBox <- BoxofUnion((snd n).Bbox, reducedBox))
 
+                                  // Compute bbox of elements
+                                 let mutable reducedBox = {Pmin = Point(infinity, infinity,infinity);
+                                                           Pmax = Point(-infinity,-infinity,-infinity)}
+                                 // Compute union of two bboxes                           
+                                 out |> Array.iter(fun n -> reducedBox <- BoxofUnion((snd n).Bbox, reducedBox))
+
+                                 if snd tupleResult < maxEle then // the maxEle should count the maxDepth counter  
+                                     if  (out |> Array.isEmpty) then [||] // I was creating a Partition being empty...
+                                     else [|Partition({Bbox= reducedBox; Partition = out})|]
+                                 else  
+                                    
                                      [|Octree({Bbox =reducedBox ; Octree =CreateOctree (group, vert, reducedBox, maxEle,depth+1,maxDepth) })|]
-                                )
+                                ) 
                                 
-                              |]
+                              |] |> Array.collect(fun z -> z)
                              )
                            )
-                         ) |> Array.collect(fun z -> z)
+                         ) //|> Array.collect(fun z -> z)
         
         
        
@@ -100,14 +103,14 @@ module Octree =
         let tupleResult =OctBucle(aa,bb,cc,group,vert,space,maxEle,depth,maxDepth )
         printfn "aa bb cc and detph are %d %d %d %d" aa bb cc depth
         let out = (fst tupleResult)
+        // Compute bbox of elements
+        let mutable reducedBox = {Pmin = Point(infinity, infinity,infinity);
+                                  Pmax = Point(-infinity,-infinity,-infinity)}
+        // Compute union of two bboxes                           
+        out |> Array.iter(fun n -> reducedBox <- BoxofUnion((snd n).Bbox, reducedBox))
         if snd tupleResult < maxEle then // the maxEle should count the maxDepth counter  
-            [|Partition(out)|]
+            [|Partition({Bbox= reducedBox; Partition = out})|]
         else  
-            // Compute bbox of elements
-            let mutable reducedBox = {Pmin = Point(infinity, infinity,infinity);
-                                    Pmax = Point(-infinity,-infinity,-infinity)}
-            // Compute union of two bboxes                           
-            out |> Array.iter(fun n -> reducedBox <- BoxofUnion((snd n).Bbox, reducedBox))
             //  Not recursive the creation of async because I use the non parallel version for recursivity.
             [|Octree({Bbox =reducedBox ; Octree =CreateOctree (group, vert, reducedBox, maxEle,depth+1,maxDepth) })|]
 
