@@ -119,19 +119,19 @@ let RealBoolean(vertBool: bool [], tri:int list,vertices: Point [], edgeRays:Ray
         | [||] -> (false, [||])
         | _  -> (true, allPos)
         
-let tinside(vertBool:bool [], vertices: Point [],triangles:int list [] ,box:BBox, gbox:BBox) =
+let tinside(vertBool:bool [], vertices: Point [],trianglesnormals:(int list*UnitVector) [] ,box:BBox, gbox:BBox) =
     // Returns an Array with a tuple: (Triangle [], Point3D []) 
     //the bool says if there's intersection with the partition and [||] if there's on the edges
     // fun Edges2RayFrom(box) -> (Ray*cubemesh)
     let interbool = BoxBoxIntersection(box,gbox)
     if interbool then
         let (edgeRays, cubeMesh) =Edges2RayFrom(box)
-        let BoolTandPoints = triangles |> Array.map(fun x -> RealBoolean(vertBool, x, vertices, edgeRays, cubeMesh) )
-        let Triangles  = BoolTandPoints|>  Array.map(fun x -> fst x)  |> fun x ->  ( x ,triangles)
+        let BoolTandPoints = trianglesnormals |> Array.map(fun x -> RealBoolean(vertBool,fst x, vertices, edgeRays, cubeMesh) )
+        let TrianglesNormals  = BoolTandPoints|>  Array.map(fun x -> fst x)  |> fun x ->  ( x ,trianglesnormals)
                                         ||> Array.map2(fun x y -> IDlist(y,x)) |> Array.collect(fun x -> x)
         //let Triangles =  [|0..(BoolT.Length-1)|] |> Array.collect(fun x -> IDlist(x,BoolT.[x])) 
         let Points = BoolTandPoints |> Array.collect(fun x -> snd x)
-        (Triangles,Points)
+        (TrianglesNormals,Points)
     else ([||],[||])
 let SubMeshBox(onLimits: Point [] ,boolv:bool [], vertices: Point [] ) =
     // Check the limits of the box inside the octree.Z
@@ -197,20 +197,20 @@ let  PartitionateGroup(space:BBox,groups:group [],vertices:Point[]):(int*group) 
     let VertInBool = VertInside(space,vertices)
 
     // Iter on groups
-    printfn "entering in tinside"
-    let iter = groups |> Array.Parallel.mapi(fun i x -> (i,(tinside(VertInBool,vertices,x.Triangles,space,x.Bbox))))
+    //printfn "entering in tinside"
+    let iter = groups |> Array.Parallel.mapi(fun i x -> (i,(tinside(VertInBool,vertices,x.TrianglesNormals,space,x.Bbox))))
                         // true if the triangles are not empty
                         |> Array.filter(fun x -> 
                                         (not  (Array.isEmpty (fst (snd x))))
                                         )   
                         // MeshID*(triangles*PointsOnBoundary)
 
-    printfn "leaving in tinside"
+    //printfn "leaving in tinside"
     let subBox = iter |>  Array.Parallel.map(fun  x  -> SubMeshBox(snd (snd x ), VertInBool,vertices))
-    printfn "Submeshbox done"
+    //printfn "Submeshbox done"
     (iter , subBox) ||> Array.map2(fun it sbox ->
                                                 (fst it ,
-                                                 {Name =(groups.[(fst it)].Name) ; Triangles = fst(snd(it));Normals = [||]; 
+                                                 {Name =(groups.[(fst it)].Name) ; TrianglesNormals = fst(snd(it));
                                                   Bbox = sbox; MatName=(groups.[(fst it)].MatName)})
                                             )
 

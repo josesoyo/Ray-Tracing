@@ -44,8 +44,12 @@ module Algebra =
             x <- x+dx
             y <- y+dy
             z <- z + dz
-        // Diference between points gives a vector
+        member this.Move(p:Point) = 
+            x <- x+p.X
+            y <- y+p.Y
+            z <- z + p.Z
         static member (-) (p1:Point,p2:Point) = Vector(float(p1.X - p2.X), float(p1.Y - p2.Y), float(p1.Z - p2.Z))
+        // Diference between points gives a vector
     and Vector(xv, yv , zv) =
         let x:float = xv //|> LanguagePrimitives.FloatWithMeasure
         let y:float = yv //|> LanguagePrimitives.FloatWithMeasure

@@ -31,47 +31,50 @@ module reading =
     ///
     /// /// ///
     
-    let rec ReadGroup_Vn (lines:string list, tList: int list [], nList: UnitVector [] ,vertices: Point [],
+    let rec ReadGroup_Vn (lines:string list, tListnList: (int list*UnitVector)[] ,vertices: Point [],
                           gname:string,matname:string) =
       // read all the faces in a group
       let first = lines.Head
-      let mutable normals = nList
-      let mutable triangles = tList  
+      let mutable trianglesnormals = tListnList
+      //let mutable triangles =   
       
       if first.StartsWith("f") then
         // read the triangles and add them from old routintes in ObjReader.fs
         // compute the new normal -> Carefull! Remember the point of the orientation. ¿May I use the normals of the vertives?
         let ntriangle = TriVertNfromFile (first)                 // read the triangle id
-        if TestMeshParallel(vertices,ntriangle) then ReadGroup_Vn(lines.Tail,triangles, normals,vertices,gname,matname)
+        if TestMeshParallel(vertices,ntriangle) then ReadGroup_Vn(lines.Tail,trianglesnormals,vertices,gname,matname)
         else
-            //let nnormal = MeshNormals(vertices,ntriangle)    // Compute the normal
-            triangles <- Array.append triangles [|ntriangle|]
-            //normals <- normals@[nnormal]
-            if lines.Length > 1 then ReadGroup_Vn(lines.Tail,triangles, normals,vertices,gname,matname)
+            let nnormal = MeshNormals(vertices,ntriangle)    // Compute the normal
+            trianglesnormals <- Array.append trianglesnormals [|(ntriangle,nnormal)|]
+             
+            if lines.Length > 1 then 
+                ReadGroup_Vn(lines.Tail,trianglesnormals,vertices,gname,matname)
             else                // End Of File
               // To finish one Compute BBox 
           
-              let bbox = BBtri(triangles,vertices)
-              if triangles.Length <> 6 then
+              let bbox = BBtri(trianglesnormals,vertices)
+              if ntriangle.Length <> 6 then
                 printfn "There is an error on the reading of the faces and vn!!!!"
-              ({Name = gname; Triangles = triangles;Normals = normals;Bbox =bbox; MatName =matname}, lines.Tail)          
+              ({Name = gname; TrianglesNormals = trianglesnormals;Bbox =bbox; MatName =matname}, lines.Tail)          
       //elif first.StartsWith("") then ReadGroup_Vn(lines.Tail,triangles, normals,vertices) // ALWAYS TRUE...
       elif first.StartsWith("usemtl") then 
         printfn "Carefull this is not well considered how the usemtlib works"
-        ReadGroup_Vn(lines.Tail,triangles, normals,vertices,gname,matname)
+        ReadGroup_Vn(lines.Tail,trianglesnormals,vertices,gname,matname)      
+      elif first.StartsWith(" ") && lines.Length > 1 then 
+        printfn "Carefull this is not well considered how the usemtlib works"
+        ReadGroup_Vn(lines.Tail,trianglesnormals,vertices,gname,matname)
       else 
-        let bbox =BBtri(triangles,vertices)
-        ({Name= gname;Triangles = triangles;Normals = normals;Bbox =bbox; MatName =matname}, lines.Tail)
+        let bbox =BBtri(trianglesnormals,vertices)
+        ({Name= gname;TrianglesNormals = trianglesnormals;Bbox =bbox; MatName =matname}, lines.Tail)
        
       
           
-    let rec ReadGroup(lines:string list, tList: int list [], nList: UnitVector [],vertices: Point [] ,
+    let rec ReadGroup(lines:string list, tListnList: (int list* UnitVector) [],vertices: Point [] ,
                        gname:string,matname:string) =
       
       // read all the faces in a group
       let first = lines.Head
-      let mutable normals = nList
-      let mutable triangles = tList
+      let mutable trianglesnormals = tListnList
 
       if first.StartsWith("f") then
         // read the triangles and add them from old routintes in ObjReader.fs
@@ -79,23 +82,22 @@ module reading =
         let ntriangle = TrifromFile (first)                 // read the triangle id
         
         let nnormal = MeshNormals(vertices,ntriangle)    // Compute the normal
-        if nnormal = UnitVector(0.,0.,0.) then ReadGroup(lines.Tail,triangles, normals,vertices,gname,matname)
+        if nnormal = UnitVector(0.,0.,0.) then ReadGroup(lines.Tail,trianglesnormals,vertices,gname,matname)
         else
-            triangles <- Array.append triangles [|ntriangle|]
-            normals <-  Array.append normals [|nnormal|]
-            if lines.Length > 1 then ReadGroup(lines.Tail,triangles, normals,vertices,gname,matname)
+            trianglesnormals <- Array.append trianglesnormals [|ntriangle,nnormal|]
+            if lines.Length > 1 then ReadGroup(lines.Tail,trianglesnormals,vertices,gname,matname)
             else                // End Of File
               // To finish one Compute BBox 
           
-              let bbox = BBtri(triangles,vertices)
-              ({Name = gname;Triangles = triangles;Normals = normals;Bbox =bbox; MatName = matname}  , lines.Tail)         
+              let bbox = BBtri(trianglesnormals,vertices)
+              ({Name = gname;TrianglesNormals = trianglesnormals;Bbox =bbox; MatName = matname}  , lines.Tail)         
           //elif first.StartsWith("") then ReadGroup_Vn(lines.Tail,triangles, normals,vertices)      
       elif first.StartsWith("usemtl") then 
         printfn "Carefull this is not well considered how the usemtlib works"
-        ReadGroup(lines.Tail,triangles, normals,vertices,gname,matname)
+        ReadGroup(lines.Tail,trianglesnormals,vertices,gname,matname)
       else 
-        let bbox =BBtri(triangles,vertices)
-        ({Name = gname; Triangles = triangles;Normals = normals;Bbox =bbox; MatName = matname}, lines.Tail)
+        let bbox =BBtri(trianglesnormals,vertices)
+        ({Name = gname; TrianglesNormals = trianglesnormals;Bbox =bbox; MatName = matname}, lines.Tail)
 
 
 
@@ -104,27 +106,27 @@ module reading =
     /// /// ///
     //              Read Lines
     /// /// ///
-    let  rec find_Face_Vn (lines:string list, tList: int list [], nList: UnitVector [] ,vertices: Point[],gname:string) =
+    let  rec find_Face_Vn (lines:string list, tListnList: (int list* UnitVector) [] ,vertices: Point[],gname:string) =
          // Required because sometimes after a groups starts, there's an empty line
          //if lines.Head.StartsWith("f")  then
          //   ReadGroup_Vn(lines,tList, nList,vertices,gname,matname)
          if lines.Head.StartsWith("usemtl") then 
             //Should start always with a material
             let matname = lines.Head.Substring(7) // usemtl + 1char
-            ReadGroup_Vn(lines.Tail,tList, nList,vertices,gname,matname)
+            ReadGroup_Vn(lines.Tail,tListnList,vertices,gname,matname)
          else//elif tail.Head.StartsWith("g") || first.StartsWith("s") then
-            find_Face_Vn(lines.Tail, tList, nList ,vertices,gname)
+            find_Face_Vn(lines.Tail, tListnList ,vertices,gname)
 
-    let  rec find_Face (lines:string list, tList: int list [], nList: UnitVector [] ,vertices: Point [],
+    let  rec find_Face (lines:string list, tListnList: (int list *UnitVector) [] ,vertices: Point [],
                         gname:string) =
          // Required because sometimes after a groups starts, there's an empty line
 
          if lines.Head.StartsWith("usemtl") then 
             //Should start always with a material
             let matname = lines.Head.Substring(7) // usemtl + 1char
-            ReadGroup(lines.Tail,tList, nList,vertices,gname,matname)
+            ReadGroup(lines.Tail,tListnList,vertices,gname,matname)
          else//elif tail.Head.StartsWith("g") || first.StartsWith("s") then
-            find_Face(lines.Tail, tList, nList ,vertices,gname)
+            find_Face(lines.Tail, tListnList ,vertices,gname)
 
     
     let rec ReadTheLines_Vn (lines:string list, oldvert, oldvertn ,oldgroups,oldbox:BBox,matLibPath:string) =
@@ -147,7 +149,7 @@ module reading =
                 // Read the new group type
                 //let tail = lines.Tail
                 let gname = first.Substring(2)
-                let (ngroups,newlines) = find_Face_Vn(lines.Tail,[||],[||],vert, gname)
+                let (ngroups,newlines) = find_Face_Vn(lines.Tail,[||],vert, gname)
                 //let ngroups = ReadGroup_Vn(lines.Tail,[],[],vert)        
                 groups <-  Array.append groups [|ngroups|]
                 nlines <- newlines
@@ -191,7 +193,7 @@ module reading =
       | "g " ->
         //do groups 
         let gname = first.Substring(2)
-        let (ngroups, newlines) = find_Face(lines.Tail,[||],[||],vert,gname)//ReadGroup(lines.Tail,[],[],vert,gname)
+        let (ngroups, newlines) = find_Face(lines.Tail,[||],vert,gname)//ReadGroup(lines.Tail,[],[],vert,gname)
         printfn "help me!"
         groups <-  Array.append groups [|ngroups|]
         nlines <- newlines
@@ -201,7 +203,7 @@ module reading =
         nmatLibPath <- OpenMatLib(mlib)
       | "us" ->
         printfn "There is a material library used and there's an error because must be read inside a group"
-      | _ -> printfn "line: %s" first
+      | _ ->  first |> ignore
        
       if first.StartsWith("vn") then
         // Here I use another function to read the mesh with vertice normals

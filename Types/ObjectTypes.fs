@@ -10,9 +10,8 @@ module ObjectTypes=
 
     type BBox = {Pmin :Point ; Pmax:Point}
 
-    type group = {Name:string; Triangles: int list [];  Normals: UnitVector [];Bbox:BBox; MatName:string}
+    type group = {Name:string; TrianglesNormals: (int list *UnitVector)[];Bbox:BBox; MatName:string}
     type mesh = {Vertices:Point [] ; VNormals:UnitVector []; groups: group [] ;Bbox:BBox}
-
     type sphere = {center:Point; radius:float<m>}//; material:Material }
     type partSphere = {Sphere:sphere; 
                        zmin:float<m>; zmax:float<m>;
@@ -64,8 +63,11 @@ module ObjectTypes=
 
     type OctreeSystem =                         // I consider that now only the triangles will be in the octree
     |Octree of Octree
-    |Partition of (int*group) []                // int is the identifier of the group: GroupID
+    |Partition of Partition                    // int is the identifier of the group: GroupID
     and Octree = {Bbox:BBox; Octree: OctreeSystem []}
+    and Partition = {Bbox: BBox; Partition:(int*group) []}
     //and Grid3D = {Bbox:BBox; Triangles: int list []; Name:string; MatName:string}
 
+    // add all the mesh+octree of the mesh into a single element
+    type elementMesh = {Mesh:mesh; Octree: OctreeSystem[] }
 

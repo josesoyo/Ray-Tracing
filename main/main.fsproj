@@ -56,9 +56,19 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\BackwardRender\BackwardRender.fsproj">
+      <Name>BackwardRender</Name>
+      <Project>{bff86b6e-6b2f-4269-993d-60db9c6991cc}</Project>
+      <Private>True</Private>
+    </ProjectReference>
     <ProjectReference Include="..\Library1\Preprocessor.fsproj">
       <Name>Preprocessor</Name>
       <Project>{856172f8-db0f-48a1-8c47-9bdae578a3cc}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\RayTracing\RayTracing.fsproj">
+      <Name>RayTracing</Name>
+      <Project>{275a4379-b682-43d1-9e7d-32da266922e5}</Project>
       <Private>True</Private>
     </ProjectReference>
     <ProjectReference Include="..\Types\Types.fsproj">

@@ -144,10 +144,11 @@ let TestMeshParallel(nodes:Point [], triangle:int list) =
     //AreParallel(u0u1,u0u2,1e-10) 
     u0u1.IsParallelTo(u0u2,1e-10) 
 
-let OpenMatLib(seq:string) =
+let OpenMatLib(lpath:string) =
     // Just read the string of the direction of the library
-    let shortPath = "wavefront\\" + seq.Substring(7)
+    let shortPath = "..\\main\\wavefront\\" + lpath
     Path.Combine(__SOURCE_DIRECTORY__,shortPath)
+
 let ReadMatLib(seq:string) =
     seq.Substring(7)    
 

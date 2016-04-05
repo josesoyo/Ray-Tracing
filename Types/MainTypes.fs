@@ -27,7 +27,8 @@ module types =
                 MaxLength:float<m>                              // Max distance can travell (should be infinite by defect)
                 OpticalPathTravelled: float<m>;                   // Optical Path Length Modified after every step with the IOR
                 NumBounces: int; mutable bounces: float list;     // Num of bounces + the positions (Just in case for the future)
-                NumOfParticles: int                               // Num of photos -> To split in a Lambertian surface, etc...
+                NumOfParticles: int;                               // Num of photos -> To split in a Lambertian surface, etc...
+                IndexOfRefraction:float
                 }
 
-
+    type Intersection = { normal:UnitVector; point:Point; ray:Ray;MatName:string; t:float<m>}

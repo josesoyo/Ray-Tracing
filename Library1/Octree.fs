@@ -25,7 +25,7 @@ module Octree =
                                            vertices )
         let numEle =        // Include the max depth as a terminator on Octree
             if depth < maxDepth then 
-                subgroups |> Array.sumBy(fun x -> (snd x).Triangles.Length)
+                subgroups |> Array.sumBy(fun x -> (snd x).TrianglesNormals.Length)
             else
                 maxEle+100
         (subgroups,numEle)
@@ -42,7 +42,7 @@ module Octree =
                           [|1..2|] |> Array.collect(fun bb ->
                             [|1..2|] |> Array.collect(fun cc -> 
                               [|(let tupleResult = OctBucle(aa,bb,cc,group,vert,space,maxEle,depth,maxDepth ) 
-                                 printfn "aa bb cc are %d %d %d" aa bb cc
+                                 printfn "depth: %d \t aa bb cc are %d %d %d" depth aa bb cc
                                  let out = (fst tupleResult)
 
                                   // Compute bbox of elements

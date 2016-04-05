@@ -3,10 +3,13 @@
 //  *BoxofIntersection:     Computes the intersection BBox of two different bbox
 //  *BoxofUnion:            Computes the union of two boxes
 //  *BoxBoxIntersection:    Checks if two bbox have intersection -> bool 
+//  
+//  *BBox_intersec         Intersects ta ray with a bbox (no intersection -> infinity)
 // 
 
 open Types.ObjectTypes 
 open Types.Algebra
+open Types.types
 
 let BoxofIntersection (box1:BBox, box2:BBox) =
     //Checks which one is the intersected space between two boxes
@@ -100,3 +103,54 @@ let BoxBoxIntersection (box1:BBox, box2:BBox) =
 
     if xlim || ylim || zlim then false
     else true
+
+
+
+let BBox_intersec(ray:Ray, box:BBox) =
+    // intersection of ray with a bbox
+    let Pminl = box.Pmin
+    let Pmaxl = box.Pmax
+    let FarandClosePoints (uvec:UnitVector,box:BBox) =
+        // Returns a tuple with the closes point and the furthest point considering the ray direction
+        let x =
+            if uvec.X < 0. then (box.Pmin.X,box.Pmax.X)
+            else (box.Pmax.X,box.Pmin.X)
+        let y =
+            if uvec.Y < 0. then box.Pmin.Y ,box.Pmax.Y
+            else box.Pmax.Y , box.Pmin.Y
+        let z =
+            if uvec.Z < 0. then box.Pmin.Z ,box.Pmax.Z
+            else box.Pmax.Z ,box.Pmin.Z
+        Point(fst x,fst y,fst z) , Point (snd x, snd y , snd z)
+
+    // Find the closest and furthest point considering the ray direction
+    let farp, closep = FarandClosePoints(ray.uvec, box)
+
+    let intersection_rb p rpo rv =
+        // distance of intersection ray-plane (all floats)
+        (p-rpo)/rv
+
+    // The condition is that the minimum distance of the intersection with Pmax on x,y and z planes 
+    // is bigger then the avlue of the maximum of the minimum planes of Pmin
+    let tMinOfMaxL  =
+        let tx = intersection_rb farp.X ray.from.X ray.uvec.X
+        let ty = intersection_rb farp.Y ray.from.Y ray.uvec.Y
+        let tz = intersection_rb farp.Z ray.from.Z ray.uvec.Z
+        List.min [ tx; ty;tz]
+    let tMaxOfMinL  =
+        // Find the maximum distance of the minimums 
+        let tx = intersection_rb closep.X ray.from.X ray.uvec.X //|> (fun control -> if control < 0. then 0. else control) 
+        let ty = intersection_rb closep.Y ray.from.Y ray.uvec.Y 
+        let tz = intersection_rb closep.Z ray.from.Z ray.uvec.Z 
+        List.max [ tx; ty; tz]
+
+    // Return the intersection distance or infinite if they don't intersect
+    if   tMinOfMaxL > tMaxOfMinL then
+        //sqrt (tMaxOfMinL.[0]*tMaxOfMinL.[0]+tMaxOfMinL.[1]*tMaxOfMinL.[1]+tMaxOfMinL.[2]*tMaxOfMinL.[2]) // distance of intersection
+        if tMaxOfMinL < 0. && tMinOfMaxL > 0. then// not sense for negative  collision
+            0.
+        elif tMaxOfMinL > 0. && tMinOfMaxL > 0. then // Both bigger than 0. -> the Normal solution
+            tMaxOfMinL
+        else    // Both lower than zero -> No collision discarded with an infinity
+            infinity
+    else infinity   // To say that it doesn't intersect
