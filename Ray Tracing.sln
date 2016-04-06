@@ -6,8 +6,23 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Preprocessor", "Library1\Preprocessor.fsproj", "{856172F8-DB0F-48A1-8C47-9BDAE578A3CC}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "main", "main\main.fsproj", "{B55EBCD2-273A-4F56-873D-0D05B19FFE80}"
+	ProjectSection(ProjectDependencies) = postProject
+		{BFF86B6E-6B2F-4269-993D-60DB9C6991CC} = {BFF86B6E-6B2F-4269-993D-60DB9C6991CC}
+		{275A4379-B682-43D1-9E7D-32DA266922E5} = {275A4379-B682-43D1-9E7D-32DA266922E5}
+	EndProjectSection
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Types", "Types\Types.fsproj", "{5FB39736-0E82-43C4-BCE1-9CA3C5FE9815}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "RayTracing", "RayTracing\RayTracing.fsproj", "{275A4379-B682-43D1-9E7D-32DA266922E5}"
+	ProjectSection(ProjectDependencies) = postProject
+		{5FB39736-0E82-43C4-BCE1-9CA3C5FE9815} = {5FB39736-0E82-43C4-BCE1-9CA3C5FE9815}
+	EndProjectSection
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "BackwardRender", "BackwardRender\BackwardRender.fsproj", "{BFF86B6E-6B2F-4269-993D-60DB9C6991CC}"
+	ProjectSection(ProjectDependencies) = postProject
+		{5FB39736-0E82-43C4-BCE1-9CA3C5FE9815} = {5FB39736-0E82-43C4-BCE1-9CA3C5FE9815}
+		{275A4379-B682-43D1-9E7D-32DA266922E5} = {275A4379-B682-43D1-9E7D-32DA266922E5}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +42,14 @@ Global
 		{5FB39736-0E82-43C4-BCE1-9CA3C5FE9815}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5FB39736-0E82-43C4-BCE1-9CA3C5FE9815}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5FB39736-0E82-43C4-BCE1-9CA3C5FE9815}.Release|Any CPU.Build.0 = Release|Any CPU
+		{275A4379-B682-43D1-9E7D-32DA266922E5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{275A4379-B682-43D1-9E7D-32DA266922E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{275A4379-B682-43D1-9E7D-32DA266922E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{275A4379-B682-43D1-9E7D-32DA266922E5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BFF86B6E-6B2F-4269-993D-60DB9C6991CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BFF86B6E-6B2F-4269-993D-60DB9C6991CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BFF86B6E-6B2F-4269-993D-60DB9C6991CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BFF86B6E-6B2F-4269-993D-60DB9C6991CC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -82,20 +82,15 @@ module Octree =
                          [1..2] |> List.map(fun z -> (x,y,z))
                          ))
 
-
-                        
+                                                
         
-
         let asyncOct(orderi,group,vert,space,maxEle,depth,maxDepth ) = async { let (aa,bb,cc)= orderi
-                                                                              return OctreeCore(aa,bb,cc,group,vert,space,maxEle,depth,maxDepth ) }
-
+                                                                               return OctreeCore(aa,bb,cc,group,vert,space,maxEle,depth,maxDepth ) }
         let partition = order 
-                          |> List.collect(fun x -> [asyncOct(x,group,vert,space,maxEle,depth,maxDepth )])
-                          |> Async.Parallel |> Async.RunSynchronously
-                          |> Array.collect(fun x -> x) 
-
+                            |> List.collect(fun x -> [asyncOct(x,group,vert,space,maxEle,depth,maxDepth )])
+                            |> Async.Parallel |> Async.RunSynchronously
+                            |> Array.collect(fun x -> x) 
                           
-
         partition
     //
     and OctreeCore(aa,bb,cc,group,vert,space,maxEle,depth,maxDepth )=
@@ -108,11 +103,19 @@ module Octree =
                                   Pmax = Point(-infinity,-infinity,-infinity)}
         // Compute union of two bboxes                           
         out |> Array.iter(fun n -> reducedBox <- BoxofUnion((snd n).Bbox, reducedBox))
-        if snd tupleResult < maxEle then // the maxEle should count the maxDepth counter  
-            [|Partition({Bbox= reducedBox; Partition = out})|]
-        else  
-            //  Not recursive the creation of async because I use the non parallel version for recursivity.
-            [|Octree({Bbox =reducedBox ; Octree =CreateOctree (group, vert, reducedBox, maxEle,depth+1,maxDepth) })|]
+        if depth = 0 then
+            if snd tupleResult < maxEle then // the maxEle should count the maxDepth counter  
+                [|Partition({Bbox= reducedBox; Partition = out})|]
+            else  
+                //  Not recursive the creation of async because I use the non parallel version for recursivity.
+                [|Octree({Bbox =reducedBox ; Octree =OctreeAsync (group, vert, reducedBox, maxEle,depth+1,maxDepth) })|]
+
+        else
+            if snd tupleResult < maxEle then // the maxEle should count the maxDepth counter  
+                [|Partition({Bbox= reducedBox; Partition = out})|]
+            else  
+                //  Not recursive the creation of async because I use the non parallel version for recursivity.
+                [|Octree({Bbox =reducedBox ; Octree =CreateOctree (group, vert, reducedBox, maxEle,depth+1,maxDepth) })|]
 
 
 
