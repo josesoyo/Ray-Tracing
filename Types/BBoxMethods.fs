@@ -147,7 +147,7 @@ let BBox_intersec(ray:Ray, box:BBox) =
     // Return the intersection distance or infinite if they don't intersect
     if   tMinOfMaxL > tMaxOfMinL then
         //sqrt (tMaxOfMinL.[0]*tMaxOfMinL.[0]+tMaxOfMinL.[1]*tMaxOfMinL.[1]+tMaxOfMinL.[2]*tMaxOfMinL.[2]) // distance of intersection
-        if tMaxOfMinL < 0. && tMinOfMaxL > 0. then// not sense for negative  collision
+        if tMaxOfMinL <= 0. && tMinOfMaxL >= 0. then// not sense for negative  collision
             0.
         elif tMaxOfMinL > 0. && tMinOfMaxL > 0. then // Both bigger than 0. -> the Normal solution
             tMaxOfMinL
