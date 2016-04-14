@@ -2,6 +2,7 @@
 
 module Algebra =
     // Types added:
+    //  infi : infinty with measure <m>
     // Point(x,y,z)
     //      - this.move(dx,dy,dz)
     // Vector(v,u,w) & UnitVector(v,u,w)
@@ -24,6 +25,7 @@ module Algebra =
     open Microsoft.FSharp.Data.UnitSystems.SI.UnitSymbols
 
 
+    let infi:float<m> = (infinity |> LanguagePrimitives.FloatWithMeasure)     //inifinity with unit of measure
 
     type Point(xp, yp , zp) =
         // must be in metre, but problematic if I use it
@@ -49,6 +51,7 @@ module Algebra =
             y <- y+p.Y
             z <- z + p.Z
         static member (-) (p1:Point,p2:Point) = Vector(float(p1.X - p2.X), float(p1.Y - p2.Y), float(p1.Z - p2.Z))
+        static member FromMeasures(x:float<m>,y:float<m>,z:float<m>) = Point(float x , float y, float z)
         // Diference between points gives a vector
     and Vector(xv, yv , zv) =
         let x:float = xv //|> LanguagePrimitives.FloatWithMeasure
@@ -124,7 +127,7 @@ module Algebra =
             let xn = v1.Y*v2.Z - v1.Z*v2.Y
             let yn = -v1.X*v2.Z + v1.Z*v2.X
             let zn = v1.X*v2.Y - v1.Y*v2.X
-            UnitVector(xn,yn,zn)
+            Vector(xn,yn,zn)
     // still lacks the rotation matrix:
     // http://math.stackexchange.com/questions/180418/calculate-rotation-matrix-to-align-vector-a-to-vector-b-in-3d
 
@@ -192,14 +195,39 @@ module Algebra =
                 let id = Matrix.ID(3,3)
                 (id + vx + cuadrado) //+ (mult*cuadrado)
                 //(vx,cuadrado, mult)
-         
+        static member RotateVector(a:UnitVector,b:UnitVector) = 
+            let ve = a><b
+            let modprod = 1.//(a.Module()*b.Module())
+            let s = ve.Module()/modprod         // sin of angle
+            let c = (a*b )/modprod           // Cos of angle
+            if s = 0. && c = 1. then Matrix.ID(3,3) // Case are the same vector
+            else
+                let mult = (1.-c)/(s*s)
+                let vx = Matrix(3,3)// 3x3 zeroMatrix
+                vx.RotMat.[1,0] <- ve.Z
+                vx.RotMat.[0,1] <- -ve.Z
+                vx.RotMat.[2,0] <- -ve.Y
+                vx.RotMat.[0,2] <- ve.Y
+                vx.RotMat.[1,2] <- -ve.X
+                vx.RotMat.[2,1] <- ve.X
+                
+                let cuadrado = mult*vx*vx
+                let id = Matrix.ID(3,3)
+                (id + vx + cuadrado) //+ (mult*cuadrado)
+                //(vx,cuadrado, mult)
+
         member this.Determinant3X3() =
             // Determinant of matrix 3x3
             let xn = this.RotMat.[2,0]*(this.RotMat.[0,1]*this.RotMat.[1,2] - this.RotMat.[0,2]*this.RotMat.[1,1])
             let yn = this.RotMat.[2,1]*(-this.RotMat.[0,0]*this.RotMat.[1,2] + this.RotMat.[0,2]*this.RotMat.[1,0])
             let zn = this.RotMat.[2,2]*(this.RotMat.[0,0]*this.RotMat.[1,1] - this.RotMat.[0,1]*this.RotMat.[1,0])
             xn+yn+zn
-        
+        member this.RotatePoint(p1:Point) = 
+            // Rotate a point based on this matrix
+            let nx = this.RotMat.[0,0]*p1.X + this.RotMat.[0,1]*p1.Y + this.RotMat.[0,2]*p1.Z
+            let ny = this.RotMat.[1,0]*p1.X + this.RotMat.[1,1]*p1.Y + this.RotMat.[1,2]*p1.Z
+            let nz = this.RotMat.[2,0]*p1.X + this.RotMat.[2,1]*p1.Y + this.RotMat.[2,2]*p1.Z
+            Point(nx,ny,nz)
         member this.Minor (a1:int,b1:int) =
             let Det2X2 (a:float) (b:float) (c:float) (d:float) =
                 a*d-b*c
