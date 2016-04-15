@@ -231,6 +231,19 @@ module Algebra =
             let ny = this.RotMat.[1,0]*p1.X + this.RotMat.[1,1]*p1.Y + this.RotMat.[1,2]*p1.Z
             let nz = this.RotMat.[2,0]*p1.X + this.RotMat.[2,1]*p1.Y + this.RotMat.[2,2]*p1.Z
             Point(nx,ny,nz)
+        member this.RotateVector(p1:Vector) = 
+            // Rotate a vector based on this matrix
+            let nx = this.RotMat.[0,0]*p1.X + this.RotMat.[0,1]*p1.Y + this.RotMat.[0,2]*p1.Z
+            let ny = this.RotMat.[1,0]*p1.X + this.RotMat.[1,1]*p1.Y + this.RotMat.[1,2]*p1.Z
+            let nz = this.RotMat.[2,0]*p1.X + this.RotMat.[2,1]*p1.Y + this.RotMat.[2,2]*p1.Z
+            Vector(nx,ny,nz)
+        member this.RotateVector(p1:UnitVector) = 
+            // Rotate a UnitVector based on this matrix
+            let nx = this.RotMat.[0,0]*p1.X + this.RotMat.[0,1]*p1.Y + this.RotMat.[0,2]*p1.Z
+            let ny = this.RotMat.[1,0]*p1.X + this.RotMat.[1,1]*p1.Y + this.RotMat.[1,2]*p1.Z
+            let nz = this.RotMat.[2,0]*p1.X + this.RotMat.[2,1]*p1.Y + this.RotMat.[2,2]*p1.Z
+            UnitVector(nx,ny,nz)
+
         member this.Minor (a1:int,b1:int) =
             let Det2X2 (a:float) (b:float) (c:float) (d:float) =
                 a*d-b*c
