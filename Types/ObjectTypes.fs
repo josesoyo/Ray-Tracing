@@ -26,21 +26,42 @@ module ObjectTypes=
                             Convex:bool; // Convex = convergent (normal sphere) 
                           } // Name because will be the surface of a lens
     *)
-    type SphSurfaceLens() =
+    type SphSurfaceLens(centreofSPH, roc:float<m>, diam:float<m>,axs:UnitVector, conv:bool,matname:string) =
         // Define default values
-        let mutable SphereCentre= Point(0.,0.,0.)
-        let mutable radius = 0.<m>
-        let mutable cosMin = 0.
-        let mutable axis = UnitVector(0.,0.,0.)
-        let mutable convex = true
+        let mutable SphereCentre= centreofSPH// Point(0.,0.,0.)
+        let mutable radius = roc//0.<m>
+        let mutable clearaperture = diam
+        let mutable cosMin = //0.
+                             let sinth = 0.5*clearaperture/roc
+                             if sinth < 1. then sqrt(1.-(sinth*sinth)) 
+                             else 0.
+        let mutable axis = axs//UnitVector(0.,0.,0.)
+        let mutable convex = conv
+        let mutable Materialname = matname
 
         member this.SphCentre with get() = SphereCentre and set(sc) = SphereCentre <- sc
-        member this.Radius  with get() = radius and set(r) = radius <- r
-        member this.CosMin  with get() = cosMin and set(cm) =  cosMin <- cm 
+        member this.Radius  
+            with get() = radius 
+            and set(r) =
+                radius <- r
+                cosMin <-    let sinth = 0.5*clearaperture/r
+                             if sinth < 1. then sqrt(1.-(sinth*sinth)) 
+                             else 0.
+        member this.ClearAperture 
+            with get() = clearaperture
+            and set(ca) =
+                clearaperture <- ca
+                cosMin <-    let sinth = 0.5*ca/radius
+                             if sinth < 1. then sqrt(1.-(sinth*sinth)) 
+                             else 0.
+
+        member this.CosMin  with get() = cosMin //and set(cm) =  cosMin <- cm 
         member this.Axis  with get() = axis and set(uv) = axis <- uv
         //member this.Axis  with get() = axis and set(uv) = axis <-UnitVector uv
         member this.Convex with get() = convex and set(cb) = convex <- cb
-
+        member this.MaterialName with get() = Materialname and set(mn) = Materialname <- mn
+        static member Zero = SphSurfaceLens(Point(0.,0.,0.), 0.<m>, 0.<m>,UnitVector(0.,0.,1.), true,"")
+        (*
         static member CreateLensSurface(centreofSPH, roc:float<m>, diameter:float<m>,axis:UnitVector, convex:bool) =
             // Generate the structure
             let sinth = 0.5*diameter/roc
@@ -54,6 +75,93 @@ module ObjectTypes=
             SL.Convex <- convex
             SL.SphCentre <- centreofSPH
             SL
+        *)
+
+    (* 
+    type cylinder = {Radius: float;             // Radius of the cylinder
+                     zmin:float; zmax:float;    // By definition in object space z aligned
+                     LBbox:BBox; WBbox:BBox;    // Local and world Bounding box
+                     Origin:Point3D             // Origin of the axis in real world (Translation)
+                     Normal:UnitVector3D;       // Direction of the cylinder
+                     material:material
+                     ObjToWorld:Matrix<float>;  // Transforms from (0.,0.,1.) -> Normal
+                     WorldToObj:Matrix<float>  // Transforms from Normal -> (0.,0.,1.)
+                     }
+    *)
+    type Cylinder(rad:float<m>,zmax:float<m>,orig:Point,nrm:UnitVector,matname:string) = 
+        // Type for a cylinder which in the local frame is oriented on +Z direction starting at z = 0 <m>
+        // define the contentis
+        let  mutable radius = rad //0<m>
+        let mutable zmax = zmax// zmin, zmin0<m>, infi
+        let mutable origin = orig                       // where the cylinder starts
+        let mutable normal = nrm                        // where it points
+        let mutable Materialname = matname
+        let mutable LBbox = {Pmin = Point.FromMeasures(-radius,-radius,0.<m>); Pmax = Point.FromMeasures(radius,radius,zmax)}
+        let mutable ObjToWorld = Matrix.RotateVector(UnitVector(0.,0.,1.), normal)
+        let mutable WorldToObj = Matrix.RotateVector(normal,UnitVector(0.,0.,1.))
+        let ComputeWbox (objtoWorld:Matrix) lbox=
+                // private function to compute the world Bounding Box
+                let NonTransformedEdges = [|LBbox.Pmin;
+                                            Point(LBbox.Pmin.X,LBbox.Pmax.Y,LBbox.Pmin.Z);
+                                            Point(LBbox.Pmax.X,LBbox.Pmin.Y,LBbox.Pmin.Z);
+                                            Point(LBbox.Pmax.X,LBbox.Pmax.Y,LBbox.Pmin.Z);
+                                
+                                            Point(LBbox.Pmin.X,LBbox.Pmin.Y,LBbox.Pmax.Z);
+                                            Point(LBbox.Pmax.X,LBbox.Pmin.Y,LBbox.Pmax.Z);
+                                            Point(LBbox.Pmin.X,LBbox.Pmax.Y,LBbox.Pmax.Z);
+                                            LBbox.Pmax|]
+
+                let TransformedEdges = NonTransformedEdges                  // Rotate as should be by normal direction
+                                       |> Array.map(fun x -> objtoWorld.RotatePoint(x))
+                let minTrfEdgesX =  (TransformedEdges |> Array.minBy(fun x -> x.X)).X   
+                let minTrfEdgesY =  (TransformedEdges |> Array.minBy(fun x -> x.Y)).Y
+                let minTrfEdgesZ =  (TransformedEdges |> Array.minBy(fun x -> x.Z)).Z 
+                let minTrfEdges = Point(minTrfEdgesX,minTrfEdgesY,minTrfEdgesZ)
+                // Min of the Box in world
+                let wPmin = minTrfEdges.MoveAndCreateNew(origin) 
+
+                let maxTrfEdgesX =  (TransformedEdges |> Array.maxBy(fun x -> x.X)).X   
+                let maxTrfEdgesY =  (TransformedEdges |> Array.maxBy(fun x -> x.Y)).Y 
+                let maxTrfEdgesZ =  (TransformedEdges |> Array.maxBy(fun x -> x.Z)).Z
+                let maxTrfEdges = Point(maxTrfEdgesX,maxTrfEdgesY,maxTrfEdgesZ)
+                // Max of Box in World
+                let wPmax = maxTrfEdges.MoveAndCreateNew(origin)
+                {Pmin=wPmin;Pmax=wPmax}
+
+        let mutable WBbox = ComputeWbox ObjToWorld LBbox       // Generate Bounding box on the world
+
+        member this.Radius 
+            with get() = radius 
+            and set(r) = 
+                // not only updates the radius, also updates the bounding box
+                radius <- r
+                LBbox <- {Pmin = Point.FromMeasures(-r,-r,0.<m>); Pmax = Point.FromMeasures(r,r,zmax)}
+                WBbox <- ComputeWbox ObjToWorld LBbox
+        //member this.Zmin with get() = zmin
+        member this.Zmax 
+            with get() = zmax 
+            and set(zm) = 
+                zmax <- zm
+                let nlbox = {Pmin = Point.FromMeasures(-radius,-radius,0.<m>); Pmax = Point.FromMeasures(radius,radius,zm)}
+                LBbox <-nlbox
+                WBbox <- ComputeWbox ObjToWorld nlbox
+
+        member this.Origin with get() = origin
+        member this.Normal 
+            with get() = normal
+            and set(nrm) =
+                // updates also the properties of that are dependent of the radius
+                normal <- nrm
+                let obj2world = Matrix.RotateVector(UnitVector(0.,0.,1.), normal)
+                WorldToObj <- Matrix.RotateVector(normal,UnitVector(0.,0.,1.))
+                WBbox <-ComputeWbox obj2world LBbox
+
+        member this.MaterialName with get() = Materialname and set(ma) = Materialname <- ma
+        member this.wBbox with get() = WBbox
+        member this.lBbox with get() = LBbox
+        static member Zero =  Cylinder(0.<m>,0.<m>,Point(0.,0.,0.),UnitVector(0.,0.,1.),"") 
+
+
 
 
 

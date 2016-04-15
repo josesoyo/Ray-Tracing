@@ -5,6 +5,7 @@ module Algebra =
     //  infi : infinty with measure <m>
     // Point(x,y,z)
     //      - this.move(dx,dy,dz)
+    //      - this.MoveAndCreateNew(px,py,pz)
     // Vector(v,u,w) & UnitVector(v,u,w)
     //      - To UnitVector & ToPoint
     //      - sum:      +
@@ -50,6 +51,8 @@ module Algebra =
             x <- x+p.X
             y <- y+p.Y
             z <- z + p.Z
+        member this.MoveAndCreateNew(p:Point) = 
+            Point(x+p.X, y+p.Y, z + p.Z)
         static member (-) (p1:Point,p2:Point) = Vector(float(p1.X - p2.X), float(p1.Y - p2.Y), float(p1.Z - p2.Z))
         static member FromMeasures(x:float<m>,y:float<m>,z:float<m>) = Point(float x , float y, float z)
         // Diference between points gives a vector
