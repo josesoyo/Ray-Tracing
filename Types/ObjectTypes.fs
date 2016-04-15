@@ -179,3 +179,8 @@ module ObjectTypes=
     // add all the mesh+octree of the mesh into a single element
     type elementMesh = {Mesh:mesh; Octree: OctreeSystem[] }
 
+    type Object =
+    // Option type to add all the different structure types into a single object type
+    | Mesh of elementMesh
+    | Cylinder of Cylinder
+    | SurfaceLens of SphSurfaceLens
