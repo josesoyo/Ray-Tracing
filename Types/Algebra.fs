@@ -76,9 +76,9 @@ module Algebra =
         static member (+) (v1:Vector, v2:Vector) = Vector(v1.X + v2.X,v1.Y + v2.Y,v1.Z + v2.Z)
         static member (+) (v1:Vector, v2:UnitVector) = Vector(v1.X + v2.X,v1.Y + v2.Y,v1.Z + v2.Z)
         static member (+) (v1:UnitVector, v2:Vector) = Vector(v1.X + v2.X,v1.Y + v2.Y,v1.Z + v2.Z)
-        // Sum from a point
-        static member (+) (v1:Vector, p:Point) = Vector(v1.X + float(p.X),v1.Y + float (p.Y), v1.Z + float(p.Z))
-        static member (+) (p:Point,v1:Vector) = Vector(v1.X + float(p.X),v1.Y + float(p.Y), v1.Z + float(p.Z))
+        // Sum from a point -> Translation of a point
+        static member (+) (v1:Vector, p:Point) = Point(v1.X + float(p.X),v1.Y + float (p.Y), v1.Z + float(p.Z))
+        static member (+) (p:Point,v1:Vector) = Point(v1.X + float(p.X),v1.Y + float(p.Y), v1.Z + float(p.Z))
         // Product by a scalar
         static member (*) (k:float,v:Vector) = Vector(k*v.X,k*v.Y,k*v.Z)
         // Scalar product
@@ -131,6 +131,8 @@ module Algebra =
             let yn = -v1.X*v2.Z + v1.Z*v2.X
             let zn = v1.X*v2.Y - v1.Y*v2.X
             Vector(xn,yn,zn)
+        member this.Negate() =
+            UnitVector(-x,-y,-z)
     // still lacks the rotation matrix:
     // http://math.stackexchange.com/questions/180418/calculate-rotation-matrix-to-align-vector-a-to-vector-b-in-3d
 

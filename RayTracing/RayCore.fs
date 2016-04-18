@@ -78,7 +78,7 @@ module intersections =
    
    
    
-   let intersect_cyl(ray:Ray,cylinder:Cylinder,matName:string) =
+   let intersect_cyl(ray:Ray,cylinder:cylinder) =
         // intersection between Ray and a cylinder
 
         // Transform ray to object space - Origin and then rotate to align with axis of z cylinder
@@ -107,9 +107,9 @@ module intersections =
                     let normalt1 = cylinder.Obj2World.RotateVector(Vector(z1.X,z1.Y,0.))//.Normalize()
                     let ray1 =  {ray with OpticalPathTravelled = (ray.IndexOfRefraction*t1+ray.OpticalPathTravelled)}
                     let z1real = 
-                        let z1rot = cylinder.Obj2World.RotateVector(z1)
+                        let z1rot = cylinder.Obj2World.RotatePoint(z1)
                         Point(z1rot.X+cylinder.Origin.X, z1rot.Y+cylinder.Origin.Y, z1rot.Z+cylinder.Origin.Z)
-                    [|{ normal=normalt1.ToUnitVector() ; point=z1real; ray=ray1;MatName=matName; t=t1}|]
+                    [|{ normal=normalt1.ToUnitVector() ; point=z1real; ray=ray1;MatName=cylinder.MaterialName; t=t1}|]
                     //[{ normal = normalt1 ; point = z1real; ray = ray1 ; material=cylinder.material; t=t1;Nsamples=nsamples}]
                 else [||]
             let inter2 = 
@@ -117,10 +117,53 @@ module intersections =
                     let normalt2 = cylinder.Obj2World.RotateVector(Vector(z2.X,z2.Y,0.))
                     let ray2 =  {ray with OpticalPathTravelled= (ray.IndexOfRefraction*t2+ray.OpticalPathTravelled)}
                     let z2real = 
-                        let z2rot = cylinder.Obj2World.RotateVector(z2)//.TransformBy(m=)
+                        let z2rot = cylinder.Obj2World.RotatePoint(z2)//.TransformBy(m=)
                         Point(z2rot.X+cylinder.Origin.X, z2rot.Y+cylinder.Origin.Y, z2rot.Z+cylinder.Origin.Z)
-                    [|{ normal=normalt2.ToUnitVector(); point=z2real; ray=ray2;MatName=matName; t=t1}|]
+                    [|{ normal=normalt2.ToUnitVector(); point=z2real; ray=ray2;MatName=cylinder.MaterialName; t=t2}|]
                     //[{ normal = normalt2 ; point = z2real; ray = ray2 ; material=cylinder.material; t=t2;Nsamples=nsamples}]
                 else [||]
             Array.append inter1 inter2
-        
+
+   let intersect_Sphere(ray:Ray,centre:Point,rad:float<m>, material:string) =
+    // Intersction of a ray with a sphere comming from a cylinder
+    let s = ray.from - centre
+    let sv = s*ray.uvec
+    let ss = s*s
+    let adRad = float rad       // Adimensional Radius
+    let discr = sv*sv - ss + adRad*adRad
+    if discr < 0.0 then [||]
+    else
+       let t1 , t2 = (-sv + sqrt(discr))|> LanguagePrimitives.FloatWithMeasure<m>, (-sv - sqrt(discr)) |> LanguagePrimitives.FloatWithMeasure<m>
+       let travel1, travel2 = ray.OpticalPathTravelled + ray.IndexOfRefraction*t1,  ray.OpticalPathTravelled + ray.IndexOfRefraction*t2
+       let ray1, ray2 = {ray with OpticalPathTravelled = travel1}, {ray with OpticalPathTravelled = travel2}
+       let point1, point2 = (ray.from + float(t1)*ray.uvec), (ray.from + float(t2)*ray.uvec)
+       let dnormal1, dnormal2 = point1-centre, point2 - centre
+       [|{normal = dnormal1.ToUnitVector();point= point1; ray= ray1; MatName = material; t= t1} ;
+         {normal = dnormal2.ToUnitVector();point= point2; ray= ray2; MatName = material; t= t2} |]
+
+   type intermediate_In_ShpLens = {Inter:Intersection; Cond:bool}  // definition for intersect_SphSurfaceLens bucle
+
+   let intersect_SphSurfaceLens(ray:Ray,sLens:SphSurfaceLens)  =   
+    // Intersection of a Ray with the surface of a spherical lens
+
+    // Process: 1 - intersect with the sphere; 2 - check the conditions for the part of the sphere
+    let isphere = intersect_Sphere(ray,sLens.SphCentre,sLens.RadiusOfCurvature, sLens.MaterialName)
+    match isphere with 
+    | [||] -> isphere
+    | _ -> let intersec_costh = isphere            // Cosinus between the normal of the lens(side of the lens) and the side in which the intersection happened
+                                 |> Array.map(fun x -> sLens.Axis*x.normal)
+           let cond (costh:float) =
+            // check if the intersection is done out of the part of the sphere that forms the lens
+            if costh <= 1. && costh > sLens.CosMin then true
+            else false
+
+           let normalConcave(intersect: Intersection) (bol:bool) =
+            if sLens.Convex then intersect
+            else
+                {intersect with normal = intersect.normal.Negate()}
+           
+           // return the intersections
+
+           Array.map2(fun y x -> {Inter= x; Cond=(cond y)}) intersec_costh isphere // check if it really intersects creating an 'intermediate' type 
+           |> Array.filter(fun x -> x.Cond)         // filter those points in which it really intersects
+           |> Array.map(fun x -> x.Inter)           // map the intersection

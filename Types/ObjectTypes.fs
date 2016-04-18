@@ -40,7 +40,7 @@ module ObjectTypes=
         let mutable Materialname = matname
 
         member this.SphCentre with get() = SphereCentre and set(sc) = SphereCentre <- sc
-        member this.Radius  
+        member this.RadiusOfCurvature  
             with get() = radius 
             and set(r) =
                 radius <- r
@@ -88,7 +88,7 @@ module ObjectTypes=
                      WorldToObj:Matrix<float>  // Transforms from Normal -> (0.,0.,1.)
                      }
     *)
-    type Cylinder(rad:float<m>,zmax:float<m>,orig:Point,nrm:UnitVector,matname:string) = 
+    type cylinder(rad:float<m>,zmax:float<m>,orig:Point,nrm:UnitVector,matname:string) = 
         // Type for a cylinder which in the local frame is oriented on +Z direction starting at z = 0 <m>
         // define the contentis
         let  mutable radius = rad //0<m>
@@ -159,7 +159,9 @@ module ObjectTypes=
         member this.MaterialName with get() = Materialname and set(ma) = Materialname <- ma
         member this.wBbox with get() = WBbox
         member this.lBbox with get() = LBbox
-        static member Zero =  Cylinder(0.<m>,0.<m>,Point(0.,0.,0.),UnitVector(0.,0.,1.),"") 
+        member this.Obj2World with get() = ObjToWorld
+        member this.World2Obj with get() = WorldToObj
+        static member Zero =  cylinder(0.<m>,0.<m>,Point(0.,0.,0.),UnitVector(0.,0.,1.),"") 
 
 
 
@@ -182,5 +184,5 @@ module ObjectTypes=
     type Object =
     // Option type to add all the different structure types into a single object type
     | Mesh of elementMesh
-    | Cylinder of Cylinder
+    | Cylinder of cylinder
     | SurfaceLens of SphSurfaceLens

@@ -1,11 +1,5 @@
 ﻿namespace Types
 
-(*
-module measures =
-    // implemented in :
-    //Microsoft.FSharp.Data.UnitSystems.SI.UnitNames 
-    [<Measure>]  type m 
-*)
 
 module types =
     open Microsoft.FSharp.Data.UnitSystems.SI.UnitSymbols
