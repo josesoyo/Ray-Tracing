@@ -10,7 +10,7 @@ module SimpleShading =
     open Types.ObjectTypes
     open RayTracing.RayStructureIntersection
     open BackTypes
-    open RayTracing.RayStructureIntersection
+    open RayTracing.ObjectSelection
 
     let colorAtOctree (intersection:Intersection,scn:scene)=
         // Ia: Ambient Light
@@ -60,15 +60,17 @@ module SimpleShading =
                             NumOfParticles= intersection.ray.NumOfParticles
                             }
              
-            let intersects = scn.Elements
-                             |> Array.collect(fun x ->  [|IntersectionOctree( RayLight, x.Octree, x.Mesh)|]) // [|IntersectionSimple(RayLight,x.Mesh)|]) //
-                             |> fun x -> x.[0] // I only need the first one to say that the ray doesnt arrives to the light
+            let intersects = intersection_all(RayLight,scn.Elements)
+                             //scn.Elements 
+                             //|> Array.collect(fun x ->  [|IntersectionOctree( RayLight, x.Octree, x.Mesh)|]) // [|IntersectionSimple(RayLight,x.Mesh)|]) //
+                             //|> fun x -> x.[0] // I only need the first one to say that the ray doesnt arrives to the light
                                 //Cast_Octree(scn, RayLight,octree)//CastRay_nest//CastRay_nest (scn, RayLight)
             //printfn "there's an intersection at: %f" intersects.Head.ray.travelled
             match intersects with
-                | Some x->  0.
-                | None -> let fatt= 1. //Fatt intersection light //let unit = paralel intersection
+                | [||] -> let fatt= 1. //Fatt intersection light //let unit = paralel intersection
                           DiffLight (intersection, light, fatt, NormLightDir,scn) + SpecLight (intersection, light, fatt, NormLightDir,scn)
+                | _ ->  0. // Some x
 
         let OneShadow light = IsShadow scn intersection light
         AmbLight + Array.sumBy(fun x -> OneShadow x) scn.Plights
+

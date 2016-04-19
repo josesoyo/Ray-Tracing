@@ -7,7 +7,8 @@ module Camera =
     open Types
     open Types.types
     open Types.ObjectTypes
-    open RayTracing.RayStructureIntersection
+    open RayTracing.RayStructureIntersection        // one of the two RayTRcing must be deleted
+    open RayTracing.ObjectSelection
     open SimpleShading
     open BackTypes
 
@@ -19,6 +20,7 @@ module Camera =
     //let PixNumH , PixNumW = 100,100
     let selectType(ray,elements: elementMesh,useOctree:bool) =
         // select if it will intersect with the mesh of the octree
+        //currently the function is NOT USED
         match useOctree with
         | true -> IntersectionOctree (ray,elements.Octree,elements.Mesh)
         | false -> IntersectionSimple (ray,elements.Mesh)               // to do tests 
@@ -48,9 +50,9 @@ module Camera =
                     //if i = 200 && j = 200 then
                     //    printfn "here doesn't work"
                     //let grid = Cast_3DGrid (Scene,Ray,pPartition)//CastRay_nest (Scene, Ray) 3DGrid
-                    let intersects = scene.Elements 
-                                     |> Array.map(fun obj -> selectType(Ray,obj,useOctree))//IntersectionOctree (Ray,obj.Octree,obj.Mesh))// Octree
-                                     |> Array.collect(fun x -> match x with Some x -> [|x|] | None -> [||])
+                    let intersects =  intersection_all(Ray,scene.Elements)
+                                     //|> Array.map(fun obj -> selectType(Ray,obj,useOctree))//IntersectionOctree (Ray,obj.Octree,obj.Mesh))// Octree
+                                     //|> Array.collect(fun x -> match x with Some x -> [|x|] | None -> [||])
                     //if i =20 && j = 40 then
                     //    printfn "Will be a problem..."
                     //if grid.Length <> intersects.Length then

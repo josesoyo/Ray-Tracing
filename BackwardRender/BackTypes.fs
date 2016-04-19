@@ -14,6 +14,6 @@ module BackTypes =
     type Plight = {origin:Point; intensity:float}
     
 
-    type scene = {Camera:Camera;  Elements: elementMesh[]; Materials: System.Collections.Generic.IDictionary<string,Material> ; Plights:Plight[]}
+    type scene = {Camera:Camera;  Elements: Object[]; Materials: System.Collections.Generic.IDictionary<string,Material> ; Plights:Plight[]}
 
     let DefaultBackWardMaterial = {R=0.;T=0.; n=(1.,WaveLength(0.6e-6<m>););LambPPM= 0.;MatName= ""}
