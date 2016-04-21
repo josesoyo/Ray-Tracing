@@ -6,8 +6,42 @@ module ObjectTypes=
     open Microsoft.FSharp.Data.UnitSystems.SI.UnitSymbols
     open Algebra
 
-    // Types for space
+    // Sensor type
+    type SensorContent(pos,dir,nr,ph) =
 
+        let position:Point = pos
+        let direction:UnitVector = dir
+        let numRays:int = nr
+        let phase:float =ph
+        member this.Position with get() = position
+        member this.Direction with get() = direction
+        member this.NumRays with get () = numRays
+        member this.Phase with get() = phase
+
+    type Sensor(exs:bool, term:bool) =
+        // Sensor type, it will be add to all the objects.
+        // If the sensor doesn't exit, then it will pass the sensor options
+        // If exists, will check if it is a termination on the ray (End Sensor), or the ray continues, but saves the value
+        let exists = exs     // says if it's a sensor or not
+        let terminate = term
+        let mutable data:(SensorContent[]) = [||]
+        member this.Exists with get() = exists
+        member this.Terminate with get() = terminate
+        member this.SavedData with get() = data
+
+        member this.AddData(sc) =
+            data <- Array.append data [|sc|]
+
+        new (exs) =
+            Sensor(exs, false)
+        new () =
+            // default sensor is a no-sensor
+            Sensor(false, false)
+
+
+
+
+    // Types for space
     type BBox = {Pmin :Point ; Pmax:Point}
 
     type group = {Name:string; TrianglesNormals: (int list *UnitVector)[];Bbox:BBox; MatName:string}
@@ -26,8 +60,9 @@ module ObjectTypes=
                             Convex:bool; // Convex = convergent (normal sphere) 
                           } // Name because will be the surface of a lens
     *)
-    type SphSurfaceLens(centreofSPH, roc:float<m>, diam:float<m>,axs:UnitVector, conv:bool,matname:string) =
+    type SphSurfaceLens(centreofSPH, roc:float<m>, diam:float<m>,axs:UnitVector, conv:bool,matname:string, snrs:Sensor) =
         // Define default values
+        let sensor = snrs
         let mutable SphereCentre= centreofSPH// Point(0.,0.,0.)
         let mutable radius = roc//0.<m>
         let mutable clearaperture = diam
@@ -61,6 +96,10 @@ module ObjectTypes=
         member this.Convex with get() = convex and set(cb) = convex <- cb
         member this.MaterialName with get() = Materialname and set(mn) = Materialname <- mn
         static member Zero = SphSurfaceLens(Point(0.,0.,0.), 0.<m>, 0.<m>,UnitVector(0.,0.,1.), true,"")
+        new (centreofSPH, roc, diam,axs, conv,matname) =
+            // Create the material NOT being sensor
+            SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, Sensor()) 
+
         (*
         static member CreateLensSurface(centreofSPH, roc:float<m>, diameter:float<m>,axis:UnitVector, convex:bool) =
             // Generate the structure
@@ -88,9 +127,10 @@ module ObjectTypes=
                      WorldToObj:Matrix<float>  // Transforms from Normal -> (0.,0.,1.)
                      }
     *)
-    type cylinder(rad:float<m>,zmax:float<m>,orig:Point,nrm:UnitVector,matname:string) = 
+    type cylinder(rad:float<m>,zmax:float<m>,orig:Point,nrm:UnitVector,matname:string, snrs:Sensor) = 
         // Type for a cylinder which in the local frame is oriented on +Z direction starting at z = 0 <m>
         // define the contentis
+        let sensor = snrs
         let  mutable radius = rad //0<m>
         let mutable zmax = zmax// zmin, zmin0<m>, infi
         let mutable origin = orig                       // where the cylinder starts
@@ -162,7 +202,8 @@ module ObjectTypes=
         member this.Obj2World with get() = ObjToWorld
         member this.World2Obj with get() = WorldToObj
         static member Zero =  cylinder(0.<m>,0.<m>,Point(0.,0.,0.),UnitVector(0.,0.,1.),"") 
-
+        new  (rad,zmax,orig,nrm,matname) = 
+            cylinder(rad,zmax,orig,nrm,matname, Sensor()) 
 
 
 
