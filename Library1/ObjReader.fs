@@ -241,3 +241,69 @@ module reading =
                        Pmax = Point(-infinity,-infinity,-infinity)}
       ReadTheLines (list_lines , [||], [||],samplebox, "") // Should returnthe mesh
 
+
+    let readgroups(lines:string [], index:int, vertices : Point[], verticesN:UnitVector[]) =
+      let gname = lines.[index].Substring(2)
+      let mutable ind = index+1
+      let mutable first = lines.[index+1]  // directly read the next line (first = g name)
+      printfn "first is: %s" first
+      let mutable trianglesnormals = [||]
+      let mutable materialName = "" 
+      while not(first.StartsWith("g ")) && (lines.Length-1-ind) > 0 do
+        // must return unit
+        //printfn "%s" first
+        if first.StartsWith("f ")  then
+            //printfn "inside faces!"
+            // read the triangles and add them from old routintes in ObjReader.fs
+            // compute the new normal -> Carefull! Remember the point of the orientation. ¿May I use the normals of the vertices?
+            let ntriangle = TriVertNfromFile (first)                 // read the triangle id
+            if TestMeshParallel(vertices,ntriangle) then 1 |> ignore  // do nothing
+            else
+                let nnormal = MeshNormals(vertices,ntriangle)    // Compute the normal
+
+                let nrm = (((0.3)*verticesN.[ntriangle.[3]-1]) + (0.3*verticesN.[ntriangle.[4]-1]) + (0.3*verticesN.[ntriangle.[5]-1]))
+                if nrm*nnormal > 0. then  // check if the normal points to the external side
+                    trianglesnormals <- Array.append trianglesnormals [|(ntriangle,nnormal)|]
+                else                      // if the normal is generated on the internal side, turn it
+                    trianglesnormals <- Array.append trianglesnormals [|(ntriangle,(((-1.)*nnormal).ToUnitVector()))|]
+        else if first.StartsWith("usemtl") then materialName <- first.Substring(7) // carefull!
+
+        ind <- ind + 1        // increment point read on the Array
+        first <- lines.[ind]  // read the new line  
+      //printfn "%+A" trianglesnormals
+      let bbox = BBtri(trianglesnormals,vertices)
+      {Name = gname; TrianglesNormals = trianglesnormals;Bbox =bbox; MatName =materialName}
+             
+     
+          
+                
+
+
+
+    let ReadMeshWavefront(path:string) =
+      //    read the file, but with Array.map to accelerate
+      let list_lines = Seq.toArray(File.ReadLines(path)) //lines
+      let vertices = list_lines 
+                     |> Array.map(fun x -> VerfromFile x) 
+                     |> Array.filter(fun x -> not(Array.isEmpty x)) 
+                     |> Array.map(fun x -> x.[0])// instead of Array.collect
+      let verticeNormals = list_lines 
+                           |> Array.map(fun x -> VerNfromFile x) 
+                           |> Array.filter(fun x -> not(Array.isEmpty x)) // instead of Array.collect
+                           |> Array.map(fun x -> x.[0])// instead of Array.collect
+      let groups = list_lines |> Array.mapi( fun i _ -> if list_lines.[i].StartsWith("g ") then [|readgroups(list_lines,i,vertices,verticeNormals)|]
+                                                        else [||]  )
+                              |> Array.filter(fun x -> not(Array.isEmpty x)) // instead of Array.collect
+                              |> Array.map(fun x -> x.[0])// instead of Array.collect
+           
+      
+      let matLibPath = list_lines |> Array.find(fun x -> x.StartsWith("mt")) |> fun x -> x.Substring(7) |> OpenMatLib
+
+      // infinity doesn't works for  unit of measure...
+      //let infi:float<m> = (infinity |> LanguagePrimitives.FloatWithMeasure)     //inifinity with unit of measure
+      let samplebox = {Pmin = Point(infinity, infinity,infinity);
+                       Pmax = Point(-infinity,-infinity,-infinity)}
+      let box = BBgroups(groups)  // compute new the globall Bbox
+      ({Vertices = vertices ; VNormals = verticeNormals ; groups=groups ;Bbox = box},matLibPath)
+      //ReadTheLines (list_lines , [||], [||],samplebox, "") // Should returnthe mesh
+

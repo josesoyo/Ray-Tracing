@@ -30,7 +30,7 @@ let VerfromFile (seq:string)=
         let pos = Point(x2, y2, z2)
         [|pos|]
     else
-        printfn "Error on VertfromFile (read vertices)"
+        //printfn "Error on VertfromFile (read vertices)"
         [||]
         //printfn "%A" pos
             
@@ -49,7 +49,7 @@ let VerNfromFile (seq:string)=
         [|pos|]
 
     else
-        printfn "There's an error on VertNfromFile"
+        //printfn "There's an error on VertNfromFile"
         [||]
         //printfn "%A" pos
 
@@ -146,7 +146,7 @@ let TestMeshParallel(nodes:Point [], triangle:int list) =
 
 let OpenMatLib(lpath:string) =
     // Just read the string of the direction of the library
-    let shortPath = "..\\main\\wavefront\\" + lpath
+    let shortPath = "../main/wavefront/" + lpath
     Path.Combine(__SOURCE_DIRECTORY__,shortPath)
 
 let ReadMatLib(seq:string) =
