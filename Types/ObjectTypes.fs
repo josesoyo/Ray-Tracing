@@ -5,7 +5,7 @@ module ObjectTypes=
     //open MathNet.Numerics.LinearAlgebra
     open Microsoft.FSharp.Data.UnitSystems.SI.UnitSymbols
     open Algebra
-
+    open Types.types
     // Sensor type
     type SensorContent(pos,dir,nr,ph) =
 
@@ -19,7 +19,7 @@ module ObjectTypes=
         member this.Phase with get() = phase
 
     type Sensor(exs:bool, term:bool) =
-        // Sensor type, it will be add to all the objects.
+        // Sensor type, it will be added to all the objects.    -> Probably: Sensor Option
         // If the sensor doesn't exit, then it will pass the sensor options
         // If exists, will check if it is a termination on the ray (End Sensor), or the ray continues, but saves the value
         let exists = exs     // says if it's a sensor or not
@@ -95,6 +95,8 @@ module ObjectTypes=
         //member this.Axis  with get() = axis and set(uv) = axis <-UnitVector uv
         member this.Convex with get() = convex and set(cb) = convex <- cb
         member this.MaterialName with get() = Materialname and set(mn) = Materialname <- mn
+        member this.Sensor with get() = sensor
+        member this.UpdateSensor(sc) = sensor.AddData(sc)
         static member Zero = SphSurfaceLens(Point(0.,0.,0.), 0.<m>, 0.<m>,UnitVector(0.,0.,1.), true,"")
         new (centreofSPH, roc, diam,axs, conv,matname) =
             // Create the material NOT being sensor
@@ -201,6 +203,9 @@ module ObjectTypes=
         member this.lBbox with get() = LBbox
         member this.Obj2World with get() = ObjToWorld
         member this.World2Obj with get() = WorldToObj
+        member this.Sensor with get() = sensor
+        member this.UpdateSensor(sc) = sensor.AddData(sc)
+
         static member Zero =  cylinder(0.<m>,0.<m>,Point(0.,0.,0.),UnitVector(0.,0.,1.),"") 
         new  (rad,zmax,orig,nrm,matname) = 
             cylinder(rad,zmax,orig,nrm,matname, Sensor()) 
@@ -227,3 +232,4 @@ module ObjectTypes=
     | Mesh of elementMesh
     | Cylinder of cylinder
     | SurfaceLens of SphSurfaceLens
+

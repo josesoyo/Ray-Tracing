@@ -25,4 +25,6 @@ module types =
                 IndexOfRefraction:float
                 }
 
-    type Intersection = { normal:UnitVector; point:Point; ray:Ray;MatName:string; t:float<m>}
+    
+    // New intersection type created because I must know which one is the object when the intersected object is a sensor
+    type Intersection = { normal:UnitVector; point:Point; ray:Ray;MatName:string ; t:float<m>}//; ObjectSensor:Object Option}
