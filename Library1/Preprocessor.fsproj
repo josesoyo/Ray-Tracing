@@ -58,12 +58,13 @@
     <Compile Include="SimpleRead.fs" />
     <Compile Include="Boxread.fs" />
     <Compile Include="ObjReader.fs" />
+    <Compile Include="ReadMatLib.fs" />
     <Compile Include="Simple_Intersections.fs" />
     <Compile Include="OctreeCulling.fs" />
     <Compile Include="Octree.fs" />
     <None Include="Script.fsx" />
     <None Include="test_octree_paral.fsx" />
-    <Compile Include="ReadMatLib.fs" />
+    <None Include="readMeshTest.fsx" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />

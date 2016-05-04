@@ -44,7 +44,7 @@ let intersec_mesh (ray:RayFrom,  vertices:Point [],triangle:int list, shape:char
             false
     if logic then
         let t1 = (s2*(u0u2)) / (s1Dote1)
-        if t1 >= ray.length then [||] 
+        if t1 >= ray.length  then [||] 
         // The collision cannot be further than the light when we do a shadow
         // The equal is because in the case s1Dote1 = 0 degenerate and there's no collision (t= infinity)
         // generates a problem in multiple transmision/reflection if ray.lenght is not inf intersecting not for shadow
