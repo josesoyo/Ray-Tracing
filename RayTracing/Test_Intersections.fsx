@@ -16,7 +16,7 @@ lens.RadiusOfCurvature
 lens.Axis
 lens.SphCentre
 
-let cy = Cylinder(0.1<m>,0.5<m>,Point(10.1,-0.5,0.),UnitVector(0.,1.,0.),"someName")
+let cy = cylinder(0.1<m>,1.5<m>,Point(10.1,-0.5,0.),UnitVector(0.,1.,0.),"someName")
        
 (*    type Ray = {
                 Wavelenght:Wavelength;
@@ -30,7 +30,7 @@ let cy = Cylinder(0.1<m>,0.5<m>,Point(10.1,-0.5,0.),UnitVector(0.,1.,0.),"someNa
 *)
 let r = {
          Wavelenght = WaveLength(5e-7<m>);
-         from = Point(0.,0.005,0.); uvec = UnitVector(1.,0.,0.);
+         from = Point(0.,0.00,0.051); uvec = UnitVector(1.,0.,0.);
          MaxLength = infi;
          OpticalPathTravelled = 0.<m>;
          NumBounces = 0; bounces = [];
@@ -40,14 +40,17 @@ let r = {
 
 //intersection between the ray and the lens
 intersect_SphSurfaceLens(r,lens)
-let ray = r
-let sLens = lens
-isphere.[0].t
-isphere.[1].t
-match isphere with
-|[||] -> printfn "no"
 
-let intersec_costh = isphere            // Cosinus between the normal of the lens(side of the lens) and the side in which the intersection happened
-                     |> Array.map(fun x -> sLens.Axis*x.normal)
+intersect_cyl(r,cy)
 
- 
+cy.Normal
+cy.Origin
+cy.Radius
+cy.Zmax
+
+
+
+
+[|Some 1;None ;Some 3|] |> Array.filter(fun x -> let nar = UnSomeNone(x)
+                                                 not(Array.isEmpty(nar))) 
+                        |> Array.map(fun x -> match x with Some x -> x)

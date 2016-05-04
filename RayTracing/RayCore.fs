@@ -16,10 +16,12 @@ module intersections =
    //type group = {Name:string; triangles: int list [];  Normals: UnitVector [];Bbox:BBox; MatName:string}
    //type mesh = {Vertices:Point [] ; VNormals:UnitVector []; groups: group [] ;Bbox:BBox}
    
-   let intersec_mesh (ray:Ray,  mesh:mesh, triangle:int list,nrm:UnitVector,matName:string ,shape:char)= // normal is only passing
+   let intersec_mesh (ray:Ray,  mesh:mesh, triangle:int list,nrmi:UnitVector,matName:string ,shape:char)= // normal is only passing
         // Method 2 from PBRT book eq 3.5
         let nodes = mesh.Vertices // *** Is wasting memory --> It copyes the direction, no waste memory *** I can: mesh.Vertices.[n0]
-
+        let nrm =   // check that the normal is on the same side as the ray comes
+            if nrmi*ray.uvec < 0. then nrmi
+            else nrmi.Negate()
         let (n0,n1,n2) = (triangle.[0]-1, triangle.[1]-1, triangle.[2]-1)
         let (u0u1,u0u2) = (nodes.[n1]-nodes.[n0],nodes.[n2]-nodes.[n0]) 
 
@@ -44,7 +46,7 @@ module intersections =
                 false
         if logic then
             let t1:float<m> = ((s2*u0u2) / (s1Dote1)) |> LanguagePrimitives.FloatWithMeasure// <m>
-            if t1 >  ray.MaxLength || t1 < 0.<m> then [||] 
+            if t1 >  ray.MaxLength || t1 <= 1e-5<m> then [||] 
             // The collision cannot be further than the light when we do a shadow
             // The equal is because in the case s1Dote1 = 0 degenerate and there's no collision (t= infinity)
             // generates a problem in multiple transmision/reflection if ray.lenght is not inf intersecting not for shadow
@@ -57,7 +59,8 @@ module intersections =
                 let PIntersect = (u*u0u1 + v*u0u2).ToPoint()
                 PIntersect.Move(nodes.[n0])
                 //let PIntersect = Point3D( VIntersect.X + nodes.[n0].X,VIntersect.Y + nodes.[n0].Y,VIntersect.Z + nodes.[n0].Z )
-            
+                if t1 < 1e-6<m> && t1 > 1e-10<m> then
+                    printfn "NOOO"
                 //if Triangles.Length = 6 then
                 //
                 //  Interpolated normal from vertices normals
@@ -65,7 +68,9 @@ module intersections =
                  
                 //else
                 if (triangle.Length) = 3 then printfn "ERROR on triangles definition with the normal"
-                [|{ normal=nrm; point=PIntersect; ray=newRay;MatName=matName; t=t1}|]
+                //
+                //  Up to now I haven't add that a mesh can be a sensor
+                [|{ normal=nrm; point=PIntersect; ray=newRay;MatName=matName; t=t1}|]//; ObjectSensor=None}|]
         else
             [||]
             //type Intersection_mesh = { normal:Vector3D; point:Point3D; ray:RayFrom; mesh:mesh;t:float}
@@ -109,7 +114,10 @@ module intersections =
                     let z1real = 
                         let z1rot = cylinder.Obj2World.RotatePoint(z1)
                         Point(z1rot.X+cylinder.Origin.X, z1rot.Y+cylinder.Origin.Y, z1rot.Z+cylinder.Origin.Z)
-                    [|{ normal=normalt1.ToUnitVector() ; point=z1real; ray=ray1;MatName=cylinder.MaterialName; t=t1}|]
+                    [|{ normal=normalt1.ToUnitVector() ; point=z1real; ray=ray1;MatName=cylinder.MaterialName; t=t1} |]//; 
+                    //    ObjectSensor= if cylinder.Sensor.Exists then Some(Cylinder(cylinder))
+                    //                  else None
+                    //    }|]
                     //[{ normal = normalt1 ; point = z1real; ray = ray1 ; material=cylinder.material; t=t1;Nsamples=nsamples}]
                 else [||]
             let inter2 = 
@@ -119,11 +127,15 @@ module intersections =
                     let z2real = 
                         let z2rot = cylinder.Obj2World.RotatePoint(z2)//.TransformBy(m=)
                         Point(z2rot.X+cylinder.Origin.X, z2rot.Y+cylinder.Origin.Y, z2rot.Z+cylinder.Origin.Z)
-                    [|{ normal=normalt2.ToUnitVector(); point=z2real; ray=ray2;MatName=cylinder.MaterialName; t=t2}|]
+                    [|{ normal=normalt2.ToUnitVector(); point=z2real; ray=ray2;MatName=cylinder.MaterialName; t=t2}|]//; 
+                    //    ObjectSensor= if cylinder.Sensor.Exists then Some(Cylinder(cylinder))
+                    //                  else None
+                    //    }|]
                     //[{ normal = normalt2 ; point = z2real; ray = ray2 ; material=cylinder.material; t=t2;Nsamples=nsamples}]
                 else [||]
             Array.append inter1 inter2
-
+    
+   //type intermediateIntersection = {normal:UnitVector; point:Point;ray:Ray;MatName:string;t:float<m> }  // To use the intersect sphere
    let intersect_Sphere(ray:Ray,centre:Point,rad:float<m>, material:string) =
     // Intersction of a ray with a sphere comming from a cylinder
     let s = ray.from - centre
@@ -143,13 +155,13 @@ module intersections =
 
    type intermediate_In_ShpLens = {Inter:Intersection; Cond:bool}  // definition for intersect_SphSurfaceLens bucle
 
-   let intersect_SphSurfaceLens(ray:Ray,sLens:SphSurfaceLens)  =   
+   let intersect_SphSurfaceLens(ray:Ray,sLens:SphSurfaceLens):Intersection[]  =   
     // Intersection of a Ray with the surface of a spherical lens
 
     // Process: 1 - intersect with the sphere; 2 - check the conditions for the part of the sphere
     let isphere = intersect_Sphere(ray,sLens.SphCentre,sLens.RadiusOfCurvature, sLens.MaterialName)
     match isphere with 
-    | [||] -> isphere
+    | [||] -> [||]
     | _ -> let intersec_costh = isphere            // Cosinus between the normal of the lens(side of the lens) and the side in which the intersection happened
                                  |> Array.map(fun x -> sLens.Axis*x.normal)
            let cond (costh:float) =
@@ -167,3 +179,9 @@ module intersections =
            Array.map2(fun y x -> {Inter= x; Cond=(cond y)}) intersec_costh isphere // check if it really intersects creating an 'intermediate' type 
            |> Array.filter(fun x -> x.Cond)         // filter those points in which it really intersects
            |> Array.map(fun x -> x.Inter)           // map the intersection
+           //|> Array.map(fun  x -> {normal= x.normal; point= x.point;ray= x.ray;MatName= x.MatName;t= x.t;
+           //                        ObjectSensor= if sLens.Sensor.Exists then Some(SurfaceLens(sLens))
+           //                                      else None
+           //                        } 
+           //             )
+                                    

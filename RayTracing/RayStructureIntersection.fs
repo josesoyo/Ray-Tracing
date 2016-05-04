@@ -12,7 +12,7 @@ module RayStructureIntersection =
     let IntersectionGroup(ray:Ray,gr:group,msh:mesh):Intersection Option =
         let pp = (gr.TrianglesNormals) 
                  |> Array.collect(fun tri -> intersec_tri(ray,msh,fst tri,snd tri,gr.MatName))
-                 |> Array.filter(fun x -> x.t > 1e-14<m>)            // Positive values
+                 |> Array.filter(fun x -> x.t > 1e-9<m>)            // Positive values
                  //|> Array.minBy(fun x -> x.t) 
 
         match pp with

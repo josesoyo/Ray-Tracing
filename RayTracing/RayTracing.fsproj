@@ -47,7 +47,11 @@
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="RayCore.fs" />
     <Compile Include="RayStructureIntersection.fs" />
+    <Compile Include="ObjectSelection.fs" />
+    <None Include="ForwardRayTracing_prepare.fsx" />
     <None Include="Script.fsx" />
+    <None Include="Test_Intersections.fsx" />
+    <None Include="ForwardRayTracing.fsx" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Types\Types.fsproj">
