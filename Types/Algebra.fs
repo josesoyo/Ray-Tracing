@@ -43,6 +43,8 @@ module Algebra =
             with get() = y
         member this.Z 
             with get() = z
+        member this.ToVector() =
+            Vector(this.X,this.Y,this.Z)
         member this.Move(dx,dy,dz) = 
             x <- x+dx
             y <- y+dy
@@ -72,10 +74,13 @@ module Algebra =
         member this.ToUnitVector() = UnitVector(this.X,this.Y,this.Z)
         member this.ToPoint() = Point(this.X,this.Y,this.Z)
         // operations that can be done
-        // Sum vectors
+        // Sum and substract vectors
         static member (+) (v1:Vector, v2:Vector) = Vector(v1.X + v2.X,v1.Y + v2.Y,v1.Z + v2.Z)
+        static member (-) (v1:Vector, v2:Vector) = Vector(v1.X - v2.X,v1.Y - v2.Y,v1.Z - v2.Z)
         static member (+) (v1:Vector, v2:UnitVector) = Vector(v1.X + v2.X,v1.Y + v2.Y,v1.Z + v2.Z)
+        static member (-) (v1:Vector, v2:UnitVector) = Vector(v1.X - v2.X,v1.Y - v2.Y,v1.Z - v2.Z)
         static member (+) (v1:UnitVector, v2:Vector) = Vector(v1.X + v2.X,v1.Y + v2.Y,v1.Z + v2.Z)
+        static member (-) (v1:UnitVector, v2:Vector) = Vector(v1.X - v2.X,v1.Y - v2.Y,v1.Z - v2.Z)
         // Sum from a point -> Translation of a point
         static member (+) (v1:Vector, p:Point) = Point(v1.X + float(p.X),v1.Y + float (p.Y), v1.Z + float(p.Z))
         static member (+) (p:Point,v1:Vector) = Point(v1.X + float(p.X),v1.Y + float(p.Y), v1.Z + float(p.Z))
@@ -123,6 +128,7 @@ module Algebra =
         // methods on unit vector that produces a Vector type
         static member (*) (k:float,v:UnitVector) = Vector(k*v.X,k*v.Y,k*v.Z)
         static member (+) (v1:UnitVector, v2:UnitVector) = Vector(v1.X + v2.X,v1.Y + v2.Y,v1.Z + v2.Z)
+        static member (-) (v1:UnitVector, v2:UnitVector) = Vector(v1.X - v2.X,v1.Y - v2.Y,v1.Z - v2.Z)
         // Scalar product
         static member (*) (v1:UnitVector, v2:UnitVector) = v1.X*v2.X+v1.Y*v2.Y+v1.Z*v2.Z
         // Cross product    -   Problem if v1 = v2
@@ -179,12 +185,12 @@ module Algebra =
             let ms = Matrix ((Array2D.length1 m1.RotMat), (Array2D.length2 m1.RotMat) )
             ms.RotMat |>Array2D.iteri(fun i j x-> (ms.RotMat.[i,j] <- m2.RotMat.[i,j] +  m1.RotMat.[i,j]))
             ms
-        static member RotateVector(a:Vector,b:Vector) =
+        static member RotateVector(from:Vector,t:Vector) =
             // Method valid for 3X3 matrix
-            let ve = a><b
-            let modprod = (a.Module()*b.Module())
+            let ve = from><t
+            let modprod = (from.Module()*t.Module())
             let s = ve.Module()/modprod         // sin of angle
-            let c = (a*b )/modprod           // Cos of angle
+            let c = (from*t)/modprod           // Cos of angle
             if s = 0. && c = 1. then Matrix.ID(3,3) // Case are the same vector
             else
                 let mult = (1.-c)/(s*s)
@@ -200,11 +206,11 @@ module Algebra =
                 let id = Matrix.ID(3,3)
                 (id + vx + cuadrado) //+ (mult*cuadrado)
                 //(vx,cuadrado, mult)
-        static member RotateVector(a:UnitVector,b:UnitVector) = 
-            let ve = a><b
+        static member RotateVector(from:UnitVector,t:UnitVector) = 
+            let ve = from><t
             let modprod = 1.//(a.Module()*b.Module())
             let s = ve.Module()/modprod         // sin of angle
-            let c = (a*b )/modprod           // Cos of angle
+            let c = (from*t )/modprod           // Cos of angle
             if s = 0. && c = 1. then Matrix.ID(3,3) // Case are the same vector
             else
                 let mult = (1.-c)/(s*s)

@@ -6,17 +6,20 @@ module ObjectTypes=
     open Microsoft.FSharp.Data.UnitSystems.SI.UnitSymbols
     open Algebra
     open Types.types
+    open System
     // Sensor type
-    type SensorContent(pos,dir,nr,ph) =
+    type SensorContent(pos,dir,nr,ph,ns) =
 
         let position:Point = pos
         let direction:UnitVector = dir
         let numRays:int = nr
         let phase:float =ph
+        let noise:noise[] =  ns   // obtained from the spectral density
         member this.Position with get() = position
         member this.Direction with get() = direction
         member this.NumRays with get () = numRays
         member this.Phase with get() = phase
+        member this.Noise with get() = noise
 
     type Sensor(exs:bool, term:bool) =
         // Sensor type, it will be added to all the objects.    -> Probably: Sensor Option
@@ -60,7 +63,7 @@ module ObjectTypes=
                             Convex:bool; // Convex = convergent (normal sphere) 
                           } // Name because will be the surface of a lens
     *)
-    type SphSurfaceLens(centreofSPH, roc:float<m>, diam:float<m>,axs:UnitVector, conv:bool,matname:string, snrs:Sensor) =
+    type SphSurfaceLens(centreofSPH, roc:float<m>, diam:float<m>,axs:UnitVector, conv:bool,matname:string, snrs:Sensor, noise:noise[]) =
         // Define default values
         let sensor = snrs
         let mutable SphereCentre= centreofSPH// Point(0.,0.,0.)
@@ -90,6 +93,7 @@ module ObjectTypes=
                              if sinth < 1. then sqrt(1.-(sinth*sinth)) 
                              else 0.
 
+        member this.Noise with get() = noise 
         member this.CosMin  with get() = cosMin //and set(cm) =  cosMin <- cm 
         member this.Axis  with get() = axis and set(uv) = axis <- uv
         //member this.Axis  with get() = axis and set(uv) = axis <-UnitVector uv
@@ -100,7 +104,11 @@ module ObjectTypes=
         static member Zero = SphSurfaceLens(Point(0.,0.,0.), 0.<m>, 0.<m>,UnitVector(0.,0.,1.), true,"")
         new (centreofSPH, roc, diam,axs, conv,matname) =
             // Create the material NOT being sensor
-            SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, Sensor()) 
+            SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, Sensor(),[|0uy,0.|]) 
+        new (centreofSPH, roc, diam,axs, conv,matname,snsr) =
+            SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, snsr,[|0uy,0.|]) 
+        new (centreofSPH, roc, diam,axs, conv,matname,nois) =
+            SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, Sensor(),nois) 
 
         (*
         static member CreateLensSurface(centreofSPH, roc:float<m>, diameter:float<m>,axis:UnitVector, convex:bool) =
@@ -129,11 +137,11 @@ module ObjectTypes=
                      WorldToObj:Matrix<float>  // Transforms from Normal -> (0.,0.,1.)
                      }
     *)
-    type cylinder(rad:float<m>,zmax:float<m>,orig:Point,nrm:UnitVector,matname:string, snrs:Sensor) = 
+    type cylinder(rad:float<m>,zmax:float<m>,orig:Point,nrm:UnitVector,matname:string, snrs:Sensor, noise:noise[]) = 
         // Type for a cylinder which in the local frame is oriented on +Z direction starting at z = 0 <m>
         // define the contentis
         let sensor = snrs
-        let  mutable radius = rad //0<m>
+        let mutable radius = rad //0<m>
         let mutable zmax = zmax// zmin, zmin0<m>, infi
         let mutable origin = orig                       // where the cylinder starts
         let mutable normal = nrm                        // where it points
@@ -172,6 +180,7 @@ module ObjectTypes=
 
         let mutable WBbox = ComputeWbox ObjToWorld LBbox       // Generate Bounding box on the world
 
+        member this.Noise with get() = noise 
         member this.Radius 
             with get() = radius 
             and set(r) = 
@@ -208,11 +217,41 @@ module ObjectTypes=
 
         static member Zero =  cylinder(0.<m>,0.<m>,Point(0.,0.,0.),UnitVector(0.,0.,1.),"") 
         new  (rad,zmax,orig,nrm,matname) = 
-            cylinder(rad,zmax,orig,nrm,matname, Sensor()) 
+            cylinder(rad,zmax,orig,nrm,matname, Sensor(),[|(0uy,0.)|]) 
+        new  (rad,zmax,orig,nrm,matname, sen) = 
+            cylinder(rad,zmax,orig,nrm,matname, sen,[|(0uy,0.)|]) 
+        new  (rad,zmax,orig,nrm,matname, nois) = 
+            cylinder(rad,zmax,orig,nrm,matname, Sensor(),nois) 
 
 
+    
+    type disc(c:Point, rad:float, nrm:UnitVector,matname:string, snrs:Sensor, noise:noise[]) = 
+        // Disk type 
+        // Simple, just a need for the centre, radius and normal
+        let center = c
+        let radius = rad
+        let D = -(nrm*(c.ToVector()))
+        let normal = nrm
+        member this.Centre with get() = center
+        member this.Radius with get() = radius
+        member this.Normal with get() = normal
+        member this.MatName with get() = matname
+        member this.Sensor with get() = snrs
+        member this.Noise with get() = noise
+        member this.ConstantOfAPlane with get() = D
 
+        new(c,rad,nrm,matName) =
+          disc(c, rad, nrm,matName, Sensor(),[|(0uy,0.)|]) 
 
+        
+        new(c,rad,nrm,isEndSensor:bool) =
+          // End sensor = "no material"
+          let snsr = Sensor(true,isEndSensor)
+          if isEndSensor = false then 
+              printfn "There's an error on the definition of the disk\n cannot be and end withouth a defined material"
+              Console.ReadKey() |> ignore  
+          disc(c, rad, nrm,"", snsr,[|(0uy,0.)|])
+         
 
 
 
@@ -232,4 +271,5 @@ module ObjectTypes=
     | Mesh of elementMesh
     | Cylinder of cylinder
     | SurfaceLens of SphSurfaceLens
+    | Disc of disc
 

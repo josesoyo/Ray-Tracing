@@ -51,6 +51,7 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Random.fs" />
     <Compile Include="Algebra.fs" />
     <Compile Include="Algebra2.fs" />
     <Compile Include="MainTypes.fs" />
