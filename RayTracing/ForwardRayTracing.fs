@@ -21,6 +21,7 @@ let UpdateSensor(ray:Ray,intersection:Intersection,obj:Object):Unit =
     | Cylinder x ->   x.Sensor.AddData(sc)
     | SurfaceLens x-> x.Sensor.AddData(sc)
     | Disc x-> x.Sensor.AddData(sc)
+    | Sphere x-> x.Sensor.AddData(sc)
 
     
 // No sensor options
@@ -37,12 +38,14 @@ let IsItSensor(objs:Object[], id:int):bool*bool =
     | Cylinder x -> (x.Sensor.Exists, x.Sensor.Terminate) // says if it is a sensor or not and if it terminates
     | SurfaceLens x -> (x.Sensor.Exists, x.Sensor.Terminate) // says if it is a sensor or not and if it terminates
     | Disc x -> (x.Sensor.Exists, x.Sensor.Terminate)
+    | Sphere x -> (x.Sensor.Exists, x.Sensor.Terminate)
 
 let getNoise(objs:Object[], id:int) =
     match objs.[id] with
     | Cylinder x -> x.Noise
     | SurfaceLens x -> x.Noise
     | Disc x -> x.Noise
+    | Sphere x -> x.Noise
 
 // Main Function - initial ray must be computed before
 // This function only traces one ray, so it reques a superfunction to trace all the rays and probably do the parallel stuff
@@ -51,10 +54,13 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
     // match intersection with Sensor or not Sensor and return Rays or end
     // intersecta
     let intersect:(Intersection*int) =  
-        // find the closest intersection and if it doesn't exists, then return an non existent value
+        // find the closest intersection and if it doesn't exists, then return a non existent value
         let rei = intersection_all_forward(ray,objs)
         if  Array.isEmpty rei then ({ normal=UnitVector(1.,0.,0.); point=Point(0.,0.,0.); ray=ray;MatName="none" ; t= 1.<m>},-1)  
-        else rei |> Array.minBy(fun x -> (fst x).t)
+        else 
+            rei 
+            |> Array.minBy(fun x -> (fst x).t) 
+          
     match snd intersect with
     | x when x >= 0 ->
         let sensorOrNot = IsItSensor(objs,snd intersect) // Is this intersected ibject a sensor?  - (snd intersect) is the number of object that is a sensor
@@ -72,25 +78,30 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
             UpdateSensorSelection(ray,fst intersect,objs, snd intersect)
 
             // 2nd - Shading
-            let rays:Ray[] = ShadingForward(ray, fst intersect, material,noise)
+            let rays:Ray[] = ShadingForward( fst intersect, material,noise)
             // check that the number of dispersive reflections is not more than the expected
-            match ray.NumBounces with
-            | n when n <= ray.MaxDispersions -> 
-                // 3nd - Continue the ray tracing
-                rays |> Array.iter(fun r -> ForwardRay (r,objs,material))
-            | _ -> 'e' |> ignore// end
+            match Array.isEmpty rays with
+            | false ->
+                match ray.NumBounces with
+                | n when n <= ray.MaxDispersions -> 
+                    // 3nd - Continue the ray tracing
+                    rays |> Array.iter(fun r -> ForwardRay (r,objs,material))
+                | _ -> 'e' |> ignore// end
+            | true -> 'e' |> ignore// end it's absorbed
             
         |(_, _ ) ->  // (false , _ )
             //not end - just continue
             // 1st - Shading
-            let rays:Ray[] = ShadingForward(ray, fst intersect, material,noise)
-        
-            // check that the number of dispersive reflections is not more than the expected
-            match ray.NumBounces with
-            | n when n <= ray.MaxDispersions -> 
-                // 2nd - continue ray tracing 
-                rays |> Array.iter(fun r -> ForwardRay (r,objs,material))
-            | _ -> 'e' |> ignore// end withouth producing anything
+            let rays:Ray[] = ShadingForward( fst intersect, material,noise)
+            match Array.isEmpty rays with
+            | false ->
+                // check that the number of dispersive reflections is not more than the expected
+                match ray.NumBounces with
+                | n when n <= ray.MaxDispersions -> 
+                    // 2nd - continue ray tracing 
+                    rays |> Array.iter(fun r -> ForwardRay (r,objs,material))
+                | _ -> 'e' |> ignore// end withouth producing anything
+            | true ->  'e' |> ignore// end it's absorbed
 
     | _ -> 'e' |> ignore // no intersection, nothing happens
 

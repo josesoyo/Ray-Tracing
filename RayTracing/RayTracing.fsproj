@@ -41,17 +41,21 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Numerics" />
+    <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="RayCore.fs" />
     <Compile Include="RayStructureIntersection.fs" />
     <Compile Include="ObjectSelection.fs" />
-    <None Include="ForwardRayTracing_prepare.fsx" />
+    <Compile Include="ShadingForward.fs" />
+    <Compile Include="ForwardRayTracing.fs" />
+    <Compile Include="SaveSensorInfo.fs" />
     <None Include="Script.fsx" />
     <None Include="Test_Intersections.fsx" />
-    <None Include="ForwardRayTracing.fsx" />
+    <None Include="test_forward.fsx" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Types\Types.fsproj">

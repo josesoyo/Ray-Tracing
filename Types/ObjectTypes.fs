@@ -49,7 +49,23 @@ module ObjectTypes=
 
     type group = {Name:string; TrianglesNormals: (int list *UnitVector)[];Bbox:BBox; MatName:string}
     type mesh = {Vertices:Point [] ; VNormals:UnitVector []; groups: group [] ;Bbox:BBox}
-    type sphere = {center:Point; radius:float<m>}//; material:Material }
+
+    type sphere (centre:Point,radius:float<m>,matname:string, sensor:Sensor, noise:noise[]) = 
+        // 
+        member this.Centre with get() = centre 
+        member this.Radius with get() = radius  
+        member this.Noise with get() =  noise
+        member this.MaterialName with get() = matname// and set(mn) = matname <- mn
+        member this.Sensor with get() = sensor
+        member this.UpdateSensor(sc) = sensor.AddData(sc)
+        // new types
+        new (centre,radius,matname) =
+            sphere (centre,radius,matname,Sensor(),[|0uy,0.|])
+        new (centre,radius,matname, noise) =
+            sphere (centre,radius,matname, Sensor(), noise)
+        new (centre,radius,matname, sensor) =
+            sphere (centre,radius,matname,sensor,[|0uy,0.|])
+
     type partSphere = {Sphere:sphere; 
                        zmin:float<m>; zmax:float<m>;
                        //phimin:float<radian>;phimax:float<radian>;
@@ -252,8 +268,12 @@ module ObjectTypes=
               Console.ReadKey() |> ignore  
           disc(c, rad, nrm,"", snsr,[|(0uy,0.)|])
          
-
-
+        new (c,rad,nrm,matname,isEndSensor:bool) =
+          // End sensor = "no material"
+          let snsr = Sensor(true,isEndSensor)
+          disc(c, rad, nrm,matname, snsr,[|(0uy,0.)|])
+ 
+         
 
 
     type OctreeSystem =                         // I consider that now only the triangles will be in the octree
@@ -272,4 +292,5 @@ module ObjectTypes=
     | Cylinder of cylinder
     | SurfaceLens of SphSurfaceLens
     | Disc of disc
+    | Sphere of sphere
 

@@ -136,7 +136,7 @@ module intersections =
             Array.append inter1 inter2
     
    //type intermediateIntersection = {normal:UnitVector; point:Point;ray:Ray;MatName:string;t:float<m> }  // To use the intersect sphere
-   let intersect_Sphere(ray:Ray,centre:Point,rad:float<m>, material:string) =
+   let intersect_sphere_simp(ray:Ray,centre:Point,rad:float<m>, material:string) =
     // Intersction of a ray with a sphere comming from a cylinder
     let s = ray.from - centre
     let sv = s*ray.uvec
@@ -153,13 +153,18 @@ module intersections =
        [|{normal = dnormal1.ToUnitVector();point= point1; ray= ray1; MatName = material; t= t1} ;
          {normal = dnormal2.ToUnitVector();point= point2; ray= ray2; MatName = material; t= t2} |]
 
+   let intersect_Sphere(ray:Ray,sph:sphere) =
+     // intersction with the sphere type
+     intersect_sphere_simp(ray,sph.Centre,sph.Radius, sph.MaterialName) 
+
    type intermediate_In_ShpLens = {Inter:Intersection; Cond:bool}  // definition for intersect_SphSurfaceLens bucle
 
    let intersect_SphSurfaceLens(ray:Ray,sLens:SphSurfaceLens):Intersection[]  =   
     // Intersection of a Ray with the surface of a spherical lens
 
+
     // Process: 1 - intersect with the sphere; 2 - check the conditions for the part of the sphere
-    let isphere = intersect_Sphere(ray,sLens.SphCentre,sLens.RadiusOfCurvature, sLens.MaterialName)
+    let isphere = intersect_sphere_simp(ray,sLens.SphCentre,sLens.RadiusOfCurvature, sLens.MaterialName)
     match isphere with 
     | [||] -> [||]
     | _ -> let intersec_costh = isphere            // Cosinus between the normal of the lens(side of the lens) and the side in which the intersection happened
@@ -185,3 +190,22 @@ module intersections =
            //                        } 
            //             )
                                     
+   let intersect_Disk(ray:Ray,dsk:disc) = 
+        // intersection ray - disk
+        // method:
+        // plane eq: ax+by+cz+d = 0
+        // Ray(t): (xyz) = uvec*t + pos0
+
+        let dot1 = dsk.Normal*ray.from.ToVector()
+        let dot2 = dsk.Normal*ray.uvec
+        let dt = -(dot1+dsk.ConstantOfAPlane)/dot2 // |> LanguagePrimitives.FloatWithMeasure<m>
+        let tm = dt |> LanguagePrimitives.FloatWithMeasure<m>
+        let np = (ray.from + (dt)*ray.uvec)
+
+        let rad = (np-dsk.Centre).Module()
+        match rad with
+        | x when x <= dsk.Radius ->
+            let nray = {ray with OpticalPathTravelled = ray.OpticalPathTravelled + ray.IndexOfRefraction*(tm)}
+            [|{normal = dsk.Normal;point= np; ray= nray; MatName = dsk.MatName; t= tm}|]
+        | _ ->  [||]
+        

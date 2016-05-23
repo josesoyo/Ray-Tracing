@@ -30,12 +30,14 @@ let cy = cylinder(0.1<m>,1.5<m>,Point(10.1,-0.5,0.),UnitVector(0.,1.,0.),"someNa
 *)
 let r = {
          Wavelenght = WaveLength(5e-7<m>);
-         from = Point(0.,0.00,0.051); uvec = UnitVector(1.,0.,0.);
+         from = Point(0.,01.00,0.0); uvec = UnitVector(1.,0.,0.);
          MaxLength = infi;
          OpticalPathTravelled = 0.<m>;
-         NumBounces = 0; bounces = [];
-         NumOfParticles = 1;
+         NumBounces = 0uy; bounces = [];
+         MaxDispersions = 1uy;
+         NumOfParticles = 0;
          IndexOfRefraction = 1.
+         NoiseAdd= [||]
         }
 
 //intersection between the ray and the lens
@@ -54,3 +56,19 @@ cy.Zmax
 [|Some 1;None ;Some 3|] |> Array.filter(fun x -> let nar = UnSomeNone(x)
                                                  not(Array.isEmpty(nar))) 
                         |> Array.map(fun x -> match x with Some x -> x)
+
+
+//  disk
+let p = Point(10.,0.5,0.)
+let rad = 1.
+let nrm = UnitVector(1.,-0.5,0.)
+let d = disc(p,rad,nrm,true)
+d.Centre
+// Intersection intersection_Disk
+let i = intersect_Disk(r,d).[0]
+i.point
+d.Sensor.AddData(SensorContent(i.point,i.ray.uvec,1,
+                                (i.ray.OpticalPathTravelled/(match i.ray.Wavelenght with WaveLength x -> x))%(float(match i.ray.Wavelenght with WaveLength x -> x)),
+                                [||]))
+d.Sensor.SavedData
+(1000.*3.+1e-7)%3.
