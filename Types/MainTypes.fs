@@ -15,7 +15,13 @@ module types =
                       MatName: string                             // Identifier of the material to find it
                      }
     
-    type noise = (byte*float)                       // example: (8uy, 9.) -> frequency[hz]*noise[M/sqrt(hz)] 
+    // first method to noise
+    // This was intended in the case the objects contains some noise that it's transmitted to the ray
+    //type noise = (byte*float)                       // example: (8uy, 9.) -> frequency[hz]*noise[M/sqrt(hz)] 
+
+    // Second method to noise
+    // This is to translate the vibration of the object into phase change on the ray.
+    type noise = ((byte*Vector)[]*float[])                        // Here it refers to the fact that ((frequency, Amplitude)[], t_sampling)
     // byte is a number in the range [0,255], I use this because I expect I won't work on higher frequencies
     type Ray = {
                 Wavelenght:Wavelength;
@@ -30,7 +36,9 @@ module types =
                 // if NumOfParticles is bigger or equal to 1 means that it's a multipleparticle     (splitting)
                 IndexOfRefraction:float
 
-                NoiseAdd:noise[]
+                // Careful, NoiseAdd it's for frequency domain and PhaseModulation for time domain
+                // NoiseAdd:float[]     - Not required now
+                PhaseModulation: float[]
                 // for NoiseAdd, I will need some function in order to sum the noise on the right frequency, but up to now, as a first step I am planning to use a single frequency
                 }
 
