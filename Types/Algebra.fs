@@ -9,6 +9,7 @@ module Algebra =
     // Vector(v,u,w) & UnitVector(v,u,w)
     //      - To UnitVector & ToPoint
     //      - sum:      +
+    //      - diff:     -
     //      - prod      *  scalar*vect
     //      - dotprod:  *  v1*v2
     //      - crospro   >< v1^v1

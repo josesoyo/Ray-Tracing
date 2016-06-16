@@ -7,6 +7,7 @@ open Types.types
 open Types.ObjectTypes
 open RayTracing.RayStructureIntersection
 open Random
+open ShadingNoise
 
 // define some types of functions before using the functions
 type ShadingForward = (Ray*Intersection*System.Collections.Generic.IDictionary<string,Material>) -> Ray[]   // the summ of all the next options
@@ -16,16 +17,22 @@ type dispersion = (Ray*Intersection*System.Collections.Generic.IDictionary<strin
 type absortion = Unit -> Unit                                                                               // Shouldn't exist - Just to remember it's an effect
 
 let dispersion(intersection:Intersection,numOfParticles:int) =
+    // Disperse light: 
+    // numOfParticles is the nmber photons that will be dispersed. Each dispersed day contains only 1 particle after dispersion
     //compute the dispersed ray: random direction on an hemisphere
-    let ray = intersection.ray
-    let normal = intersection.normal
-    let rotmat = Matrix.RotateVector(UnitVector(0.,0.,1.), normal)          // from to
-    let nuvec = rotmat.RotateVector(Vector(SampUnitHemisphereToCart()))    // New direction for the ray
-    {ray with 
-        uvec = nuvec.ToUnitVector(); from= intersection.point;
-        NumBounces = ray.NumBounces + 1uy;
-        OpticalPathTravelled = ray.OpticalPathTravelled - (match ray.Wavelenght with WaveLength x -> x)/2. 
-        NumOfParticles=numOfParticles}
+    let ray = {intersection.ray with  
+                from= intersection.point; NumBounces = intersection.ray.NumBounces + 1uy;
+                 OpticalPathTravelled = intersection.ray.OpticalPathTravelled - (match intersection.ray.Wavelenght with WaveLength x -> x)/2. 
+                 }
+
+    let rotmat = Matrix.RotateVector(UnitVector(0.,0.,1.), intersection.normal)          // from to
+    let nuvec = [|1..numOfParticles|] 
+                |> Array.map(fun x -> UnitVector(SampUnitHemiCosToCart()) ) 
+                |> Array.map (fun uv -> rotmat.RotateVector(uv))    // New direction for the ray
+    nuvec
+    |> Array.map(fun uv -> {ray with uvec = uv; NumOfParticles=1})
+
+        
 
 let reflection(intersection:Intersection,numOfParticles:int) = 
     // perform the reflection
@@ -106,21 +113,13 @@ let transmission(intersection:Intersection, ior:float, numOfParticles:int) =
 let RayProbabilityes(material:System.Collections.Generic.IDictionary<string,Material>,intersection:Intersection) =
     // function created because it must be more complicated in the future
     material.[intersection.MatName].T, material.[intersection.MatName].R, material.[intersection.MatName].LambPPM
-
-let SingleFreqNoiseAdd(ray:Ray,inter:Intersection,ns:noise[]) =
-    // Spectral density  -> Noise
-    // adds the noise considering the direction of the ray and the normal
-    // but the mean value
-    // it's a kind of isotropic
-    let diff = (inter.normal-ray.uvec)
-    let norm = sqrt(diff*diff)
-    let freq, nois= ns.[0]
-    freq, (2.*PI/sqrt(3.)/(match ray.Wavelenght with WaveLength x ->float x))*norm*nois
+    
 
 // Functions
-let ShadingForward(intersection:Intersection,material:System.Collections.Generic.IDictionary<string,Material>, noise:noise[]):(Ray[]) =
+let ShadingForward(intersection:Intersection,material:System.Collections.Generic.IDictionary<string,Material>, noise:noise):(Ray[]) =
     // Create the shading of the ray tracing. This Function must be modified many times
     match intersection.ray.NumOfParticles with
+    (*
     | n when n = 0 ->
         // Case when I'm doing single raytracing
         
@@ -129,20 +128,81 @@ let ShadingForward(intersection:Intersection,material:System.Collections.Generic
         // options: transmission, reflection or dispersion. Absortion is done implicitly
         match coin with 
         | c when c <= pt -> 
-            let out = {transmission(intersection,fst material.[intersection.MatName].n,0) with NoiseAdd = (Array.append intersection.ray.NoiseAdd [|SingleFreqNoiseAdd(intersection.ray,intersection,noise)|] )}
+            let out = {transmission(intersection,fst material.[intersection.MatName].n,0) with NoiseAdd = (Array.append intersection.ray.NoiseAdd [| SingleFreqNoiseAdd(intersection.ray,intersection,noise) |] )}
             [|out|]
         | c when pt < c && c <= (pt+pr) -> 
-            let out =  {reflection(intersection,0) with NoiseAdd = (Array.append intersection.ray.NoiseAdd [|SingleFreqNoiseAdd(intersection.ray,intersection,noise)|])}
+            let out =  {reflection(intersection,0) with NoiseAdd = (Array.append intersection.ray.NoiseAdd [| SingleFreqNoiseAdd(intersection.ray,intersection,noise) |] ) }
             [| out |]
         | c when pt+pr < c && c <= pt+pr+pd ->
-            let out ={dispersion(intersection,0) with NoiseAdd = (Array.append intersection.ray.NoiseAdd [|SingleFreqNoiseAdd(intersection.ray,intersection,noise)|])}  // to modify, dispersion
+            let out ={dispersion(intersection,0) with NoiseAdd = (Array.append intersection.ray.NoiseAdd [| SingleFreqNoiseAdd(intersection.ray,intersection,noise) |]) }  // to modify, dispersion
             [| out |]
         | _ ->
             [||]
+    *)
+    | n when n = 1 ->
+       // Case when raytracing of a single ray
+        
+        let pt, pr , pd = RayProbabilityes(material, intersection)
+        let coin = rnd.NextDouble()     // coin because it will be used for the selection
+        // options: transmission, reflection or dispersion. Absortion is done implicitly
+        match coin with 
+        | c when c <= pt -> 
+            let out = transmission(intersection,fst material.[intersection.MatName].n,1) 
+            [|{out with PhaseModulation = PhaseModulation(out, intersection,noise) }|]
+            //[|out|]
+        | c when pt < c && c <= (pt+pr) -> 
+            let out =  reflection(intersection,1)
+            [|{out with PhaseModulation = PhaseModulation(out, intersection,noise) }|]
+            //[| out |]
+        | c when pt+pr < c && c <= pt+pr+pd ->
+            let out =dispersion(intersection,1) // to modify, dispersion
+            //[|{out with PhaseModulation = PhaseModulation(out, intersection,noise) }|]
+            out |> Array.map(fun ra -> {ra with PhaseModulation = PhaseModulation(ra, intersection,noise) })
+            //[| out |]
+        | _ ->
+            [||]
 
-    | _ -> [|intersection.ray|]  //| n when n > 0 ->    // case there are many particles, it 
-(*//| _ ->      // No possible = Absortion
-  // if there's a lambertian material should be considered the n+1 on reflections
-*)            
+    | _ ->
+        // Many particles case. The option that is going to be chosed must be explained
+        let pt, pr , pd = RayProbabilityes(material, intersection)
+        let nr, nt , nd =
+            let fpart = float(intersection.ray.NumOfParticles)  // float of the number of particles
+            if (1.-pt - pr - pd) < 1e-10 then // I don't trust they match perfectly
+                // No absortion
+                let r, t = int(fpart*pr) , int(fpart*pt)
+                (r,t, intersection.ray.NumOfParticles-r-t )
+            else
+                // absortion of the material
+                let r, t = int(fpart*pr) , int(fpart*pt)
+                let d = int(fpart*pd) 
+                let a = int(fpart*(1.-pt-pr-pd))
+                let missing = (intersection.ray.NumOfParticles-r-d-a-t) // in case the sum of the parts is not giving the total
+                if  missing = 0 then
+                    // no missing "particles"
+                    (r, t, d)
+                else if missing > 0 then
+                    // missing particles
+                    let probMax = [|('T',pt);('R',pr);('D',pd);('A', 1.-pt-pr-pd)|] |> Array.maxBy(fun x -> snd x) // case the sum of all parts < total
+                    match fst probMax with
+                    // Add the missing particle to the most probable choice Transmitted, Reflected, Dispersed, Absorved
+                    | 'T' -> (r,t+missing,d)
+                    | 'R' -> (r+missing,t,d)
+                    | 'D' -> (r,t,d+missing)
+                    | 'A' -> (r,t,d)
+                else // ERROR control
+                    printfn "Theres an error on ShadingForward"
+                    System.Console.ReadKey() |> ignore // stop the computation
+                    (r,t, d )
 
-
+        let tout = match nt with
+                   | nt when nt > 0 -> transmission(intersection,fst material.[intersection.MatName].n,nt) |> fun x ->  [|{x with PhaseModulation = PhaseModulation(x, intersection,noise) }|]
+                   | _ -> [||]
+        let rout = match nr with 
+                   | nr when nr > 0 -> reflection(intersection,nr) |> fun x -> [|{x with PhaseModulation = PhaseModulation(x, intersection,noise) }|]
+                   | _ -> [||]
+        let dout = match nd with
+                   | nd when nd > 0 -> dispersion(intersection,nd) |> Array.map( fun x -> {x with PhaseModulation =PhaseModulation(x, intersection,noise) })// to modify, dispersion
+                   | _ -> [||]
+          
+        Array.concat [|tout; rout ;dout|] // concatenate the options
+   

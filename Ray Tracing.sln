@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+VisualStudioVersion = 14.0.25123.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Preprocessor", "Library1\Preprocessor.fsproj", "{856172F8-DB0F-48A1-8C47-9BDAE578A3CC}"
 EndProject
@@ -23,6 +23,8 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "BackwardRender", "BackwardR
 		{5FB39736-0E82-43C4-BCE1-9CA3C5FE9815} = {5FB39736-0E82-43C4-BCE1-9CA3C5FE9815}
 		{275A4379-B682-43D1-9E7D-32DA266922E5} = {275A4379-B682-43D1-9E7D-32DA266922E5}
 	EndProjectSection
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "PostProcess", "PostProcess\PostProcess.fsproj", "{E87B490F-69FD-4A38-B6F7-ECA1A6365368}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -50,6 +52,10 @@ Global
 		{BFF86B6E-6B2F-4269-993D-60DB9C6991CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BFF86B6E-6B2F-4269-993D-60DB9C6991CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BFF86B6E-6B2F-4269-993D-60DB9C6991CC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E87B490F-69FD-4A38-B6F7-ECA1A6365368}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E87B490F-69FD-4A38-B6F7-ECA1A6365368}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E87B490F-69FD-4A38-B6F7-ECA1A6365368}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E87B490F-69FD-4A38-B6F7-ECA1A6365368}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

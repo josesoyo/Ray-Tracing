@@ -14,7 +14,7 @@ module ObjectTypes=
         let direction:UnitVector = dir
         let numRays:int = nr
         let phase:float =ph
-        let noise:noise[] =  ns   // obtained from the spectral density
+        let noise:float[] =  ns   // obtained from the spectral density :'a[] (byte*float)
         member this.Position with get() = position
         member this.Direction with get() = direction
         member this.NumRays with get () = numRays
@@ -50,7 +50,7 @@ module ObjectTypes=
     type group = {Name:string; TrianglesNormals: (int list *UnitVector)[];Bbox:BBox; MatName:string}
     type mesh = {Vertices:Point [] ; VNormals:UnitVector []; groups: group [] ;Bbox:BBox}
 
-    type sphere (centre:Point,radius:float<m>,matname:string, sensor:Sensor, noise:noise[]) = 
+    type sphere (centre:Point,radius:float<m>,matname:string, sensor:Sensor, noise:noise) = 
         // 
         member this.Centre with get() = centre 
         member this.Radius with get() = radius  
@@ -60,11 +60,13 @@ module ObjectTypes=
         member this.UpdateSensor(sc) = sensor.AddData(sc)
         // new types
         new (centre,radius,matname) =
-            sphere (centre,radius,matname,Sensor(),[|0uy,0.|])
+            //sphere (centre,radius,matname,Sensor(),[|0uy,0.|])    // method original for noise
+            sphere (centre,radius,matname,Sensor(),([|0uy, Vector(0.,0.,1.),0.|],[||]))
         new (centre,radius,matname, noise) =
             sphere (centre,radius,matname, Sensor(), noise)
         new (centre,radius,matname, sensor) =
-            sphere (centre,radius,matname,sensor,[|0uy,0.|])
+            //sphere (centre,radius,matname,sensor,[|0uy,0.|])     // method original for noise
+            sphere (centre,radius,matname,sensor,([|0uy, Vector(0.,0.,1.),0.|],[||])) 
 
     type partSphere = {Sphere:sphere; 
                        zmin:float<m>; zmax:float<m>;
@@ -79,7 +81,7 @@ module ObjectTypes=
                             Convex:bool; // Convex = convergent (normal sphere) 
                           } // Name because will be the surface of a lens
     *)
-    type SphSurfaceLens(centreofSPH, roc:float<m>, diam:float<m>,axs:UnitVector, conv:bool,matname:string, snrs:Sensor, noise:noise[]) =
+    type SphSurfaceLens(centreofSPH, roc:float<m>, diam:float<m>,axs:UnitVector, conv:bool,matname:string, snrs:Sensor, noise:noise) =
         // Define default values
         let sensor = snrs
         let mutable SphereCentre= centreofSPH// Point(0.,0.,0.)
@@ -120,9 +122,11 @@ module ObjectTypes=
         static member Zero = SphSurfaceLens(Point(0.,0.,0.), 0.<m>, 0.<m>,UnitVector(0.,0.,1.), true,"")
         new (centreofSPH, roc, diam,axs, conv,matname) =
             // Create the material NOT being sensor
-            SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, Sensor(),[|0uy,0.|]) 
+            //SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, Sensor(),[|0uy,0.|])  // method original for noise
+            SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, Sensor(),([|0uy, Vector(0.,0.,1.),0.|],[||])) 
         new (centreofSPH, roc, diam,axs, conv,matname,snsr) =
-            SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, snsr,[|0uy,0.|]) 
+            //SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, snsr,[|0uy,0.|])  // method original for noise
+            SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, snsr,([|0uy, Vector(0.,0.,1.),0.|],[||]))
         new (centreofSPH, roc, diam,axs, conv,matname,nois) =
             SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, Sensor(),nois) 
 
@@ -153,7 +157,7 @@ module ObjectTypes=
                      WorldToObj:Matrix<float>  // Transforms from Normal -> (0.,0.,1.)
                      }
     *)
-    type cylinder(rad:float<m>,zmax:float<m>,orig:Point,nrm:UnitVector,matname:string, snrs:Sensor, noise:noise[]) = 
+    type cylinder(rad:float<m>,zmax:float<m>,orig:Point,nrm:UnitVector,matname:string, snrs:Sensor, noise:noise) = 
         // Type for a cylinder which in the local frame is oriented on +Z direction starting at z = 0 <m>
         // define the contentis
         let sensor = snrs
@@ -233,15 +237,17 @@ module ObjectTypes=
 
         static member Zero =  cylinder(0.<m>,0.<m>,Point(0.,0.,0.),UnitVector(0.,0.,1.),"") 
         new  (rad,zmax,orig,nrm,matname) = 
-            cylinder(rad,zmax,orig,nrm,matname, Sensor(),[|(0uy,0.)|]) 
+            //cylinder(rad,zmax,orig,nrm,matname, Sensor(),[|(0uy,0.)|]) // method original for noise
+            cylinder(rad,zmax,orig,nrm,matname, Sensor(),([|0uy, Vector(0.,0.,1.),0.|],[||]))
         new  (rad,zmax,orig,nrm,matname, sen) = 
-            cylinder(rad,zmax,orig,nrm,matname, sen,[|(0uy,0.)|]) 
+            //cylinder(rad,zmax,orig,nrm,matname, sen,[|(0uy,0.)|]) // method original for noise
+            cylinder(rad,zmax,orig,nrm,matname, sen,([|0uy, Vector(0.,0.,1.),0.|],[||])) // method original for noise
         new  (rad,zmax,orig,nrm,matname, nois) = 
             cylinder(rad,zmax,orig,nrm,matname, Sensor(),nois) 
 
 
     
-    type disc(c:Point, rad:float, nrm:UnitVector,matname:string, snrs:Sensor, noise:noise[]) = 
+    type disc(c:Point, rad:float, nrm:UnitVector,matname:string, snrs:Sensor, noise:noise) = 
         // Disk type 
         // Simple, just a need for the centre, radius and normal
         let center = c
@@ -257,8 +263,9 @@ module ObjectTypes=
         member this.ConstantOfAPlane with get() = D
 
         new(c,rad,nrm,matName) =
-          disc(c, rad, nrm,matName, Sensor(),[|(0uy,0.)|]) 
-
+          //disc(c, rad, nrm,matName, Sensor(),[|(0uy,0.)|])    // method original for noise
+          disc(c, rad, nrm,matName, Sensor(),([|0uy, Vector(0.,0.,1.),0.|],[||]))
+         
         
         new(c,rad,nrm,isEndSensor:bool) =
           // End sensor = "no material"
@@ -266,12 +273,14 @@ module ObjectTypes=
           if isEndSensor = false then 
               printfn "There's an error on the definition of the disk\n cannot be and end withouth a defined material"
               Console.ReadKey() |> ignore  
-          disc(c, rad, nrm,"", snsr,[|(0uy,0.)|])
+          //disc(c, rad, nrm,"", snsr,[|(0uy,0.)|])     // method original for noise
+          disc(c, rad, nrm,"", snsr,([|0uy, Vector(0.,0.,1.),0.|],[||]))
          
         new (c,rad,nrm,matname,isEndSensor:bool) =
           // End sensor = "no material"
           let snsr = Sensor(true,isEndSensor)
-          disc(c, rad, nrm,matname, snsr,[|(0uy,0.)|])
+          //disc(c, rad, nrm,matname, snsr,[|(0uy,0.)|])    // method original for noise
+          disc(c, rad, nrm,matname, snsr,([|0uy, Vector(0.,0.,1.),0.|],[||]))
  
          
 

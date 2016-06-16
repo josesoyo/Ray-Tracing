@@ -21,7 +21,7 @@ module types =
 
     // Second method to noise
     // This is to translate the vibration of the object into phase change on the ray.
-    type noise = ((byte*Vector)[]*float[])                        // Here it refers to the fact that ((frequency, Amplitude)[], t_sampling)
+    type noise = ((byte*Vector*float)[]*float[])                        // Here it refers to the fact that ((frequency, Amplitude,phase)[], t_sampling)
     // byte is a number in the range [0,255], I use this because I expect I won't work on higher frequencies
     type Ray = {
                 Wavelenght:Wavelength;

@@ -82,3 +82,26 @@ let Samp2DGauss ( sigma:float, mu:float) =
 let samp2NGauss (sigma:float, mu:float, N: int) =
     // Gives a list of 2N Gaussian PRN
     [1..N]|>List.collect(fun _ -> Samp2DGauss(sigma,mu))
+
+let inv_sqr() =
+    // Generate a random number based on the 
+    // pdf = k/theta^2 with theta € [th_min, pi/2] 
+    let k =  0.01006406986 // based on the current thmin = 10^-2
+    let thmin= 1e-2
+    let r = rnd.NextDouble()
+    k*thmin/(k-thmin*r)
+
+let hist (data:float[]) (nbins:int)=
+    // histogram to test the functions created
+    let ma, mi = (data |> Array.max)+1e-10 , data |> Array.min
+    let wide = (ma-mi)/float(nbins)
+    let xaxis = [|1..nbins|] |> Array.map(fun x -> float(x)*wide/2.+mi)
+    let out = Array.init nbins (fun _ -> 0.) // initialize the output 
+    data 
+    |> Seq.iter( fun x -> 
+                        let whichbin = int((x-mi)/wide)
+                        printfn "%d" whichbin
+                        (out.[whichbin] <- out.[whichbin]+1.)
+                    )
+    let norm = out |> Array.sum  // normalization factor
+    (out, xaxis) ||> Array.map2(fun x y -> ( y, x/norm))

@@ -30,14 +30,15 @@ let r = {
          OpticalPathTravelled = 0.<m>;
          NumBounces = 0uy; bounces = [];
          MaxDispersions = 1uy;
-         NumOfParticles = 0;
+         NumOfParticles = 10;
          IndexOfRefraction = 1.
-         NoiseAdd= [||]
+         PhaseModulation = [||]
         }
 
 let mout = [|{MatName= "Mirror"; R=1.; T=0.; n=(2.,WaveLength(5e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.};
              {MatName= "Glass"; R=0.; T=1.; n=(1.3,WaveLength(5e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.};
-             {MatName= "air"; R=0.; T=1.; n=(1.,WaveLength(5e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.}
+             {MatName= "air"; R=0.; T=1.; n=(1.,WaveLength(5e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.};
+             {MatName= "Dispersive"; R=0.1; T=0.; n=(1.,WaveLength(5e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.9};
              |]
 
 let mat = dict (mout|> Array.map(fun x -> (x.MatName,x)))
@@ -128,7 +129,7 @@ SensorToImage(snsrs2,pa, 450,450)
 
 let nNRM = UnitVector(0.,0.,1.)
 let Pground = Point(0.,0.,0.)
-let ground = disc(Pground,100.,nNRM,"Mirror",Sensor(),[|(0uy, 0.0)|])  // Disc that represents the ground
+let ground = disc(Pground,100.,nNRM,"Dispersive")  // Disc that represents the ground Mirror or Dispersive
 
 // Source of Light
 //  &
@@ -137,13 +138,13 @@ let ground = disc(Pground,100.,nNRM,"Mirror",Sensor(),[|(0uy, 0.0)|])  // Disc t
 let spoint = Point(3.,0.,3.)        // Sensor point centre
 let lpoint = Point(-3.,0.,3.)       // Light source centre
 let snrm = UnitVector(-1.,0.,-1.)   // Sensor Direction
-let lnrm = UnitVector(1.,0.,-1.532)    // Light Direction
+let lnrm = UnitVector(1.,0.,-1.)    // Light Direction
 let sdisc = disc(spoint,3.5,snrm,true)      // Sensor
 lnrm
 let objs3 = [|Disc(ground);Disc(sdisc)|]
 
 let rotLight = Matrix.RotateVector(UnitVector(0.,0.,1.),lnrm)
-let manyRay3 = [|0..100000|]   // generate some rays on different directions from random points on the initial surface
+let manyRay3 = [|0..2000|]   // generate some rays on different directions from random points on the initial surface
                |> Array.map(fun x -> let pos = 
                                             let ipos = Samp2DGauss(0.1,0.)
                                             let ip= Point(ipos.[0],ipos.[1],0.)
@@ -151,6 +152,19 @@ let manyRay3 = [|0..100000|]   // generate some rays on different directions fro
                                             rotLight.RotatePoint(ip).MoveAndCreateNew(lpoint)
                                      ({r with uvec=lnrm; from = pos}))
 
-manyRay3.[0].uvec
+manyRay3.[2].from
+#time
 manyRay3|> Array.iter( fun x -> ForwardRay(x,objs3,mat))
- 
+sdisc.Sensor.SavedData.Length
+
+// plot it
+let data3 =
+    match (objs3.[1]) with
+    | Disc x -> let vox = {Pmin = Point(-x.Radius,-x.Radius,0.); Pmax = Point(x.Radius,x.Radius,0.)}
+                x.Sensor.SavedData,vox,x.Normal, x.Centre, x.Radius , 450, 450
+let dat3, _, uv3,pt3,rd3,_ ,_= data3
+
+let snsrs3 = CreateImage_Points_from_disk(data3)
+//let pa = Path.Combine( __SOURCE_DIRECTORY__,"test.png")
+SensorToImage(snsrs3,pa, 450,450)
+

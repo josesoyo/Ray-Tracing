@@ -1,11 +1,130 @@
 ﻿// Learn more about F# at http://fsharp.org. See the 'F# Tutorial' project
 // for more guidance on F# programming.
-#load @"C:\Users\JoseM\OneDrive\Phd\render\ray casting\Sample parts for version 2\Library1\Types\Algebra.fs"
+#load @"Algebra.fs"
 open Types.Algebra
 #load "MainTypes.fs"
 open Types
+open Microsoft.FSharp.Data.UnitSystems.SI.UnitSymbols
 
+type BBox = {Pmin:Point;Pmax:Point}
+type cylinder (rad:float<m>,zmax:float<m>,orig:Point,nrm:UnitVector,matname:string, sensor:bool) =
+               
+    // Type for a cylinder which in the local frame is oriented on +Z direction starting at z = 0 <m>
+    // define the contentis
+    let sensor= sensor
+    let  mutable radius = rad //0<m>
+    let mutable zmax = zmax// zmin, zmin0<m>, infi
+    let mutable origin = orig                       // where the cylinder starts
+    let mutable normal = nrm                        // where it points
+    let mutable Materialname = matname
+    let mutable LBbox = {Pmin = Point.FromMeasures(-radius,-radius,0.<m>); Pmax = Point.FromMeasures(radius,radius,zmax)}
+    let mutable ObjToWorld = Matrix.RotateVector(UnitVector(0.,0.,1.), normal)
+    let mutable WorldToObj = Matrix.RotateVector(normal,UnitVector(0.,0.,1.))
+    let ComputeWbox (objtoWorld:Matrix) lbox=
+            // private function to compute the world Bounding Box
+            let NonTransformedEdges = [|LBbox.Pmin;
+                                        Point(LBbox.Pmin.X,LBbox.Pmax.Y,LBbox.Pmin.Z);
+                                        Point(LBbox.Pmax.X,LBbox.Pmin.Y,LBbox.Pmin.Z);
+                                        Point(LBbox.Pmax.X,LBbox.Pmax.Y,LBbox.Pmin.Z);
+                                
+                                        Point(LBbox.Pmin.X,LBbox.Pmin.Y,LBbox.Pmax.Z);
+                                        Point(LBbox.Pmax.X,LBbox.Pmin.Y,LBbox.Pmax.Z);
+                                        Point(LBbox.Pmin.X,LBbox.Pmax.Y,LBbox.Pmax.Z);
+                                        LBbox.Pmax|]
+
+            let TransformedEdges = NonTransformedEdges                  // Rotate as should be by normal direction
+                                    |> Array.map(fun x -> objtoWorld.RotatePoint(x))
+            let minTrfEdgesX =  (TransformedEdges |> Array.minBy(fun x -> x.X)).X   
+            let minTrfEdgesY =  (TransformedEdges |> Array.minBy(fun x -> x.Y)).Y
+            let minTrfEdgesZ =  (TransformedEdges |> Array.minBy(fun x -> x.Z)).Z 
+            let minTrfEdges = Point(minTrfEdgesX,minTrfEdgesY,minTrfEdgesZ)
+            // Min of the Box in world
+            let wPmin = minTrfEdges.MoveAndCreateNew(origin) 
+
+            let maxTrfEdgesX =  (TransformedEdges |> Array.maxBy(fun x -> x.X)).X   
+            let maxTrfEdgesY =  (TransformedEdges |> Array.maxBy(fun x -> x.Y)).Y 
+            let maxTrfEdgesZ =  (TransformedEdges |> Array.maxBy(fun x -> x.Z)).Z
+            let maxTrfEdges = Point(maxTrfEdgesX,maxTrfEdgesY,maxTrfEdgesZ)
+            // Max of Box in World
+            let wPmax = maxTrfEdges.MoveAndCreateNew(origin)
+            {Pmin=wPmin;Pmax=wPmax}
+
+    let mutable WBbox = ComputeWbox ObjToWorld LBbox       // Generate Bounding box on the world
+
+    member this.Radius 
+        with get() = radius 
+        and set(r) = 
+            // not only updates the radius, also updates the bounding box
+            radius <- r
+            LBbox <- {Pmin = Point.FromMeasures(-r,-r,0.<m>); Pmax = Point.FromMeasures(r,r,zmax)}
+            WBbox <- ComputeWbox ObjToWorld LBbox
+    //member this.Zmin with get() = zmin
+    member this.Zmax 
+        with get() = zmax 
+        and set(zm) = 
+            zmax <- zm
+            let nlbox = {Pmin = Point.FromMeasures(-radius,-radius,0.<m>); Pmax = Point.FromMeasures(radius,radius,zm)}
+            LBbox <-nlbox
+            WBbox <- ComputeWbox ObjToWorld nlbox
+
+    member this.Origin with get() = origin
+    member this.Normal 
+        with get() = normal
+        and set(nrm) =
+            // updates also the properties of that are dependent of the radius
+            normal <- nrm
+            let obj2world = Matrix.RotateVector(UnitVector(0.,0.,1.), normal)
+            WorldToObj <- Matrix.RotateVector(normal,UnitVector(0.,0.,1.))
+            WBbox <-ComputeWbox obj2world LBbox
+
+    member this.MaterialName with get() = Materialname and set(ma) = Materialname <- ma
+    member this.wBbox with get() = WBbox
+    member this.lBbox with get() = LBbox
+    member this.Obj2World with get() = ObjToWorld
+    member this.World2Obj with get() = WorldToObj
+    member this.Sensor with get() = sensor
+    static member Zero =  cylinder(0.<m>,0.<m>,Point(0.,0.,0.),UnitVector(0.,0.,1.),"") 
+    new (rad:float<m>,zmax:float<m>,orig:Point,nrm:UnitVector,matname:string) =
+        cylinder(rad,zmax,orig,nrm,matname,false)
+    new (rad:float<m>) =
+        cylinder(rad,10.<m>,Point(0.,0.,0.),UnitVector(1.,0.,0.),"set.mat",false)
 // Define your library scripting code here
+
+    
+//        member this.X with get() = x and set(xx) = x <-xx
+
+//type Phase = float
+//[<StructAttribute>]
+type SensorContent(pos,dir,nr,ph) =
+
+    let position:Point = pos
+    let direction:UnitVector = dir
+    let numRays:int = nr
+    let phase:float =ph
+    member this.Position with get() = position
+    member this.Direction with get() = direction
+    member this.NumRays with get () = numRays
+    member this.Phase with get() = phase
+
+type Sensor(exs:bool, term:bool) =
+    // Sensor type, it will be add to all the objects.
+    // If the sensor doesn't exit, then it will pass the sensor options
+    // If exists, will check if it is a termination on the ray (End Sensor), or the ray continues, but saves the value
+    let exists = exs     // says if it's a sensor or not
+    let terminate = term
+    let mutable data:(SensorContent[]) = [||]
+    member this.Exists with get() = exists
+    member this.Terminate with get() = terminate
+    member this.SavedData with get() = data
+
+    member this.AddData(sc) =
+        data <- Array.append data [|sc|]
+
+    new (exs) =
+        Sensor(exs, false)
+    new () =
+        // default sensor is a no-sensor
+        Sensor(false, false)
 
 // I want to define the vector, unitvector and the two operations
 (*
@@ -110,33 +229,58 @@ type SphSurfaceLens2 =
         val Convex: bool
     new(p,r,c,a,cb) = {SphereCentre = }
 *)
+
+// testing an interface and abstract members
+type nti =
+    interface
+        abstract member Ai: int -> int
+        abstract member Bi: int[] -> int[]
+        abstract member Ci: float[] -> float[]
+    end
+type nt(a:int,b:int[],c:float32[]) =
+    new (a:int,b:int[]) =
+      nt(a,b,null)  
+    new (a:int,c:float32[]) =
+      nt(a,null,c)  
+
+    abstract member A() = a
+    member this.B() = b
+    member this.C() = c
     
-type SphSurfaceLens() =
-    let mutable SphereCentre= Point(0.,0.,0.)
-    let mutable radius = 0.<m>
-    let mutable cosMin = 0.
-    let mutable axis = UnitVector(0.,0.,0.)
-    let mutable convex = true
+    interface nti with
+        member this.A() = this.A()
+ 
 
-    member this.SphCentre with get() = SphereCentre and set(sc) = SphereCentre <- sc
-    member this.Radius  with get() = radius and set(r) = radius <- r
-    member this.CosMin  with get() = cosMin and set(cm) =  cosMin <- cm 
-    member this.Axis  with get() = axis and set(uv) = axis <- uv
-    //member this.Axis  with get() = axis and set(uv) = axis <-UnitVector uv
-    member this.Convex with get() = convex and set(cb) = convex <- cb
-    static member CreateLensSurface(centreofSPH, roc:float<m>, diameter:float<m>,axis:UnitVector, convex:bool) =
-        let sinth = 0.5*diameter/roc
-        let costh =
-            if sinth < 1. then sqrt(1.-(sinth*sinth)) 
-            else 0.
-        let SL = SphSurfaceLens()
-        SL.Radius<- roc
-        SL.Axis <- axis
-        SL.CosMin <- costh
-        SL.Convex <- convex
-        SL.SphCentre <- centreofSPH
-        SL
+type rtest = {A:int; B:int}
+
+type stest(a:int,b:int) =
+    member this.A with get() = a
+    member this.B with get() = b
+    member this.new_a(c) =
+        stest(c,this.B)
 
 
-let ne = SphSurfaceLens.CreateLensSurface(Point(1.,0.,0.), 2.<m>,0.1<m>,UnitVector(1.,0.,0.),false)
-ne.Radius
+
+
+
+
+type test2 = {a1:int;a2:int}
+let ne = {a1=0;a2 = 99}
+
+
+
+
+
+
+
+type test( a:int, b:int) =
+    let ne = {A = a;B = b} 
+    member this.a1 with get() = ne.A //and set(an) = A <- an
+    member this.b1 with get() = ne.B and set(bn) = ne.B <- bn
+let nw = test(0,99)
+let nw2 = nw.new_a(1000)
+nw.a1
+nw.b1
+let defaulttest = test(99,00)
+let nt = {nw with A = -10}
+let nt = {ne with a1 = -10}

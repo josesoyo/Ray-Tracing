@@ -1,6 +1,6 @@
-﻿#load @"C:\Users\JoseM\OneDrive\Phd\render\ray casting\Sample parts for version 2\Library1\Types\Algebra.fs"
-open Types.Algebra
+﻿#load @"C:\Users\Jose M. Gonzalez\OneDrive\Phd\render\ray casting\Sample parts for version 2\Library1\Types\Algebra.fs"
 // To understand how structures work
+open Types.Algebra
 open Microsoft.FSharp.Data.UnitSystems.SI.UnitSymbols
 open Types.Algebra
 let d = 2.<m>
@@ -119,3 +119,18 @@ let quad c = square >> s1 c
 quad 1 3
 (3.)**2.5
 snd(1,2)
+
+
+type Disk(c:Point, rad:float, nrm:UnitVector) = 
+  let center = c
+  let radius = rad
+  let D = -(nrm*(c.ToVector()))
+  member this.Centre with get() = center
+  member this.Radius with get() = radius
+  member this.ConstantOfAPlane with get() = D
+
+let p0 = Point (1.,4.,5.)
+let norm = UnitVector(0.,1.,0.)
+let d0 = Disk(p0,1.,norm)
+d0.ConstantOfAPlane
+.Centre

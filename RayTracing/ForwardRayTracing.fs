@@ -11,6 +11,9 @@ open Types.types
 open RayTracing.ObjectSelection     // All about RayTracing
 open Microsoft.FSharp.Data.UnitSystems.SI.UnitSymbols
 open ShadingForward
+(*
+
+                Case the ray carries just noise is not considered now
 
 let UpdateSensor(ray:Ray,intersection:Intersection,obj:Object):Unit =
     let sc = SensorContent(intersection.point,ray.uvec,
@@ -28,6 +31,20 @@ let UpdateSensor(ray:Ray,intersection:Intersection,obj:Object):Unit =
 // Sensor options
 let UpdateSensorSelection(ray:Ray, intersection:Intersection, objs:Object[],objID:int) =
     UpdateSensor(ray,intersection,objs.[objID])
+*)
+let UpdateSensorPhase(ray:Ray,intersection:Intersection,obj:Object):Unit =
+    let sc = SensorContent(intersection.point,ray.uvec,
+                           ray.NumOfParticles, 
+                           (ray.OpticalPathTravelled/(match (ray.Wavelenght) with WaveLength x ->x))%(float(match ray.Wavelenght with WaveLength x -> x)), 
+                           ray.PhaseModulation ) // I need the intersection
+    match obj with
+    | Cylinder x ->   x.Sensor.AddData(sc)
+    | SurfaceLens x-> x.Sensor.AddData(sc)
+    | Disc x-> x.Sensor.AddData(sc)
+    | Sphere x-> x.Sensor.AddData(sc)
+
+let UpdateSensorSelectionPhase(ray:Ray, intersection:Intersection, objs:Object[],objID:int) =
+    UpdateSensorPhase(ray,intersection,objs.[objID])
   
 // Algorithm for the Ray tracing
 
@@ -42,7 +59,7 @@ let IsItSensor(objs:Object[], id:int):bool*bool =
 
 let getNoise(objs:Object[], id:int) =
     match objs.[id] with
-    | Cylinder x -> x.Noise
+    | Cylinder x ->  x.Noise
     | SurfaceLens x -> x.Noise
     | Disc x -> x.Noise
     | Sphere x -> x.Noise
@@ -70,15 +87,26 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
         |(true, true) -> 
             // it's sensor and end
             // function with unit return
-            UpdateSensorSelection(ray,fst intersect,objs, snd intersect)
+            //match ray.NumOfParticles with
+            //| 1 ->
+            UpdateSensorSelectionPhase(ray,fst intersect,objs, snd intersect)
+            //printfn "%+A" ray.PhaseModulation
+            //| _ ->
+            //   UpdateSensorSelection(ray,fst intersect,objs, snd intersect)
             
         |(true, false) ->   
             // sensor, but not end
             // 1st - Update Sensor
-            UpdateSensorSelection(ray,fst intersect,objs, snd intersect)
+            //match ray.NumOfParticles with
+            //| 1 ->
+            UpdateSensorSelectionPhase(ray,fst intersect,objs, snd intersect)
+            //    printfn "%+A" ray.PhaseModulation
+            //| _ ->
+            //    UpdateSensorSelection(ray,fst intersect,objs, snd intersect)
 
             // 2nd - Shading
-            let rays:Ray[] = ShadingForward( fst intersect, material,noise)
+            // filter the rays that have been dispersed more times that the maximum allowable
+            let rays:Ray[] = ShadingForward( fst intersect, material,noise) |> Array.filter(fun x -> x.NumBounces <= x.MaxDispersions)
             // check that the number of dispersive reflections is not more than the expected
             match Array.isEmpty rays with
             | false ->
@@ -90,9 +118,10 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
             | true -> 'e' |> ignore// end it's absorbed
             
         |(_, _ ) ->  // (false , _ )
-            //not end - just continue
+            //not end => just continue
             // 1st - Shading
-            let rays:Ray[] = ShadingForward( fst intersect, material,noise)
+            // filter the rays that have been dispersed more times that the maximum allowable
+            let rays:Ray[] = ShadingForward( fst intersect, material,noise) |> Array.filter(fun x -> x.NumBounces <= x.MaxDispersions)
             match Array.isEmpty rays with
             | false ->
                 // check that the number of dispersive reflections is not more than the expected
@@ -105,14 +134,9 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
 
     | _ -> 'e' |> ignore // no intersection, nothing happens
 
-(*
-let RayTraceAll(nRays:int,objs,material) =
-    // do the bucle of all the rays
-    let mutable n = 0
-    // In order to define the ray, I must know the source that generates the rays
 
-    while n<nRays do 
-        let ray:Ray = ()
-        ForwardRay(ray,objs,material)
-        n <- n+1
-        *)
+let RayTraceAll(rays:Ray[],objs,material) =
+    // do the bucle of all the rays
+    // This function requires that the rays are introduced
+
+    rays |> Array.iter( fun x -> ForwardRay(x,objs,material))       

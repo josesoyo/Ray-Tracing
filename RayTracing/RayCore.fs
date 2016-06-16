@@ -85,9 +85,11 @@ module intersections =
    
    let intersect_cyl(ray:Ray,cylinder:cylinder) =
         // intersection between Ray and a cylinder
-
+        let pointToTranslate = (ray.from-cylinder.Origin).ToPoint()
+        //printfn "rf:%f%f%f  cf:%f%f%f" ray.from.X ray.from.Y ray.from.Z cylinder.Origin.X cylinder.Origin.Y cylinder.Origin.Z
+        //printfn "nPoint is: %+A" pointToTranslate //rf:148.714560-0.219815-0.558284  cf:0.0000000.0000000.000000
         // Transform ray to object space - Origin and then rotate to align with axis of z cylinder
-        let newRayOriginObject = cylinder.World2Obj.RotatePoint(  (ray.from-cylinder.Origin).ToPoint() )
+        let newRayOriginObject = cylinder.World2Obj.RotatePoint(  pointToTranslate )
         let newRayDirObject = cylinder.World2Obj.RotateVector(ray.uvec)                   // Rotate direction
         //Compute cylinder quadratic coeficients
         let A = newRayDirObject.X*newRayDirObject.X+newRayDirObject.Y*newRayDirObject.Y
