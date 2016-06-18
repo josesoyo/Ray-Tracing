@@ -57,7 +57,9 @@ module SimpleShading =
                             OpticalPathTravelled=intersection.ray.OpticalPathTravelled; IndexOfRefraction=intersection.ray.IndexOfRefraction;
                             Wavelenght=intersection.ray.Wavelenght;
                             bounces=  intersection.ray.bounces;  NumBounces= intersection.ray.NumBounces; 
-                            NumOfParticles= intersection.ray.NumOfParticles
+                            NumOfParticles= intersection.ray.NumOfParticles;
+                            MaxDispersions = 3uy;       // I use the rule of 3 dispersions
+                            PhaseModulation = [||]
                             }
              
             let intersects = intersection_all(RayLight,scn.Elements)

@@ -25,7 +25,7 @@ let objs = [|Cylinder(cy) ;Disc(d)|]
 
 let r = {
          Wavelenght = WaveLength(5e-7<m>);
-         from = Point(0.,00.00,0.0); uvec = UnitVector(1.,1.,0.);
+         from = Point(0.,00.00,0.0); uvec = UnitVector(1.,0.,0.);
          MaxLength = infi;
          OpticalPathTravelled = 0.<m>;
          NumBounces = 0uy; bounces = [];

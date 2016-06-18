@@ -52,6 +52,7 @@
     <Compile Include="Camera.fs" />
     <None Include="Test_ReadMaterial.fsx" />
     <None Include="debuggRender.fsx" />
+    <None Include="Render with Cylinder and sLens.fsx" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\RayTracing\RayTracing.fsproj">

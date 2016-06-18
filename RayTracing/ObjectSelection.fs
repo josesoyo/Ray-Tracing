@@ -32,6 +32,15 @@ module ObjectSelection =
                           match inter with
                            | [||] -> None
                            | _  -> Some(inter |> Array.minBy(fun x -> x.t))
+        | Cone x ->       let inter = intersect_Cone(ray, x) |> Array.filter(fun x -> x.t > 1e-10<m>)
+                          match inter with 
+                          | [||] -> None
+                          | _ -> Some(inter  |> Array.minBy(fun x -> x.t))
+        | TruncatedCone x ->       let inter = intersect_TruncatedCone(ray, x) |> Array.filter(fun x -> x.t > 1e-10<m>)
+                                   match inter with 
+                                   | [||] -> None
+                                   | _ -> Some(inter  |> Array.minBy(fun x -> x.t))
+
   
     let UnSomeNone(x) =
         match x with

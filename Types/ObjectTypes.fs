@@ -283,6 +283,74 @@ module ObjectTypes=
           disc(c, rad, nrm,matname, snsr,([|0uy, Vector(0.,0.,1.),0.|],[||]))
  
          
+    type cone(radius:float<m>,height:float<m>,origin:Point, nrm:UnitVector, matname:string, sensor:Sensor, noise:noise) =
+        // cone type locally oriented on +Z direction
+
+        // rotate
+        let ObjToWorld = Matrix.RotateVector(UnitVector(0.,0.,1.), nrm)
+        let WorldToObj = Matrix.RotateVector(nrm,UnitVector(0.,0.,1.))
+
+        let mutable LBbox = {Pmin = Point.FromMeasures(-radius,-radius,0.<m>); Pmax = Point.FromMeasures(radius,radius,height)}
+        let ComputeWbox (objtoWorld:Matrix) lbox=
+                // private function to compute the world Bounding Box
+                let NonTransformedEdges = [|LBbox.Pmin;
+                                            Point(LBbox.Pmin.X,LBbox.Pmax.Y,LBbox.Pmin.Z);
+                                            Point(LBbox.Pmax.X,LBbox.Pmin.Y,LBbox.Pmin.Z);
+                                            Point(LBbox.Pmax.X,LBbox.Pmax.Y,LBbox.Pmin.Z);
+                                
+                                            Point(LBbox.Pmin.X,LBbox.Pmin.Y,LBbox.Pmax.Z);
+                                            Point(LBbox.Pmax.X,LBbox.Pmin.Y,LBbox.Pmax.Z);
+                                            Point(LBbox.Pmin.X,LBbox.Pmax.Y,LBbox.Pmax.Z);
+                                            LBbox.Pmax|]
+
+                let TransformedEdges = NonTransformedEdges                  // Rotate as should be by normal direction
+                                       |> Array.map(fun x -> objtoWorld.RotatePoint(x))
+                let minTrfEdgesX =  (TransformedEdges |> Array.minBy(fun x -> x.X)).X   
+                let minTrfEdgesY =  (TransformedEdges |> Array.minBy(fun x -> x.Y)).Y
+                let minTrfEdgesZ =  (TransformedEdges |> Array.minBy(fun x -> x.Z)).Z 
+                let minTrfEdges = Point(minTrfEdgesX,minTrfEdgesY,minTrfEdgesZ)
+                // Min of the Box in world
+                let wPmin = minTrfEdges.MoveAndCreateNew(origin) 
+
+                let maxTrfEdgesX =  (TransformedEdges |> Array.maxBy(fun x -> x.X)).X   
+                let maxTrfEdgesY =  (TransformedEdges |> Array.maxBy(fun x -> x.Y)).Y 
+                let maxTrfEdgesZ =  (TransformedEdges |> Array.maxBy(fun x -> x.Z)).Z
+                let maxTrfEdges = Point(maxTrfEdgesX,maxTrfEdgesY,maxTrfEdgesZ)
+                // Max of Box in World
+                let wPmax = maxTrfEdges.MoveAndCreateNew(origin)
+                {Pmin=wPmin;Pmax=wPmax}
+        let mutable WBbox = ComputeWbox ObjToWorld LBbox       // Generate Bounding box on the world
+        member this.wBbox with get() = WBbox
+        member this.lBbox with get() = LBbox
+        member this.Obj2World with get() = ObjToWorld
+        member this.World2Obj with get() = WorldToObj
+        member this.Sensor with get() = sensor
+        member this.UpdateSensor(sc) = sensor.AddData(sc)
+        member this.Radius with get() = radius
+        member this.Height with get() = height
+        member this.Origin with get() = origin
+        member this.Normal with get() = nrm
+        member this.MaterialName with get() = matname
+        
+        // news with auto sensor and noise
+        new (radius,height,origin, nrm, matname) =
+            cone(radius,height,origin, nrm, matname, Sensor(), ([|0uy, Vector(0.,0.,1.),0.|],[||]))
+        new (radius,height,origin, nrm, matname,sens) =
+            cone(radius,height,origin, nrm, matname, sens, ([|0uy, Vector(0.,0.,1.),0.|],[||]))
+        new (radius,height,origin, nrm, matname,nois) =
+            cone(radius,height,origin, nrm, matname, Sensor(), nois)
+
+    type truncatedCone(radius:float<m>,height:float<m>,maxHeight:float<m> ,origin:Point, nrm:UnitVector, matname:string, sensor:Sensor, noise:noise) =
+        // same as cone, but truncated
+        let cn = cone(radius,height ,origin, nrm, matname, sensor, noise)
+        member this.MaxHeight with get() = maxHeight
+        member this.Cone with get() = cn
+        new (radius,height,maxHeight,origin, nrm, matname) =
+            truncatedCone(radius,height,maxHeight,origin, nrm, matname, Sensor(), ([|0uy, Vector(0.,0.,1.),0.|],[||]))
+        new (radius,height,maxHeight,origin, nrm, matname,sens) =
+            truncatedCone(radius,height,maxHeight,origin, nrm, matname, sens, ([|0uy, Vector(0.,0.,1.),0.|],[||]))
+        new (radius,height,maxHeight,origin, nrm, matname,nois) =
+            truncatedCone(radius,height,maxHeight,origin, nrm, matname, Sensor(), nois)
 
 
     type OctreeSystem =                         // I consider that now only the triangles will be in the octree
@@ -302,4 +370,6 @@ module ObjectTypes=
     | SurfaceLens of SphSurfaceLens
     | Disc of disc
     | Sphere of sphere
+    | Cone of cone
+    | TruncatedCone of truncatedCone
 

@@ -211,3 +211,65 @@ module intersections =
             [|{normal = dsk.Normal;point= np; ray= nray; MatName = dsk.MatName; t= tm}|]
         | _ ->  [||]
         
+   let intersect_Cone(ray:Ray,cn:cone) =
+        // intersection ray-cone
+        let rOrigObj = cn.World2Obj.RotateVector((ray.from - cn.Origin)).ToPoint()
+        let rDirObj = cn.World2Obj.RotateVector(ray.uvec)
+        // transform from world to object space
+        let hr0 = float(cn.Height/cn.Radius)
+        let hr = hr0*hr0
+        let a = (rDirObj.X*rDirObj.X+rDirObj.Y*rDirObj.Y)-(rDirObj.Z*rDirObj.Z/hr)
+        let b = 2.*((rOrigObj.X*rDirObj.X+rOrigObj.Y*rDirObj.Y)-(rOrigObj.Z-(float cn.Height))*rDirObj.Z/hr)
+        let c = ((rOrigObj.X*rOrigObj.X)+(rOrigObj.Y*rOrigObj.Y))-(pown (rOrigObj.Z-(float cn.Height)) 2)/hr
+        //printfn "a:%f b:%f c:%f" a b c
+        let disc = (b*b)-(4.*a*c)
+        if disc > 0. then
+            let sdisc = sqrt(disc)
+            let t1,t2 = (-b+sdisc)/(2.*a)|> LanguagePrimitives.FloatWithMeasure<m>, (-b-sdisc)/(2.*a) |> LanguagePrimitives.FloatWithMeasure<m>
+            let z1 = (rOrigObj + float(t1)*rDirObj) //
+            let z2 = (rOrigObj + float(t2)*rDirObj) //
+            let normalcone (p:Point) =
+                let n01 = UnitVector(p.X,p.Y,0.)
+                let hr = cn.Height/cn.Radius
+                UnitVector(n01.X*hr, n01.Y*hr,1./hr)
+
+            let inter1 =
+                if (z1.Z < float cn.Height) && (z1.Z >= 0.) then //float cylinder.Zmin 
+                    let normalt1 = cn.Obj2World.RotateVector(normalcone z1 )//.Normalize()
+                    let ray1 =  {ray with OpticalPathTravelled = (ray.IndexOfRefraction*t1+ray.OpticalPathTravelled)}
+                    let z1real = ray.from+float(t1)*ray.uvec // should be faster
+                    //    let z1rot = cn.Obj2World.RotatePoint(z1)
+                    //    z1rot.MoveAndCreateNew(cn.Origin)
+                    //    //Point(z1rot.X+cylinder.Origin.X, z1rot.Y+cylinder.Origin.Y, z1rot.Z+cylinder.Origin.Z)
+                    [|{ normal=normalt1 ; point=z1real; ray=ray1;MatName=cn.MaterialName; t=t1} |]//; 
+                else [||]
+                
+            let inter2 =
+                if (z2.Z < float cn.Height) && (z2.Z >= 0.) then //float cylinder.Zmin 
+                    let normalt2 = cn.Obj2World.RotateVector(normalcone z2 )//.Normalize()
+                    let ray2 =  {ray with OpticalPathTravelled = (ray.IndexOfRefraction*t2+ray.OpticalPathTravelled)}
+                    let z2real = ray.from+float(t2)*ray.uvec // should be faster
+                    //    let z2rot = cn.Obj2World.RotatePoint(z2)
+                    //    z2rot.MoveAndCreateNew(cn.Origin)
+                    //    //Point(z2rot.X+cylinder.Origin.X, z2rot.Y+cylinder.Origin.Y, z2rot.Z+cylinder.Origin.Z)
+                    [|{ normal=normalt2 ; point=z2real; ray=ray2;MatName=cn.MaterialName; t=t2} |]//; 
+                else [||]
+            Array.append inter1 inter2
+  
+        else [||]
+   
+   let intersect_TruncatedCone(ray:Ray,tcn:truncatedCone) =
+        let first_intersection = intersect_Cone(ray,tcn.Cone)
+        match first_intersection with
+        |[||] -> [||] // no intersection, nothing to do
+        |_ ->
+            // check that the height is the right
+            let w2o = tcn.Cone.World2Obj
+            let orig= tcn.Cone.Origin
+            first_intersection 
+            |> Array.map(fun x ->(x,w2o.RotateVector(x.point-orig).Z)) // Compute the heights
+            |> Array.filter(fun x -> let h = snd x
+                                     h <= float tcn.MaxHeight && h >= 0. // filter the heights of the intersections
+                            )
+            |> Array.map(fun x -> fst x)  // if the array is empty and the type is defined, it doesn't raise an error
+

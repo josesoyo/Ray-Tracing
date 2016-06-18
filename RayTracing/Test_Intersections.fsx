@@ -37,7 +37,7 @@ let r = {
          MaxDispersions = 1uy;
          NumOfParticles = 0;
          IndexOfRefraction = 1.
-         NoiseAdd= [||]
+         PhaseModulation = [||]
         }
 
 //intersection between the ray and the lens
