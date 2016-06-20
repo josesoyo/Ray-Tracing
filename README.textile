@@ -1,3 +1,3 @@
 Project for the GPU ray tracing engine to simulate stray light
 
-I have add some Jupyter notebooks that can be visualized on http://nbviewer.jupyter.org/
+I have added some Jupyter notebooks that can be visualized on http://nbviewer.jupyter.org/
