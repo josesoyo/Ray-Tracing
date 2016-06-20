@@ -1,6 +1,6 @@
 ﻿
-#r @"C:\Users\Jose M. Gonzalez\OneDrive\Phd\render\ray casting\Sample parts for version 2\Library1\Types\bin\Debug\Types.dll"
-#r @"C:\Users\Jose M. Gonzalez\OneDrive\Phd\render\ray casting\Sample parts for version 2\Library1\Library1\bin\Debug\Library1.dll"
+#r @"..\Types\bin\Debug\Types.dll"
+#r @"..\Library1\bin\Debug\Library1.dll"
 open System.IO
 open Types
 open Types.Algebra

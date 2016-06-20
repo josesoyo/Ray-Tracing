@@ -1,5 +1,5 @@
 ﻿// Just test intersection for SphSurfaceLens and Cylinder
-#r @"C:\Users\Jose M. Gonzalez\OneDrive\Phd\render\ray casting\Sample parts for version 2\Library1\Types\bin\Debug\Types.dll"
+#r @"..\Types\bin\Debug\Types.dll"
 #load "RayCore.fs"
 
 open Types.Algebra

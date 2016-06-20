@@ -7,8 +7,8 @@
 #r @"..\RayTracing\bin\Debug\RayTracing.dll"
 #r @"..\PostProcess\bin\Debug\PostProcess.dll"
 //Math.Net
-#r @"C:\Users\Jose M. Gonzalez\OneDrive\Phd\render\ray casting\Sample parts for version 2\Library1\packages\MathNet.Numerics.3.11.1\lib\net40\MathNet.Numerics.dll"
-#r @"C:\Users\Jose M. Gonzalez\OneDrive\Phd\render\ray casting\Sample parts for version 2\Library1\packages\MathNet.Numerics.FSharp.3.11.1\lib\net40\MathNet.Numerics.FSharp.dll"
+#r @"..\packages\MathNet.Numerics.3.11.1\lib\net40\MathNet.Numerics.dll"
+#r @"..\packages\MathNet.Numerics.FSharp.3.11.1\lib\net40\MathNet.Numerics.FSharp.dll"
 
 // Open referenced
 open Types.Algebra

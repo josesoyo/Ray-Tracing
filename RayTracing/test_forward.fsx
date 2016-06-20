@@ -1,6 +1,6 @@
 ﻿// test on forward ray tacing
-#r @"C:\Users\Jose M. Gonzalez\OneDrive\Phd\render\ray casting\Sample parts for version 2\Library1\Types\bin\Debug\Types.dll"
-#r @"C:\Users\Jose M. Gonzalez\OneDrive\Phd\render\ray casting\Sample parts for version 2\Library1\RayTracing\bin\Debug\RayTracing.dll"
+#r @"..\Types\bin\Debug\Types.dll"
+#r @"..\RayTracing\bin\Debug\RayTracing.dll"
 // libraries referenced
 
 

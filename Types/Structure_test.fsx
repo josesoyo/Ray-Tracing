@@ -1,4 +1,4 @@
-﻿#load @"C:\Users\Jose M. Gonzalez\OneDrive\Phd\render\ray casting\Sample parts for version 2\Library1\Types\Algebra.fs"
+﻿#load @"..\Types\Algebra.fs"
 // To understand how structures work
 open Types.Algebra
 open Microsoft.FSharp.Data.UnitSystems.SI.UnitSymbols

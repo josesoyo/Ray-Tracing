@@ -1,8 +1,8 @@
 ﻿// To test if i can dothe octree as an async object
 
-let order = [1..2] |> List.collect( fun x -> 
-             [1..2]  |> List.collect(fun y ->
-                 [1..2] |> List.map(fun z -> (x,y,z))
+let order = [|1..2|] |> Array.collect( fun x -> 
+             [|1..2|]  |> Array.collect(fun y ->
+                 [|1..2|] |> Array.map(fun z -> if y = 2 && z = 1 then [||] else [|(x,y,z)|] ) |> Array.collect(fun z -> z)
                  ))
 
 
