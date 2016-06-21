@@ -54,6 +54,7 @@
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Noise.fs" />
     <None Include="NoiseTube.fsx" />
+    <Compile Include="periodogram.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core">
