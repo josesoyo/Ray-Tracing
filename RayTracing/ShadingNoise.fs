@@ -27,30 +27,34 @@ let sinMod t (difRay:Vector) (fA:(byte*Vector*float)[]) =
                             acc+sin(duepi*float(freq)*t+phase)*(amplitude*difRay)) 0. [|0..fA.Length-1|] 
         
 let PhaseModulation(shadedRay:Ray,inter:Intersection,ns:noise) =
-    // add phase modulation to a ray
-    let ray = inter.ray
-    let sraydir = shadedRay.uvec
-    let difRay = sraydir - (ray.uvec)
-    //let freq, amplitude = (fst ns).[0]
     let freqAndAmplitude = (fst ns)  // [|f,A,phase|]
-    let timeStamps = snd ns
-    let duepi = 2.*PI
-
-    let SINMOD t = sinMod t difRay freqAndAmplitude
-    let ww = (duepi/(match ray.Wavelenght with WaveLength x -> float x))
-    match (Array.isEmpty shadedRay.PhaseModulation) with
-    | true ->
-        // if it's empty, there isn't modulation
-        timeStamps 
-        |> Array.map(fun t -> (ww*SINMOD t)
-                             //((duepi/(match ray.Wavelenght with WaveLength x -> float x))*sin(duepi*float(freq)*t)*(amplitude*difRay)) //%PI  //freq
-                     ) // Phase modulation
+    match (Array.isEmpty freqAndAmplitude) with
+    // it the object is not oscillating, there's nothing to compute
+    | true -> shadedRay.PhaseModulation
     | false ->
-        // if it's not empty, then the modulation must be summed to the one that the ray already has
-        let prevMod =  shadedRay.PhaseModulation
-        (prevMod,timeStamps)
-        ||> Array.map2(fun old t -> old+(ww*SINMOD t)
-                               //((duepi/(match ray.Wavelenght with WaveLength x -> float x))*sin(duepi*float(freq)*t)*(amplitude*difRay)) //%PI  //freq
-                       ) // Phase modulation
+        // add phase modulation to a ray
+        let ray = inter.ray
+        let sraydir = shadedRay.uvec
+        let difRay = sraydir - (ray.uvec)
+        //let freq, amplitude = (fst ns).[0]
+        let timeStamps = snd ns
+        let duepi = 2.*PI
+
+        let SINMOD t = sinMod t difRay freqAndAmplitude
+        let ww = (duepi/(match ray.Wavelenght with WaveLength x -> float x))
+        match (Array.isEmpty shadedRay.PhaseModulation) with
+        | true ->
+            // if it's empty, there isn't modulation
+            timeStamps 
+            |> Array.map(fun t -> (ww*SINMOD t)
+                                 //((duepi/(match ray.Wavelenght with WaveLength x -> float x))*sin(duepi*float(freq)*t)*(amplitude*difRay)) //%PI  //freq
+                         ) // Phase modulation
+        | false ->
+            // if it's not empty, then the modulation must be summed to the one that the ray already has
+            let prevMod =  shadedRay.PhaseModulation
+            (prevMod,timeStamps)
+            ||> Array.map2(fun old t -> old+(ww*SINMOD t)
+                                   //((duepi/(match ray.Wavelenght with WaveLength x -> float x))*sin(duepi*float(freq)*t)*(amplitude*difRay)) //%PI  //freq
+                           ) // Phase modulation
 
 
