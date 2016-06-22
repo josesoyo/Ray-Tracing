@@ -37,18 +37,19 @@ let PhaseModulation(shadedRay:Ray,inter:Intersection,ns:noise) =
     let duepi = 2.*PI
 
     let SINMOD t = sinMod t difRay freqAndAmplitude
+    let ww = (duepi/(match ray.Wavelenght with WaveLength x -> float x))
     match (Array.isEmpty shadedRay.PhaseModulation) with
     | true ->
         // if it's empty, there isn't modulation
         timeStamps 
-        |> Array.map(fun t -> ((duepi/(match ray.Wavelenght with WaveLength x -> float x))*SINMOD t)
+        |> Array.map(fun t -> (ww*SINMOD t)
                              //((duepi/(match ray.Wavelenght with WaveLength x -> float x))*sin(duepi*float(freq)*t)*(amplitude*difRay)) //%PI  //freq
                      ) // Phase modulation
     | false ->
         // if it's not empty, then the modulation must be summed to the one that the ray already has
         let prevMod =  shadedRay.PhaseModulation
         (prevMod,timeStamps)
-        ||> Array.map2(fun old t -> old+((duepi/(match ray.Wavelenght with WaveLength x -> float x))*SINMOD t)
+        ||> Array.map2(fun old t -> old+(ww*SINMOD t)
                                //((duepi/(match ray.Wavelenght with WaveLength x -> float x))*sin(duepi*float(freq)*t)*(amplitude*difRay)) //%PI  //freq
                        ) // Phase modulation
 
