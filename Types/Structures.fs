@@ -16,7 +16,7 @@ let Create_Baffles(extRad:float<m>,intRad:float<m>,orig:Point, baffle_Angle, //,
     // need:
     //type truncatedCone(radius:float<m>,height:float<m>,maxHeight:float<m> ,origin:Point, nrm:UnitVector, matname:string, sensor:Sensor, noise:noise) =
     // 
-    let Cone_height = float(extRad)/atan(baffle_Angle)
+    let Cone_height = float(extRad)/tan(baffle_Angle)
                       |> LanguagePrimitives.FloatWithMeasure<m>  // height of the non truncated cone
     let baffle_Length = (extRad-intRad)/tan(baffle_Angle) |> abs
 

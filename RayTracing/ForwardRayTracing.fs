@@ -129,7 +129,8 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
                 | n when n <= ray.MaxDispersions -> 
                     // 2nd - continue ray tracing 
                     rays |> Array.iter(fun r -> ForwardRay (r,objs,material))
-                | _ -> 'e' |> ignore// end withouth producing anything
+                | _ -> 
+                    'e' |> ignore// end withouth producing anything
             | true ->  'e' |> ignore// end it's absorbed
 
     | _ -> 'e' |> ignore // no intersection, nothing happens

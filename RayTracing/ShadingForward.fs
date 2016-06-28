@@ -25,7 +25,10 @@ let dispersion(intersection:Intersection,numOfParticles:int) =
                  OpticalPathTravelled = intersection.ray.OpticalPathTravelled - (match intersection.ray.Wavelenght with WaveLength x -> x)/2. 
                  }
 
-    let rotmat = Matrix.RotateVector(UnitVector(0.,0.,1.), intersection.normal)          // from to
+    let rotmat = 
+        if intersection.normal*intersection.ray.uvec < 0. then    
+            Matrix.RotateVector(UnitVector(0.,0.,1.), intersection.normal)          // from to
+        else Matrix.RotateVector(UnitVector(0.,0.,1.), intersection.normal.Negate()) 
     let nuvec = [|1..numOfParticles|] 
                 |> Array.map(fun x -> UnitVector(SampUnitHemiCosToCart()) ) 
                 |> Array.map (fun uv -> rotmat.RotateVector(uv))    // New direction for the ray

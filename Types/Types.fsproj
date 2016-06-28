@@ -56,6 +56,7 @@
     <Compile Include="Algebra2.fs" />
     <Compile Include="MainTypes.fs" />
     <Compile Include="ObjectTypes.fs" />
+    <Compile Include="Structures.fs" />
     <Compile Include="BBoxMethods.fs" />
     <None Include="Script.fsx" />
     <None Include="Structure_test.fsx" />
