@@ -7,7 +7,9 @@ open Types.types
 open System.Numerics
 open Random
 open System.IO
+
 module Noise =
+    open periodogram
 
     let FourierTransformPhase(sns:SensorContent, timestamp:float[]) = 
         // Enter the sensor and produce as output the fourier transform of each phase
@@ -43,11 +45,19 @@ module Noise =
         if ang > thmin then
             k/ang/ang
         else k/thmin/thmin
-    let bXn2 (an:float) (n:float[]) =
+    let bXn (an:float) (n:float[]) =
         // Returns the value of the product of the probability of the direction of this ray on the mirror per the spectral density of the phase change
-
+        // considers that the input n is ASD
         // sns.SavedData.[0].Direction
         let n2 = n |> Array.map(fun x -> x*x)
+        let prb:float = b_theta(an) // b(theta)
+        n2 |> Array.map(fun x -> prb*x)
+
+    let bXn2 (an:float) (n2:float[]) =
+        // Returns the value of the product of the probability of the direction of this ray on the mirror per the spectral density of the phase change
+        // Already considers that the input is PSD: n2
+
+        // sns.SavedData.[0].Direction
         let prb:float = b_theta(an) // b(theta)
         n2 |> Array.map(fun x -> prb*x)
 
@@ -69,7 +79,7 @@ module Noise =
                                     let tStamp = snd tube.Noise
                                     let n = snd(ASDofPhase(x, tStamp)) // freq, ASD(normalized)
                     
-                                    bXn2 ang n // do the product 
+                                    bXn ang n // do the product 
                           )
             |> fun allNoise -> // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
                 [|0..allNoise.[0].Length-1|] |> Array.map(fun ind -> (allNoise |> Array.sumBy(fun eachPhotonNoise -> eachPhotonNoise.[ind]) ))
@@ -78,8 +88,47 @@ module Noise =
 
         sumProd |> Array.map(fun nf -> OutTheSquareRoot*sqrt(nf/ns))
 
+    let NoiseInterferometerArm_WELCH (mirror:disc) (tube:cylinder) (mat:System.Collections.Generic.IDictionary<string,Material>) (ray:Ray) (powerStored:float) (nRays:int) (windowLengtht:int) =
+        // this is to find h(f) on one of the arms of the interferometer
+        // inside mirror there's the sensor and the noise
+        // It uses the welch method to obtain the PSD of the phases of each photon.
+
+        let planckConstant, vLight = 6.626070e-34, 299792458. // Plank constant and c all in SI [h] = Js, [c] = m/s
+        let wavelen = (match ray.Wavelenght with WaveLength x -> float x)
+        let PhotonEnergy = planckConstant*vLight/wavelen
+        //let ns = mat.[mirror.MatName].LambPPM*powerStored/PhotonEnergy  // case I compute, but I shouldn't
+        let ns = float nRays
+        // do the sum of the b*n2
+        
+        let sumProd = // frequencies*noise_PSD
+            mirror.Sensor.SavedData//.[0].Direction 
+            |> Array.map(fun x -> 
+                                    // the b(theta) and n(f)
+                                    let ang = acos(x.Direction*mirror.Normal) |> abs  // be sure that it's always positive
+                                    let tStamp = snd tube.Noise
+                                    //let n = snd(ASDofPhase(x, tStamp)) // freq, ASD(normalized)
+                                    let n2 = PSD_WELCH(tStamp,x.Noise|> Array.map(fun x -> sin(x)), // requires the sin(phase)
+                                                       "Hann",windowLengtht,windowLengtht/2,0.) 
+                                    // n2 because it considers that the 
+                            
+                                    fst n2 ,bXn2 ang (snd n2) // do the product 
+                          )
+            |> fun allNoise -> // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
+                //let allNoise = snd allNoise2
+                let noiseSummed =
+                    [|0..(snd allNoise.[0]).Length-1|] 
+                    |> Array.map(fun ind -> (allNoise |> Array.sumBy(fun eachPhotonNoise -> (snd eachPhotonNoise).[ind]) ))
+                (fst allNoise.[0]),noiseSummed          // All the photons have the same timestamp and the same frequency domain
+        
+        let OutTheSquareRoot = (wavelen*wavelen*mat.[mirror.MatName].LambPPM)/(sqrt(2.**5.)*PI*PI*(float tube.Zmax)*(float mirror.Radius))
+
+        fst sumProd,snd sumProd |> Array.map(fun nf -> OutTheSquareRoot*sqrt(nf/ns))
+
+
+
     let SumAndSavePhases (snrs:Sensor) (mrNormal:UnitVector) (path_save:string)=
         // sum the phases with the factor of the b(theta)
+        // Just done as exercise because it cannot be used to obtain proper results.
         let ph_b_theta = snrs.SavedData 
                          |> Array.map(fun y -> let Sqrt_b_ang = sqrt( b_theta( acos(y.Direction*mrNormal) |> abs ))
                                                (y.Noise |> Array.map(fun z -> Sqrt_b_ang*sin(z)))      )
