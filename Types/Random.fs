@@ -83,13 +83,51 @@ let samp2NGauss (sigma:float, mu:float, N: int) =
     // Gives a list of 2N Gaussian PRN
     [1..N]|>List.collect(fun _ -> Samp2DGauss(sigma,mu))
 
+//
+//  not all are random methods
+//
+let NewtonRapson (x0:float) (f:float->float) (f1:float->float) (tol:float) (maxIter:int) =   
+    // find the zeros of a function with Newton's method
+    let mutable haveWefoundASolution = false
+    let epsilon = 1e-14
+    let mutable x = x0
+    let mutable xprim = 0.
+    
+    let numitrs =
+        [|1..maxIter|] 
+        |> Array.tryPick( fun _ -> 
+                               let y = f x
+                               let yp = f1 x
+                               match abs(yp) with
+                               | d when d <= epsilon ->
+                                   //x <- -infinity
+                                   Some(true)
+                               | _ ->
+                                   let x1 = x - y/yp
+                                   if abs(x1-x) <= tol*abs(x1) then haveWefoundASolution <- true
+                                   if abs(y) < epsilon then haveWefoundASolution <- true
+                                   x <- x1     // update the variable
+                                   xprim <- y
+                                   match haveWefoundASolution with true -> Some(true) | _ -> None
+                      ) 
+    (x), (haveWefoundASolution, numitrs)  // return the value + extra information
+
 let inv_sqr() =
     // Generate a random number based on the 
-    // pdf = k/theta^2 with theta € [th_min, pi/2] 
-    let k =  0.01006406986 // based on the current thmin = 10^-2
-    let thmin= 1e-2
-    let r = rnd.NextDouble()
-    k*thmin/(k-thmin*r)
+    // pdf = k/theta^2 with theta € [th_min=55e-6rad, pi/2] 
+    let xrand = rnd.NextDouble()
+    let k =  0.09932750   //0.01006406986 // based on the current thmin = 10^-2
+    let tho = 55e-6
+    let tol, maxIter = 1e-7, 1000
+
+    let f0  (th:float) (th0:float) (x:float) = // function
+        k*(log(th/th0)-((th**2.)-(th0**2.))/(12.)+((th**5.)-(th0**5.))/(480.)-((th**7.)-(th0**7.))/(30240.)) - x
+    let f1 th =    // derivate
+        k*((1./th)-th/6.+(th**3.)/120.-(th**5.)/5040.) 
+    let f th = f0 th tho xrand  
+    // there's a problem with the x0 point, if it's now the th_min it raises an error
+    fst (NewtonRapson (0.000055) f f1 tol maxIter)  
+
 
 let hist (data:float[]) (nbins:int)=
     // histogram to test the functions created
