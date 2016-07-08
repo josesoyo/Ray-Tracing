@@ -61,12 +61,12 @@ module ObjectTypes=
         // new types
         new (centre,radius,matname) =
             //sphere (centre,radius,matname,Sensor(),[|0uy,0.|])    // method original for noise
-            sphere (centre,radius,matname,Sensor(),([|0uy, Vector(0.,0.,1.),0.|],[||]))
+            sphere (centre,radius,matname,Sensor(),([| |],[||]))
         new (centre,radius,matname, noise) =
             sphere (centre,radius,matname, Sensor(), noise)
         new (centre,radius,matname, sensor) =
             //sphere (centre,radius,matname,sensor,[|0uy,0.|])     // method original for noise
-            sphere (centre,radius,matname,sensor,([|0uy, Vector(0.,0.,1.),0.|],[||])) 
+            sphere (centre,radius,matname,sensor,([| |],[||])) 
 
     type partSphere = {Sphere:sphere; 
                        zmin:float<m>; zmax:float<m>;
@@ -123,10 +123,10 @@ module ObjectTypes=
         new (centreofSPH, roc, diam,axs, conv,matname) =
             // Create the material NOT being sensor
             //SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, Sensor(),[|0uy,0.|])  // method original for noise
-            SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, Sensor(),([|0uy, Vector(0.,0.,1.),0.|],[||])) 
+            SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, Sensor(),([| |],[||])) 
         new (centreofSPH, roc, diam,axs, conv,matname,snsr) =
             //SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, snsr,[|0uy,0.|])  // method original for noise
-            SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, snsr,([|0uy, Vector(0.,0.,1.),0.|],[||]))
+            SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, snsr,([| |],[||]))
         new (centreofSPH, roc, diam,axs, conv,matname,nois) =
             SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, Sensor(),nois) 
 
@@ -238,10 +238,10 @@ module ObjectTypes=
         static member Zero =  cylinder(0.<m>,0.<m>,Point(0.,0.,0.),UnitVector(0.,0.,1.),"") 
         new  (rad,zmax,orig,nrm,matname) = 
             //cylinder(rad,zmax,orig,nrm,matname, Sensor(),[|(0uy,0.)|]) // method original for noise
-            cylinder(rad,zmax,orig,nrm,matname, Sensor(),([|0uy, Vector(0.,0.,1.),0.|],[||]))
+            cylinder(rad,zmax,orig,nrm,matname, Sensor(),([| |],[||]))
         new  (rad,zmax,orig,nrm,matname, sen) = 
             //cylinder(rad,zmax,orig,nrm,matname, sen,[|(0uy,0.)|]) // method original for noise
-            cylinder(rad,zmax,orig,nrm,matname, sen,([|0uy, Vector(0.,0.,1.),0.|],[||])) // method original for noise
+            cylinder(rad,zmax,orig,nrm,matname, sen,([| |],[||])) // method original for noise
         new  (rad,zmax,orig,nrm,matname, nois) = 
             cylinder(rad,zmax,orig,nrm,matname, Sensor(),nois) 
 
@@ -264,7 +264,7 @@ module ObjectTypes=
 
         new(c,rad,nrm,matName) =
           //disc(c, rad, nrm,matName, Sensor(),[|(0uy,0.)|])    // method original for noise
-          disc(c, rad, nrm,matName, Sensor(),([|0uy, Vector(0.,0.,1.),0.|],[||]))
+          disc(c, rad, nrm,matName, Sensor(),([| |],[||]))
          
         
         new(c,rad,nrm,isEndSensor:bool) =
@@ -274,13 +274,13 @@ module ObjectTypes=
               printfn "There's an error on the definition of the disk\n cannot be and end withouth a defined material"
               Console.ReadKey() |> ignore  
           //disc(c, rad, nrm,"", snsr,[|(0uy,0.)|])     // method original for noise
-          disc(c, rad, nrm,"", snsr,([|0uy, Vector(0.,0.,1.),0.|],[||]))
+          disc(c, rad, nrm,"", snsr,([| |],[||]))
          
         new (c,rad,nrm,matname,isEndSensor:bool) =
           // End sensor = "no material"
           let snsr = Sensor(true,isEndSensor)
           //disc(c, rad, nrm,matname, snsr,[|(0uy,0.)|])    // method original for noise
-          disc(c, rad, nrm,matname, snsr,([|0uy, Vector(0.,0.,1.),0.|],[||]))
+          disc(c, rad, nrm,matname, snsr,([| |],[||]))
  
          
     type cone(radius:float<m>,height:float<m>,origin:Point, nrm:UnitVector, matname:string, sensor:Sensor, noise:noise) =
@@ -334,9 +334,9 @@ module ObjectTypes=
         
         // news with auto sensor and noise
         new (radius,height,origin, nrm, matname) =
-            cone(radius,height,origin, nrm, matname, Sensor(), ([|0uy, Vector(0.,0.,1.),0.|],[||]))
+            cone(radius,height,origin, nrm, matname, Sensor(), ([| |],[||])) // 0uy, Vector(0.,0.,1.),0.
         new (radius,height,origin, nrm, matname,sens) =
-            cone(radius,height,origin, nrm, matname, sens, ([|0uy, Vector(0.,0.,1.),0.|],[||]))
+            cone(radius,height,origin, nrm, matname, sens, ([||],[||]))
         new (radius,height,origin, nrm, matname,nois) =
             cone(radius,height,origin, nrm, matname, Sensor(), nois)
 
@@ -346,9 +346,9 @@ module ObjectTypes=
         member this.MaxHeight with get() = maxHeight
         member this.Cone with get() = cn
         new (radius,height,maxHeight,origin, nrm, matname) =
-            truncatedCone(radius,height,maxHeight,origin, nrm, matname, Sensor(), ([|0uy, Vector(0.,0.,1.),0.|],[||]))
+            truncatedCone(radius,height,maxHeight,origin, nrm, matname, Sensor(), ([||],[||]))
         new (radius,height,maxHeight,origin, nrm, matname,sens) =
-            truncatedCone(radius,height,maxHeight,origin, nrm, matname, sens, ([|0uy, Vector(0.,0.,1.),0.|],[||]))
+            truncatedCone(radius,height,maxHeight,origin, nrm, matname, sens, ([||],[||]))
         new (radius,height,maxHeight,origin, nrm, matname,nois) =
             truncatedCone(radius,height,maxHeight,origin, nrm, matname, Sensor(), nois)
 

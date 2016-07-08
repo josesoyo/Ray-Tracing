@@ -19,15 +19,15 @@ let SingleFreqNoiseAdd(ray:Ray,inter:Intersection,ns:noise) =
     printfn "SingleFreqNoiseAdd Badly defined"
     (2.*PI/sqrt(3.)/(match ray.Wavelenght with WaveLength x ->float x))*norm//*nois // also was the freq
       
-let sinMod t (difRay:Vector) (fA:(byte*Vector*float)[]) =
+let sinMod t (difRay:Vector) (fA:(float*Vector*float)[]) =
     // function to compute the globlal modulation (sum of all)
     let duepi = 2.*PI
         
     Array.fold(fun acc x -> let freq, amplitude, phase = fA.[x]
-                            acc+sin(duepi*float(freq)*t+phase)*(amplitude*difRay)) 0. [|0..fA.Length-1|] 
+                            acc+sin(duepi*freq*t+phase)*(amplitude*difRay)) 0. [|0..fA.Length-1|] 
         
 let PhaseModulation(shadedRay:Ray,inter:Intersection,ns:noise) =
-    let freqAndAmplitude = (fst ns)  // [|f,A,phase|]
+    let freqAndAmplitude = (fst ns)  // [|freq, A, phase|]
     match (Array.isEmpty freqAndAmplitude) with
     // it the object is not oscillating, there's nothing to compute
     | true -> shadedRay.PhaseModulation
@@ -44,17 +44,16 @@ let PhaseModulation(shadedRay:Ray,inter:Intersection,ns:noise) =
         let ww = (duepi/(match ray.Wavelenght with WaveLength x -> float x))
         match (Array.isEmpty shadedRay.PhaseModulation) with
         | true ->
-            // if it's empty, there isn't modulation
+            // if it's empty, there isn't modulation   -> first interaction with an oscillating element
             timeStamps 
             |> Array.map(fun t -> (ww*SINMOD t)
-                                 //((duepi/(match ray.Wavelenght with WaveLength x -> float x))*sin(duepi*float(freq)*t)*(amplitude*difRay)) //%PI  //freq
                          ) // Phase modulation
+                                
         | false ->
-            // if it's not empty, then the modulation must be summed to the one that the ray already has
+            // if it's not empty, then the modulation must be summed to the one that the ray already contains
             let prevMod =  shadedRay.PhaseModulation
             (prevMod,timeStamps)
             ||> Array.map2(fun old t -> old+(ww*SINMOD t)
-                                   //((duepi/(match ray.Wavelenght with WaveLength x -> float x))*sin(duepi*float(freq)*t)*(amplitude*difRay)) //%PI  //freq
                            ) // Phase modulation
 
 

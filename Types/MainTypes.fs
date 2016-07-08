@@ -21,7 +21,7 @@ module types =
 
     // Second method to noise
     // This is to translate the vibration of the object into phase change on the ray.
-    type noise = ((byte*Vector*float)[]*float[])                        // Here it refers to the fact that ((frequency, Amplitude,phase)[], t_sampling)
+    type noise = ((float*Vector*float)[]*float[])                        // Here it refers to the fact that ((frequency, Amplitude,phase)[], t_sampling)
     // byte is a number in the range [0,255], I use this because I expect I won't work on higher frequencies
     type Ray = {
                 Wavelenght:Wavelength;
@@ -45,3 +45,18 @@ module types =
     
     // New intersection type created because I must know which one is the object when the intersected object is a sensor
     type Intersection = { normal:UnitVector; point:Point; ray:Ray;MatName:string ; t:float<m>}//; ObjectSensor:Object Option}
+
+    let RealMatName (raw_Material_Name:string) (cos_inc:float) = 
+        // find the real name of a material
+        match raw_Material_Name with
+        | x when x.StartsWith("ANG_") ->
+            let angle = (acos(cos_inc)) 
+                        |> abs |> fun x -> (0.5*x/3.14159265359)*360. 
+                        |> round //|> int - non ce bisogno di utilizzare l'int, string gia e' in abastanza
+                        |> string
+            x.[4..x.Length-1]+"_"+angle
+
+        | _ ->  
+            raw_Material_Name
+       
+
