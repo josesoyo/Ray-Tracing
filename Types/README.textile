@@ -1,0 +1,9 @@
+**Types library**
+
+Definition of all the types required for the ray tracing.
+
+Also there are some modules to define the algebra that contain algebra definitions and its operations:
+- 3D Vector: Sum, dot product, cross product, ...
+- Point: translation
+- 3X3 Matrix: Sum, prod, RotationMatrix from vectors, ...
+- *infi* variable that represents infinite measures on <m>

@@ -1,0 +1,3 @@
+**Preprocessor library**
+
+Contains some routines to initialize the ray tracing SW as reading mesh files from *.obj* (wavefront) and material *.mat* files. It also contains the routines to generate an Octree structure from the read mesh file.
