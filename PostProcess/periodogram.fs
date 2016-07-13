@@ -20,8 +20,8 @@ let welch_method(data:float[],window:float[],overlap:int,fs:float) =
     [|1..k|] 
     |> Array.iter( //.Parallel
         fun i ->     
-        if window.Length <> data.[istart..iend].Length then
-            printfn "here there's a breakpoint"
+        //if window.Length <> data.[istart..iend].Length then
+        //    printfn "here there's a breakpoint"
         let f = (window,data.[istart..iend]) ||> Array.map2(fun x y -> Complex(x*y,0.))
         Fourier.Forward(f)  // apply the fft
         istart <- istart+step
@@ -45,8 +45,9 @@ let welch_method(data:float[],window:float[],overlap:int,fs:float) =
     |> fun xt -> 
         [|0..xt.[0].Length-1|] 
         |> Array.map( fun index -> 
-                           // printfn "index is: %d" index
-                           // printfn "\ttheintermediateis:\n%+A" xt
+                           //if index = 0 then 
+                           //printfn "index is: %d" index
+                           //printfn "\ttheintermediateis:\n%+A" xt.Length
                            (xt |> Array.sumBy(fun eachPos -> eachPos.[index]))/kLf  
                      )
 
