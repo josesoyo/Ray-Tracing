@@ -22,13 +22,13 @@ let vinside(vertice:Point , box:BBox) =
     //               CAREFULL!!!
     //               One side should be < and the other >=, but I create a problem on the edges...
     //              To solve: if npart=nmax then pmax=pmax+0.01
-    if vertice.X <= box.Pmax.X && vertice.Y <= box.Pmax.Y && vertice.Z <= box.Pmax.Z then 
+    if vertice.X < box.Pmax.X && vertice.Y < box.Pmax.Y && vertice.Z < box.Pmax.Z then 
         if vertice.X >= box.Pmin.X && vertice.Y >= box.Pmin.Y && vertice.Z >= box.Pmin.Z then true
         else false     
     else false
 let VertInside (box, vertices:Point [])= 
     //List of vertices inside a partition
-    vertices|> Array.Parallel.map(fun x -> vinside(x,box))
+    vertices|> Array.map(fun x -> vinside(x,box)) // Parallel.
 
 let Edges2RayFrom (box:BBox) =
     // Find the RayFrom object of each edge of the partition box
@@ -83,19 +83,22 @@ let RealBoolean(vertBool: bool [], tri:int list,vertices: Point [], edgeRays:Ray
                             |> Array.collect(fun x -> intersec_tri(x,
                                                                     vertices,
                                                                     tri) )
-                            |> Array.filter (fun x -> x.t > 0.000)
+                            |> Array.filter (fun x -> x.t > 0.000) |> Array.map(fun x -> x.point)
         let triangleRays = //01 12 20
-            let r1 = Vector(float (vertices.[tri.[0]-1].X - vertices.[tri.[1]-1].X),
-                                float (vertices.[tri.[0]-1].Y - vertices.[tri.[1]-1].Y), 
-                                float (vertices.[tri.[0]-1].Z - vertices.[tri.[1]-1].Z))
+            let r1 = vertices.[tri.[0]-1] - vertices.[tri.[1]-1] 
+            (*Vector(float (vertices.[tri.[0]-1].X - vertices.[tri.[1]-1].X),
+             float (vertices.[tri.[0]-1].Y - vertices.[tri.[1]-1].Y), 
+            float (vertices.[tri.[0]-1].Z - vertices.[tri.[1]-1].Z))*)
 
-            let r2 = Vector(float (vertices.[tri.[1]-1].X - vertices.[tri.[2]-1].X),
-                                float (vertices.[tri.[1]-1].Y - vertices.[tri.[2]-1].Y), 
-                                float (vertices.[tri.[1]-1].Z - vertices.[tri.[2]-1].Z))
+            let r2 = vertices.[tri.[1]-1] - vertices.[tri.[2]-1]
+            (*Vector(float (vertices.[tri.[1]-1].X - vertices.[tri.[2]-1].X),
+             float (vertices.[tri.[1]-1].Y - vertices.[tri.[2]-1].Y), 
+             float (vertices.[tri.[1]-1].Z - vertices.[tri.[2]-1].Z)) *)
                                   
-            let r3 = Vector(float (vertices.[tri.[2]-1].X - vertices.[tri.[0]-1].X),
-                                float (vertices.[tri.[2]-1].Y - vertices.[tri.[0]-1].Y), 
-                                float (vertices.[tri.[2]-1].Z - vertices.[tri.[0]-1].Z))
+            let r3 = vertices.[tri.[2]-1] - vertices.[tri.[0]-1]
+            (*Vector(float (vertices.[tri.[2]-1].X - vertices.[tri.[0]-1].X),
+             float (vertices.[tri.[2]-1].Y - vertices.[tri.[0]-1].Y), 
+             float (vertices.[tri.[2]-1].Z - vertices.[tri.[0]-1].Z))*)
 
 
             [|
@@ -106,15 +109,16 @@ let RealBoolean(vertBool: bool [], tri:int list,vertices: Point [], edgeRays:Ray
                 from =vertices.[tri.[2]-1];
                 travelled = 0.}
             {uvec= r3.ToUnitVector();length = r3.Module();
-                from = vertices.[tri.[0]-1]
-                ;travelled = 0.}
+                from = vertices.[tri.[0]-1];
+                travelled = 0.}
                 |]
-        let cubeIntersected (triangleRay:RayFrom, cubeMesh:OLDmesh): Intersection [] =
+        let cubeIntersected (triangleRay:RayFrom, cubeMesh:OLDmesh): Point [] =
             [|0..(Array.length(cubeMesh.Triangles)-1)|]
             |> Array.collect(fun x -> intersec_square(triangleRay,cubeMesh.Vertices,cubeMesh.Triangles.[x]))
-            |> Array.filter(fun x -> x.t> 0.00)
+            |> Array.filter(fun x -> x.t> 0.00) |> Array.map(fun x -> x.point)
+
         let intersecCube =triangleRays |> Array.collect(fun x -> cubeIntersected(x,cubeMesh)) 
-        let allPos = Array.append intersecTRI intersecCube|> Array.map(fun x -> x.point)
+        let allPos = Array.append intersecTRI intersecCube
         match allPos with 
         | [||] -> (false, [||])
         | _  -> (true, allPos)
@@ -133,6 +137,7 @@ let tinside(vertBool:bool [], vertices: Point [],trianglesnormals:(int list*Unit
         let Points = BoolTandPoints |> Array.collect(fun x -> snd x)
         (TrianglesNormals,Points)
     else ([||],[||])
+
 let SubMeshBox(onLimits: Point [] ,boolv:bool [], vertices: Point [] ) =
     // Check the limits of the box inside the octree.Z
     let vertlim= boolv |> Array.exists(fun elem -> elem = true)     // If there are points inside
@@ -158,9 +163,6 @@ let SubMeshBox(onLimits: Point [] ,boolv:bool [], vertices: Point [] ) =
         let minZ2 = Pinside |> Array.minBy(fun elem -> elem.Z) |> (fun elem -> elem.Z)  
         let maxZ2 = Pinside |> Array.maxBy(fun elem -> elem.Z) |> (fun elem -> elem.Z) 
         {Pmin = Point(minX2,minY2,minZ2); Pmax = Point(maxX2,maxY2,maxZ2)}
-
-
-
 
     |(true, true ) ->   // Points on the limit and inside
         // Points on the limits
@@ -198,7 +200,7 @@ let  PartitionateGroup(space:BBox,groups:group [],vertices:Point[]):(int*group) 
 
     // Iter on groups
     //printfn "entering in tinside"
-    let iter = groups |> Array.Parallel.mapi(fun i x -> (i,(tinside(VertInBool,vertices,x.TrianglesNormals,space,x.Bbox))))
+    let iter = groups |> Array.mapi(fun i x -> (i,(tinside(VertInBool,vertices,x.TrianglesNormals,space,x.Bbox)))) // Parallel.
                         // true if the triangles are not empty
                         |> Array.filter(fun x -> 
                                         (not  (Array.isEmpty (fst (snd x))))
@@ -206,10 +208,11 @@ let  PartitionateGroup(space:BBox,groups:group [],vertices:Point[]):(int*group) 
                         // MeshID*(triangles*PointsOnBoundary)
 
     //printfn "leaving in tinside"
-    let subBox = iter |>  Array.Parallel.map(fun  x  -> SubMeshBox(snd (snd x ), VertInBool,vertices))
+    let subBox = iter                     // not all the vertices are in all the groups
+                 |>  Array.map(fun  x  -> BoxofIntersection(SubMeshBox(snd (snd x ), VertInBool,vertices), groups.[fst(x)].Bbox ) ) // Parallel.
     //printfn "Submeshbox done"
     (iter , subBox) ||> Array.map2(fun it sbox ->
-                                                (fst it ,
+                                                (fst it ,           // group num € [0..n-1]
                                                  {Name =(groups.[(fst it)].Name) ; TrianglesNormals = fst(snd(it));
                                                   Bbox = sbox; MatName=(groups.[(fst it)].MatName)})
                                             )

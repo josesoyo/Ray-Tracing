@@ -1,6 +1,6 @@
 ﻿
 #r @"..\Types\bin\Debug\Types.dll"
-#r @"..\Library1\bin\Debug\Library1.dll"
+#r @"..\Preprocessor\bin\Debug\Library1.dll"
 open System.IO
 open Types
 open Types.Algebra

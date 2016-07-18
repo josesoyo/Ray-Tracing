@@ -1,7 +1,7 @@
 ﻿// Learn more about F# at http://fsharp.org. See the 'F# Tutorial' project
 // for more guidance on F# programming.
-#r @"c:\Users\JoseM\documents\visual studio 2015\Projects\Library1\packages\MathNet.Numerics.3.0.2\lib\net40\MathNet.Numerics.dll"
-#r @"c:\Users\JoseM\documents\visual studio 2015\Projects\Library1\packages\MathNet.Spatial.0.2.0-alpha\lib\net40\MathNet.Spatial.dll"
+#r @"..\packages\MathNet.Numerics.3.11.1\lib\net40\MathNet.Numerics.dll"
+#r @"..\packages\MathNet.Spatial.0.2.0-alpha\lib\net40\MathNet.Spatial.dll"
 #load "../Types/MainTypes.fs"
 #load "../Types/ObjectTypes.fs"
 

@@ -25,9 +25,9 @@ module Octree =
                                            vertices )
         let numEle =        // Include the max depth as a terminator on Octree
             if depth < maxDepth then 
-                subgroups |> Array.sumBy(fun x -> (snd x).TrianglesNormals.Length)
+                subgroups |> Array.sumBy(fun x -> (snd x).TrianglesNormals.Length)  // check this point
             else
-                maxEle+100
+                maxEle-100  // if the depth > maxDepth then fake the number of elements to terminate iteration
         (subgroups,numEle)
 
 
@@ -44,19 +44,21 @@ module Octree =
                               [|(let tupleResult = OctBucle(aa,bb,cc,group,vert,space,maxEle,depth,maxDepth ) 
                                  printfn "depth: %d \t aa bb cc are %d %d %d" depth aa bb cc
                                  let out = (fst tupleResult)
-
+                                 if depth > 10 then 
+                                    printfn "depth!?"
                                   // Compute bbox of elements
                                  let mutable reducedBox = {Pmin = Point(infinity, infinity,infinity);
                                                            Pmax = Point(-infinity,-infinity,-infinity)}
                                  // Compute union of two bboxes                           
                                  out |> Array.iter(fun n -> reducedBox <- BoxofUnion((snd n).Bbox, reducedBox))
 
-                                 if snd tupleResult < maxEle then // the maxEle should count the maxDepth counter  
+                                 if snd tupleResult < maxEle  then // the maxEle includes the maxDepth counter  
                                      if  (out |> Array.isEmpty) then [||] // I was creating a Partition being empty...
                                      else [|Partition({Bbox= reducedBox; Partition = out})|]
                                  else  
-                                    
+                                     // not necessary the if because it already has elements
                                      [|Octree({Bbox =reducedBox ; Octree =CreateOctree (group, vert, reducedBox, maxEle,depth+1,maxDepth) })|]
+                                    
                                 ) 
                                 
                               |] |> Array.collect(fun z -> z)
@@ -84,8 +86,8 @@ module Octree =
 
                                                 
         
-        let asyncOct(orderi,group,vert,space,maxEle,depth,maxDepth ) = async { let (aa,bb,cc)= orderi
-                                                                               return OctreeCore(aa,bb,cc,group,vert,space,maxEle,depth,maxDepth ) }
+        let asyncOct(orderi,groupi,verti,spacei,maxElei,depthi,maxDepthi) = async { let (aa,bb,cc)= orderi
+                                                                                    return OctreeCore(aa,bb,cc,groupi,verti,spacei,maxElei,depthi,maxDepthi ) }
         let partition = order 
                             |> List.collect(fun x -> [asyncOct(x,group,vert,space,maxEle,depth,maxDepth )])
                             |> Async.Parallel |> Async.RunSynchronously
@@ -105,14 +107,16 @@ module Octree =
         out |> Array.iter(fun n -> reducedBox <- BoxofUnion((snd n).Bbox, reducedBox))
         if depth = 0 then
             if snd tupleResult < maxEle then // the maxEle should count the maxDepth counter  
-                [|Partition({Bbox= reducedBox; Partition = out})|]
+                 if  (out |> Array.isEmpty) then [||] // I was creating a Partition being empty...
+                 else  [|Partition({Bbox= reducedBox; Partition = out})|]
             else  
                 //  Not recursive the creation of async because I use the non parallel version for recursivity.
                 [|Octree({Bbox =reducedBox ; Octree =OctreeAsync (group, vert, reducedBox, maxEle,depth+1,maxDepth) })|]
 
         else
             if snd tupleResult < maxEle then // the maxEle should count the maxDepth counter  
-                [|Partition({Bbox= reducedBox; Partition = out})|]
+                 if  (out |> Array.isEmpty) then [||] // I was creating a Partition being empty...
+                 else [|Partition({Bbox= reducedBox; Partition = out})|]
             else  
                 //  Not recursive the creation of async because I use the non parallel version for recursivity.
                 [|Octree({Bbox =reducedBox ; Octree =CreateOctree (group, vert, reducedBox, maxEle,depth+1,maxDepth) })|]
