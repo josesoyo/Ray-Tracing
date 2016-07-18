@@ -4,6 +4,6 @@ Currently the forward ray tracing includes the features for:
 * The rays contains phase information allowing the code to simulate interference patterns produced by interferometers.
 * It's also possible to compute temporal changes on ray phase modulation due to oscillating objects at multiple frequencies, amplitudes and phases. This temporal domain information can be used to extract information on the frequency domain with the functions written on the Postprocessing module
 
-Project for the GPU ray tracing engine to simulate stray light
+
 
 I have added some Jupyter notebooks that can be visualized on http://nbviewer.jupyter.org/
