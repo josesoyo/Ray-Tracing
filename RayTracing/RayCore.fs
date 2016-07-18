@@ -210,7 +210,23 @@ module intersections =
             let nray = {ray with OpticalPathTravelled = ray.OpticalPathTravelled + ray.IndexOfRefraction*(tm)}
             [|{normal = dsk.Normal;point= np; ray= nray; MatName = dsk.MatName; t= tm}|]
         | _ ->  [||]
-        
+
+   let intersect_annular_disc  (ray:Ray,adsk:annular_disc) =     
+    // intersect an annular disc
+    // 
+    let dsc = adsk.Disc
+    let inte = intersect_Disk(ray,dsc)
+    let rad = inte |> Array.map(fun y -> (y.point-dsc.Centre).Module() )
+    
+    rad 
+    |> Array.mapi(fun ind y ->                                  // check if the intersection is not inside the annulus
+                        if y > adsk.MinRadius then ind
+                        else -1)
+    |> Array.filter(fun x -> x <> -1)                           // filter the ones that are not intersecting
+    |> Array.map(fun x -> inte.[x])                             // change from index to the intersection point
+    
+
+
    let intersect_Cone(ray:Ray,cn:cone) =
         // intersection ray-cone
         let rOrigObj = cn.World2Obj.RotateVector((ray.from - cn.Origin)).ToPoint()

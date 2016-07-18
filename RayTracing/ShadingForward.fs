@@ -44,9 +44,9 @@ let reflection(intersection:Intersection,numOfParticles:int, cos_inc:float) =
     let ray = intersection.ray
     //let pnormal = intersection.normal
     let lightDir = ray.uvec // Direction of the ray
-    let normal = 
-        if cos_inc < 0. then  intersection.normal//pnormal // cos_inc = lightDir*(pnormal)
-        else  intersection.normal.Negate() //pnormal.Negate()
+    let normal = intersection.normal
+    //    if cos_inc < 0. then  intersection.normal//pnormal // cos_inc = lightDir*(pnormal)
+    //    else  intersection.normal.Negate() //pnormal.Negate()
     
     let Reflvect = 
             (-2.0*cos_inc)*normal+lightDir //Inverted - Reflected ray  normal*(lightDir)
@@ -171,9 +171,20 @@ let ShadingForward(intersection:Intersection,material:System.Collections.Generic
             [|{out with PhaseModulation = PhaseModulation(out, intersection,noise) }|]
             //[|out|]
         | c when pt < c && c <= (pt+pr) -> 
-            let out =  reflection(intersection,1, cos_inc_direct)
-            [|{out with PhaseModulation = PhaseModulation(out, intersection,noise) }|]
-            //[| out |]
+            // Test for the tube -> if it doesn't advance on the tube go out
+            let xavant = intersection.point.X - intersection.ray.from.X  // quant ha avancat
+            //
+            //
+            match xavant,intersection.point.X  with
+            | x, y  when abs x > 0.5 && y >1.5 ->
+                let out =  reflection(intersection,1, cos_inc_direct)
+                [|{out with PhaseModulation = PhaseModulation(out, intersection,noise) }|]
+                //[| out |]
+            | x , y  when abs x > 0.1 && y < 1.5 -> // before the meter and a half I will ask for a slower movement
+                let out =  reflection(intersection,1, cos_inc_direct)
+                [|{out with PhaseModulation = PhaseModulation(out, intersection,noise) }|]
+                //[| out |]
+            |  _ -> [||]
         | c when pt+pr < c && c <= pt+pr+pd ->
             let out =dispersion(intersection,1,cos_inc_direct) // to modify, dispersion
             //[|{out with PhaseModulation = PhaseModulation(out, intersection,noise) }|]
@@ -209,18 +220,28 @@ let ShadingForward(intersection:Intersection,material:System.Collections.Generic
                     | 'R' -> (r+missing,t,d)
                     | 'D' -> (r,t,d+missing)
                     | 'A' -> (r,t,d)
+                    | _ ->  printfn "Impossible error on ShadingForward??"
+                            (-2147483648,-2147483648,-2147483648) // -2147483648 = inf infinity
                 else // ERROR control
                     printfn "Theres an error on ShadingForward"
                     System.Console.ReadKey() |> ignore // stop the computation
                     (r,t, d )
 
+        
+
         let tout = match nt with
                    | nt when nt > 0 -> transmission(intersection,fst material.[intersection.MatName].n,nt,cos_inc_direct) 
                                        |> fun x ->  [|{x with PhaseModulation = PhaseModulation(x, intersection,noise) }|]
                    | _ -> [||]
-        let rout = match nr with 
-                   | nr when nr > 0 -> reflection(intersection,nr, cos_inc_direct) 
-                                       |> fun x -> [|{x with PhaseModulation = PhaseModulation(x, intersection,noise) }|]
+        let rout = 
+                   let xavant = intersection.point.X - intersection.ray.from.X  // quant ha avancat 
+                   match nr, xavant,intersection.point.X with 
+                   | (nr, x, y) when nr > 0 && abs x > 0.5 && y > 1.5-> 
+                                    reflection(intersection,nr, cos_inc_direct) 
+                                    |> fun x -> [|{x with PhaseModulation = PhaseModulation(x, intersection,noise) }|]
+                   | (nr, x, y) when nr > 0 && abs x > 0.1 && y < 1.5-> 
+                                    reflection(intersection,nr, cos_inc_direct) 
+                                    |> fun x -> [|{x with PhaseModulation = PhaseModulation(x, intersection,noise) }|]
                    | _ -> [||]
         let dout = match nd with
                    | nd when nd > 0 -> dispersion(intersection,nd, cos_inc_direct) 

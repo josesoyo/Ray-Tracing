@@ -1,3 +1,5 @@
 **RayTracing library**
 
+Important comment about modifications for current simulations:
+I have added the variable **xavant** in order to solve a situation that returns StackOverflow.
 

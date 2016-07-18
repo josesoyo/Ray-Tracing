@@ -38,8 +38,9 @@ let SampUnitDisk () =
 
 let SampUnitHemisphereToCart () =
     // Generate a PRandom unit vector  in 3D in +Z
-    // Not efficient
+    // Not efficient?
     // For Lambertian dispersion
+    // equal probability per unit of solid angle
     let (phi, ctheta)  =
         let samples =ListOfRndFloat 2
         let sol = (2.0*PI*samples.[0],samples.[1])

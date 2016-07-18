@@ -38,10 +38,12 @@ let UpdateSensorPhase(ray:Ray,intersection:Intersection,obj:Object):Unit =
                            (ray.OpticalPathTravelled/(match (ray.Wavelenght) with WaveLength x ->x))%(float(match ray.Wavelenght with WaveLength x -> x)), 
                            ray.PhaseModulation ) // I need the intersection
     match obj with
-    | Cylinder x ->   x.Sensor.AddData(sc)
-    | SurfaceLens x-> x.Sensor.AddData(sc)
-    | Disc x-> x.Sensor.AddData(sc)
-    | Sphere x-> x.Sensor.AddData(sc)
+    | Cylinder x ->     x.Sensor.AddData(sc)
+    | SurfaceLens x->   x.Sensor.AddData(sc)
+    | Disc x->          x.Sensor.AddData(sc)
+    | Cone x ->         x.Sensor.AddData(sc)
+    | Sphere x->        x.Sensor.AddData(sc)
+    | Annular_Disc x -> x.Disc.Sensor.AddData(sc)
 
 let UpdateSensorSelectionPhase(ray:Ray, intersection:Intersection, objs:Object[],objID:int) =
     UpdateSensorPhase(ray,intersection,objs.[objID])
@@ -52,17 +54,23 @@ let UpdateSensorSelectionPhase(ray:Ray, intersection:Intersection, objs:Object[]
 // match sensor or not
 let IsItSensor(objs:Object[], id:int):bool*bool =
     match objs.[id] with
-    | Cylinder x -> (x.Sensor.Exists, x.Sensor.Terminate) // says if it is a sensor or not and if it terminates
-    | SurfaceLens x -> (x.Sensor.Exists, x.Sensor.Terminate) // says if it is a sensor or not and if it terminates
-    | Disc x -> (x.Sensor.Exists, x.Sensor.Terminate)
-    | Sphere x -> (x.Sensor.Exists, x.Sensor.Terminate)
+    | Cylinder x ->     (x.Sensor.Exists, x.Sensor.Terminate) // says if it is a sensor or not and if it terminates
+    | SurfaceLens x ->  (x.Sensor.Exists, x.Sensor.Terminate) // says if it is a sensor or not and if it terminates
+    | Disc x ->         (x.Sensor.Exists, x.Sensor.Terminate)
+    | Annular_Disc x -> (x.Disc.Sensor.Exists, x.Disc.Sensor.Terminate)
+    | Sphere x ->       (x.Sensor.Exists, x.Sensor.Terminate)
+    | Cone x ->         (x.Sensor.Exists, x.Sensor.Terminate)
+    | TruncatedCone x ->(x.Cone.Sensor.Exists, x.Cone.Sensor.Terminate)
 
 let getNoise(objs:Object[], id:int) =
     match objs.[id] with
-    | Cylinder x ->  x.Noise
-    | SurfaceLens x -> x.Noise
-    | Disc x -> x.Noise
-    | Sphere x -> x.Noise
+    | Cylinder x ->     x.Noise
+    | SurfaceLens x ->  x.Noise
+    | Disc x ->         x.Noise
+    | Annular_Disc x -> x.Disc.Noise
+    | Sphere x ->       x.Noise
+    | Cone x ->         x.Noise
+    | TruncatedCone x ->x.Cone.Noise
 
 // Main Function - initial ray must be computed before
 // This function only traces one ray, so it reques a superfunction to trace all the rays and probably do the parallel stuff
@@ -103,35 +111,62 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
             //    printfn "%+A" ray.PhaseModulation
             //| _ ->
             //    UpdateSensorSelection(ray,fst intersect,objs, snd intersect)
-
-            // 2nd - Shading
-            // filter the rays that have been dispersed more times that the maximum allowable
-            let rays:Ray[] = ShadingForward( fst intersect, material,noise) |> Array.filter(fun x -> x.NumBounces <= x.MaxDispersions)
-            // check that the number of dispersive reflections is not more than the expected
-            match Array.isEmpty rays with
-            | false ->
-                match ray.NumBounces with
-                | n when n <= ray.MaxDispersions -> 
-                    // 3nd - Continue the ray tracing
-                    rays |> Array.iter(fun r -> ForwardRay (r,objs,material))
-                | _ -> 'e' |> ignore// end
-            | true -> 'e' |> ignore// end it's absorbed
             
+            //
+            //          //  //  only for the case of the arm cavity //  //
+            //          This should avoid a stackoverflow problem
+            let xavant = (fst intersect).point.X - (fst intersect).ray.from.X  // quant ha avancat
+            let boolsArm = (3.< (fst intersect).point.X && (fst intersect).point.X < 1900.) && (xavant < 1.)
+            //
+            //
+            match boolsArm with 
+            | true ->  // if it doesn't advance, then it shouldn't arrive
+                'e' |> ignore
+            | false ->
+                // 2nd - Shading
+                // filter the rays that have been dispersed more times that the maximum allowable
+                let rays:Ray[] = ShadingForward( fst intersect, material,noise) |> Array.filter(fun x -> x.NumBounces <= x.MaxDispersions)
+                // check that the number of dispersive reflections is not more than the expected
+                match Array.isEmpty rays with
+                | false ->
+                    match ray.NumBounces with
+                    | n when n <= ray.MaxDispersions -> 
+                        // 3nd - Continue the ray tracing
+                        rays |> Array.iter(fun r -> ForwardRay (r,objs,material))
+                    | _ -> 'e' |> ignore// end
+                | true -> 'e' |> ignore// end it's absorbed
+            //
+            //      //              //
+            //
+            //
         |(_, _ ) ->  // (false , _ )
             //not end => just continue
             // 1st - Shading
             // filter the rays that have been dispersed more times that the maximum allowable
-            let rays:Ray[] = ShadingForward( fst intersect, material,noise) |> Array.filter(fun x -> x.NumBounces <= x.MaxDispersions)
-            match Array.isEmpty rays with
+            //
+            //          //  //  only for the case of the arm cavity //  //
+            //          This should avoid a stackoverflow problem
+            let xavant = (fst intersect).point.X - (fst intersect).ray.from.X  // quant ha avancat
+
+            let boolsArm = (3.< (fst intersect).point.X && (fst intersect).point.X < 1900.) && (xavant < 1.)
+            //
+  
+            match boolsArm with 
+            | true ->  // if it doesn't advance, then it shouldn't arrive
+                'e' |> ignore
             | false ->
-                // check that the number of dispersive reflections is not more than the expected
-                match ray.NumBounces with
-                | n when n <= ray.MaxDispersions -> 
-                    // 2nd - continue ray tracing 
-                    rays |> Array.iter(fun r -> ForwardRay (r,objs,material))
-                | _ -> 
-                    'e' |> ignore// end withouth producing anything
-            | true ->  'e' |> ignore// end it's absorbed
+
+                let rays:Ray[] = ShadingForward( fst intersect, material,noise) |> Array.filter(fun x -> x.NumBounces <= x.MaxDispersions)
+                match Array.isEmpty rays with
+                | false ->
+                    // check that the number of dispersive reflections is not more than the expected
+                    match ray.NumBounces with
+                    | n when n <= ray.MaxDispersions -> 
+                        // 2nd - continue ray tracing 
+                        rays |> Array.iter(fun r -> ForwardRay (r,objs,material))
+                    | _ -> 
+                        'e' |> ignore// end withouth producing anything
+                | true ->  'e' |> ignore// end it's absorbed
 
     | _ -> 'e' |> ignore // no intersection, nothing happens
 

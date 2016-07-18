@@ -281,6 +281,36 @@ module ObjectTypes=
           let snsr = Sensor(true,isEndSensor)
           //disc(c, rad, nrm,matname, snsr,[|(0uy,0.)|])    // method original for noise
           disc(c, rad, nrm,matname, snsr,([| |],[||]))
+
+    
+    type annular_disc(c:Point, minrad:float, maxrad:float, nrm:UnitVector,matname:string, snrs:Sensor, noise:noise) = 
+        // Disk type with an hole inside ---> Annular disc
+        // Base as disc with the modification of the centre
+        let dsc = disc(c, maxrad, nrm,matname, snrs, noise)
+        let mr = minrad
+
+        member this.Disc with get() = dsc
+        member this.MinRadius with get() = minrad
+
+        new(c, minrad,rad,nrm,matName) =
+          //disc(c, rad, nrm,matName, Sensor(),[|(0uy,0.)|])    // method original for noise
+          annular_disc(c, minrad, rad, nrm,matName, Sensor(),([| |],[||]))
+         
+        
+        new(c, minrad,rad,nrm,isEndSensor:bool) =
+          // End sensor = "no material"
+          let snsr = Sensor(true,isEndSensor)
+          if isEndSensor = false then 
+              printfn "There's an error on the definition of the disk\n cannot be and end withouth a defined material"
+              Console.ReadKey() |> ignore  
+          //disc(c, rad, nrm,"", snsr,[|(0uy,0.)|])     // method original for noise
+          annular_disc(c, minrad, rad, nrm,"", snsr,([| |],[||]))
+         
+        new (c, minrad,rad,nrm,matname,isEndSensor:bool) =
+          // End sensor = "no material"
+          let snsr = Sensor(true,isEndSensor)
+          //disc(c, rad, nrm,matname, snsr,[|(0uy,0.)|])    // method original for noise
+          annular_disc(c, minrad, rad, nrm,matname, snsr,([| |],[||]))
  
          
     type cone(radius:float<m>,height:float<m>,origin:Point, nrm:UnitVector, matname:string, sensor:Sensor, noise:noise) =
@@ -331,6 +361,7 @@ module ObjectTypes=
         member this.Origin with get() = origin
         member this.Normal with get() = nrm
         member this.MaterialName with get() = matname
+        member this.Noise with get() = noise
         
         // news with auto sensor and noise
         new (radius,height,origin, nrm, matname) =
@@ -369,6 +400,7 @@ module ObjectTypes=
     | Cylinder of cylinder
     | SurfaceLens of SphSurfaceLens
     | Disc of disc
+    | Annular_Disc of annular_disc
     | Sphere of sphere
     | Cone of cone
     | TruncatedCone of truncatedCone

@@ -40,7 +40,10 @@ module ObjectSelection =
                                    match inter with 
                                    | [||] -> None
                                    | _ -> Some(inter  |> Array.minBy(fun x -> x.t))
-
+        | Annular_Disc x ->   let inter = intersect_annular_disc(ray, x) |> Array.filter(fun x -> x.t > 1e-10<m>)
+                              match inter with 
+                              | [||] -> None
+                              | _ -> Some(inter  |> Array.minBy(fun x -> x.t))
   
     let UnSomeNone(x) =
         match x with
