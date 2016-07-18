@@ -1,8 +1,8 @@
 Ray Tracing module written with F#. The module can be used to simulate either backward ray tracing for rendering in B&W, or forward ray tracing which can be used for a stray light.
 Currently the forward ray tracing includes the features for:
-- Transform all the different objects that exist in the scene into a sensor to analyze the flux of particles for a surface, allowing to terminate the ray tracing (real sensor) or not (just control an object). Only the mesh type is not included as a sensor and theoretically there's no limit on the number of sensors.
-- The rays contains phase information allowing the code to simulate interference patterns produced by interferometers.
-- It's also possible to compute temporal changes on ray phase modulation due to oscillating objects at multiple frequencies, amplitudes and phases. This temporal domain information can be used to extract information on the frequency domain with the functions written on the Postprocessing module
+* Transform all the different objects that exist in the scene into a sensor to analyze the flux of particles for a surface, allowing to terminate the ray tracing (real sensor) or not (just control an object). Only the mesh type is not included as a sensor and theoretically there's no limit on the number of sensors.
+* The rays contains phase information allowing the code to simulate interference patterns produced by interferometers.
+* It's also possible to compute temporal changes on ray phase modulation due to oscillating objects at multiple frequencies, amplitudes and phases. This temporal domain information can be used to extract information on the frequency domain with the functions written on the Postprocessing module
 
 Project for the GPU ray tracing engine to simulate stray light
 
