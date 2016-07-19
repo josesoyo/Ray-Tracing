@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25123.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Preprocessor", "Library1\Preprocessor.fsproj", "{856172F8-DB0F-48A1-8C47-9BDAE578A3CC}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Preprocessor", "Preprocessor\Preprocessor.fsproj", "{856172F8-DB0F-48A1-8C47-9BDAE578A3CC}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "main", "main\main.fsproj", "{B55EBCD2-273A-4F56-873D-0D05B19FFE80}"
 	ProjectSection(ProjectDependencies) = postProject
