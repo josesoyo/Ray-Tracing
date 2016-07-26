@@ -116,12 +116,12 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
             //          //  //  only for the case of the arm cavity //  //
             //          This should avoid a stackoverflow problem
             let xavant = (fst intersect).point.X - (fst intersect).ray.from.X  // quant ha avancat
-            let boolsArm = (3.< (fst intersect).point.X && (fst intersect).point.X < 1900.) && (xavant < 1.)
+            let boolsArm = (0.5< (fst intersect).point.X && (fst intersect).point.X < 2990.5) && ((abs xavant) < 0.5)
             //
             //
             match boolsArm with 
             | true ->  // if it doesn't advance, then it shouldn't arrive
-                'e' |> ignore
+                () 
             | false ->
                 // 2nd - Shading
                 // filter the rays that have been dispersed more times that the maximum allowable
@@ -133,8 +133,8 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
                     | n when n <= ray.MaxDispersions -> 
                         // 3nd - Continue the ray tracing
                         rays |> Array.iter(fun r -> ForwardRay (r,objs,material))
-                    | _ -> 'e' |> ignore// end
-                | true -> 'e' |> ignore// end it's absorbed
+                    | _ -> () // end
+                | true -> () // end it's absorbed
             //
             //      //              //
             //
@@ -148,12 +148,12 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
             //          This should avoid a stackoverflow problem
             let xavant = (fst intersect).point.X - (fst intersect).ray.from.X  // quant ha avancat
 
-            let boolsArm = (3.< (fst intersect).point.X && (fst intersect).point.X < 1900.) && (xavant < 1.)
+            let boolsArm = (0.5 < (fst intersect).point.X && (fst intersect).point.X < 2999.5) && ((abs xavant) < 0.5) // it can go back...
             //
   
             match boolsArm with 
             | true ->  // if it doesn't advance, then it shouldn't arrive
-                'e' |> ignore
+                () 
             | false ->
 
                 let rays:Ray[] = ShadingForward( fst intersect, material,noise) |> Array.filter(fun x -> x.NumBounces <= x.MaxDispersions)
@@ -165,10 +165,10 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
                         // 2nd - continue ray tracing 
                         rays |> Array.iter(fun r -> ForwardRay (r,objs,material))
                     | _ -> 
-                        'e' |> ignore// end withouth producing anything
-                | true ->  'e' |> ignore// end it's absorbed
+                        () // end withouth producing anything
+                | true ->  () // end it's absorbed
 
-    | _ -> 'e' |> ignore // no intersection, nothing happens
+    | _ -> ()  // no intersection, nothing happens
 
 
 let RayTraceAll(rays:Ray[],objs,material) =
