@@ -73,7 +73,7 @@ module Noise =
         // do the sum of the b*n2
         
         let sumProd = 
-            mirror.Sensor.SavedData//.[0].Direction 
+            mirror.Sensor.SavedData.ToArray()//.[0].Direction 
             |> Array.map(fun x -> 
                                     // the b(theta) and n(f)
                                     let ang = acos(x.Direction*mirror.Normal) |> abs  // be sure that it's always positive
@@ -102,7 +102,7 @@ module Noise =
         // do the sum of the b*n2
         
         let sumProd = // frequencies*noise_PSD
-            mirror.Sensor.SavedData |> Array.filter(fun x -> x.Noise.Length <> 0) // filter the photons that arrive directly and don't contribute to the noise 
+            mirror.Sensor.SavedData.ToArray() |> Array.filter(fun x -> x.Noise.Length <> 0) // filter the photons that arrive directly and don't contribute to the noise 
             |> Array.map(fun x -> 
                                     // the b(theta) and n(f)
                                     let ang = acos(x.Direction*mirror.Normal) |> abs  // be sure that it's always positive
@@ -168,7 +168,7 @@ module Noise =
     let SumAndSavePhases (snrs:Sensor) (mrNormal:UnitVector) (path_save:string)=
         // sum the phases with the factor of the b(theta)
         // Just done as exercise because it cannot be used to obtain proper results.
-        let ph_b_theta = snrs.SavedData 
+        let ph_b_theta = snrs.SavedData.ToArray() 
                          |> Array.map(fun y -> let Sqrt_b_ang = sqrt( b_theta( acos(y.Direction*mrNormal) |> abs ))
                                                (y.Noise |> Array.map(fun z -> Sqrt_b_ang*sin(z)))      )
         

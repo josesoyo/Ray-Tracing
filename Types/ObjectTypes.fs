@@ -27,13 +27,16 @@ module ObjectTypes=
         // If exists, will check if it is a termination on the ray (End Sensor), or the ray continues, but saves the value
         let exists = exs     // says if it's a sensor or not
         let terminate = term
-        let mutable data:(SensorContent[]) = [||]
+        let data = 
+            match exs with
+            | true -> ResizeArray<SensorContent>(100)
+            | false -> ResizeArray<SensorContent>()
         member this.Exists with get() = exists
         member this.Terminate with get() = terminate
         member this.SavedData with get() = data
 
         member this.AddData(sc) =
-            data <- Array.append data [|sc|]
+            data.Add(sc)//data <- Array.append data [|sc|]
 
         new (exs) =
             Sensor(exs, false)
