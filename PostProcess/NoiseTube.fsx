@@ -1,4 +1,10 @@
-﻿// Script to see if the simulation of a tube works
+﻿//                      //
+//   old, not valid     //
+//                      //
+
+
+
+// Script to see if the simulation of a tube works
 // This script should be done in UNIX style
 
 // reference

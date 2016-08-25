@@ -52,8 +52,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="materials.fs" />
     <Compile Include="Program.fs" />
     <None Include="App.config" />
+    <None Include="main_old_test.fsx" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\BackwardRender\BackwardRender.fsproj">

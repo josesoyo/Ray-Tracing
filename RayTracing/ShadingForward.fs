@@ -171,21 +171,11 @@ let ShadingForward(intersection:Intersection,material:System.Collections.Generic
             [|{out with PhaseModulation = PhaseModulation(out, intersection,noise) }|]
             //[|out|]
         | c when pt < c && c <= (pt+pr) -> 
-            // Test for the tube -> if it doesn't advance on the tube go out
-            let xavant = intersection.point.X - intersection.ray.from.X  // quant ha avancat
-            //
-            //
-            match xavant,intersection.point.X  with
-            | x, y  when abs x > 0.5 && y >1.5 ->
-                let out =  reflection(intersection,1, cos_inc_direct)
-                [|{out with PhaseModulation = PhaseModulation(out, intersection,noise) }|]
-                //[| out |]
-            | x , y  when abs x > 0.1 && y < 1.5 -> // before the meter and a half I will ask for a slower movement
-                let out =  reflection(intersection,1, cos_inc_direct)
-                [|{out with PhaseModulation = PhaseModulation(out, intersection,noise) }|]
-                //[| out |]
-            |  _ -> [||]
-        | c when pt+pr < c && c <= pt+pr+pd ->
+ 
+            let out =  reflection(intersection,1, cos_inc_direct)
+            [|{out with PhaseModulation = PhaseModulation(out, intersection,noise) }|]
+            //[| out |]
+         | c when pt+pr < c && c <= pt+pr+pd ->
             let out =dispersion(intersection,1,cos_inc_direct) // to modify, dispersion
             //[|{out with PhaseModulation = PhaseModulation(out, intersection,noise) }|]
             out |> Array.map(fun ra -> {ra with PhaseModulation = PhaseModulation(ra, intersection,noise) })
@@ -233,16 +223,11 @@ let ShadingForward(intersection:Intersection,material:System.Collections.Generic
                    | nt when nt > 0 -> transmission(intersection,fst material.[intersection.MatName].n,nt,cos_inc_direct) 
                                        |> fun x ->  [|{x with PhaseModulation = PhaseModulation(x, intersection,noise) }|]
                    | _ -> [||]
+
         let rout = 
-                   let xavant = intersection.point.X - intersection.ray.from.X  // quant ha avancat 
-                   match nr, xavant,intersection.point.X with 
-                   | (nr, x, y) when nr > 0 && abs x > 0.5 && y > 1.5-> 
-                                    reflection(intersection,nr, cos_inc_direct) 
-                                    |> fun x -> [|{x with PhaseModulation = PhaseModulation(x, intersection,noise) }|]
-                   | (nr, x, y) when nr > 0 && abs x > 0.1 && y < 1.5-> 
-                                    reflection(intersection,nr, cos_inc_direct) 
-                                    |> fun x -> [|{x with PhaseModulation = PhaseModulation(x, intersection,noise) }|]
-                   | _ -> [||]
+                                reflection(intersection,nr, cos_inc_direct) 
+                                |> fun x -> [|{x with PhaseModulation = PhaseModulation(x, intersection,noise) }|]
+
         let dout = match nd with
                    | nd when nd > 0 -> dispersion(intersection,nd, cos_inc_direct) 
                                        |> Array.map( fun x -> {x with PhaseModulation =PhaseModulation(x, intersection,noise) })// to modify, dispersion

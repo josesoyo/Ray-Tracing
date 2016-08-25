@@ -34,37 +34,6 @@
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>bin\Release\RayTracing.XML</DocumentationFile>
   </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="mscorlib" />
-    <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Drawing" />
-    <Reference Include="System.Numerics" />
-    <Reference Include="System.Windows.Forms" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="RayCore.fs" />
-    <Compile Include="RayStructureIntersection.fs" />
-    <Compile Include="ObjectSelection.fs" />
-    <Compile Include="ShadingNoise.fs" />
-    <Compile Include="ShadingForward.fs" />
-    <Compile Include="ForwardRayTracing.fs" />
-    <Compile Include="SaveSensorInfo.fs" />
-    <None Include="Script.fsx" />
-    <None Include="Test_Intersections.fsx" />
-    <None Include="test_forward.fsx" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Types\Types.fsproj">
-      <Name>Types</Name>
-      <Project>{5fb39736-0e82-43c4-bce1-9ca3c5fe9815}</Project>
-      <Private>True</Private>
-    </ProjectReference>
-  </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
   </PropertyGroup>
@@ -81,6 +50,84 @@
     </Otherwise>
   </Choose>
   <Import Project="$(FSharpTargetsPath)" />
+  <ItemGroup>
+    <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="RayCore.fs" />
+    <Compile Include="RayStructureIntersection.fs" />
+    <Compile Include="ObjectSelection.fs" />
+    <Compile Include="ShadingNoise.fs" />
+    <Compile Include="ShadingForward.fs" />
+    <Compile Include="ForwardRayTracing.fs" />
+    <Compile Include="SaveSensorInfo.fs" />
+    <None Include="Script.fsx" />
+    <None Include="Test_Intersections.fsx" />
+    <None Include="test_forward.fsx" />
+    <Content Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="FSCL.Compiler">
+      <HintPath>..\packages\FSCL.Compiler.2.0.1\lib\net45\FSCL.Compiler.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="FSCL.Compiler.Core">
+      <HintPath>..\packages\FSCL.Compiler.2.0.1\lib\net45\FSCL.Compiler.Core.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="FSCL.Compiler.Language">
+      <HintPath>..\packages\FSCL.Compiler.2.0.1\lib\net45\FSCL.Compiler.Language.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="FSCL.Compiler.NativeComponents">
+      <HintPath>..\packages\FSCL.Compiler.2.0.1\lib\net45\FSCL.Compiler.NativeComponents.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="FSCL.Compiler.Util">
+      <HintPath>..\packages\FSCL.Compiler.2.0.1\lib\net45\FSCL.Compiler.Util.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="FSCL.Runtime">
+      <HintPath>..\packages\FSCL.Runtime.2.0.1\lib\net451\FSCL.Runtime.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="FSCL.Runtime.CompilerSteps">
+      <HintPath>..\packages\FSCL.Runtime.2.0.1\lib\net451\FSCL.Runtime.CompilerSteps.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="FSCL.Runtime.Core">
+      <HintPath>..\packages\FSCL.Runtime.2.0.1\lib\net451\FSCL.Runtime.Core.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="FSCL.Runtime.Execution">
+      <HintPath>..\packages\FSCL.Runtime.2.0.1\lib\net451\FSCL.Runtime.Execution.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="FSCL.Runtime.Language">
+      <HintPath>..\packages\FSCL.Runtime.2.0.1\lib\net451\FSCL.Runtime.Language.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="FSCL.Runtime.Scheduling">
+      <HintPath>..\packages\FSCL.Runtime.2.0.1\lib\net451\FSCL.Runtime.Scheduling.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="mscorlib" />
+    <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="OpenCLManagedWrapper">
+      <HintPath>..\packages\FSCL.Runtime.2.0.1\lib\net451\OpenCLManagedWrapper.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Windows.Forms" />
+    <ProjectReference Include="..\Types\Types.fsproj">
+      <Name>Types</Name>
+      <Project>{5fb39736-0e82-43c4-bce1-9ca3c5fe9815}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+  </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

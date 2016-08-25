@@ -169,23 +169,26 @@ module intersections =
     let isphere = intersect_sphere_simp(ray,sLens.SphCentre,sLens.RadiusOfCurvature, sLens.MaterialName)
     match isphere with 
     | [||] -> [||]
-    | _ -> let intersec_costh = isphere            // Cosinus between the normal of the lens(side of the lens) and the side in which the intersection happened
+    | _ -> 
+           let normalConcave(intersect: Intersection) (bol:bool) =
+             if sLens.Convex then intersect
+             else
+                {intersect with normal = intersect.normal.Negate()}
+
+           
+           let intersec_costh = isphere            // Cosinus between the normal of the lens(side of the lens) and the side in which the intersection happened
+                                 |> Array.map(fun x -> normalConcave x sLens.Convex)
                                  |> Array.map(fun x -> sLens.Axis*x.normal)
            let cond (costh:float) =
-            // check if the intersection is done out of the part of the sphere that forms the lens
-            if costh <= 1. && costh > sLens.CosMin then true
-            else false
-
-           let normalConcave(intersect: Intersection) (bol:bool) =
-            if sLens.Convex then intersect
-            else
-                {intersect with normal = intersect.normal.Negate()}
-           
+             // check if the intersection is done out of the part of the sphere that forms the lens
+             if costh <= 1. && costh >= sLens.CosMin then true
+             else false
            // return the intersections
 
            Array.map2(fun y x -> {Inter= x; Cond=(cond y)}) intersec_costh isphere // check if it really intersects creating an 'intermediate' type 
            |> Array.filter(fun x -> x.Cond)         // filter those points in which it really intersects
            |> Array.map(fun x -> x.Inter)           // map the intersection
+           //|> Array.map(fun x -> normalConcave x sLens.Convex)
            //|> Array.map(fun  x -> {normal= x.normal; point= x.point;ray= x.ray;MatName= x.MatName;t= x.t;
            //                        ObjectSensor= if sLens.Sensor.Exists then Some(SurfaceLens(sLens))
            //                                      else None

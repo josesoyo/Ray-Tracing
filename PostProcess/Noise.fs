@@ -73,11 +73,11 @@ module Noise =
         // do the sum of the b*n2
         
         let sumProd = 
+            let tStamp = snd tube.Noise  |> Array.map(fun x -> float x)
             mirror.Sensor.SavedData.ToArray()//.[0].Direction 
             |> Array.map(fun x -> 
                                     // the b(theta) and n(f)
                                     let ang = acos(x.Direction*mirror.Normal) |> abs  // be sure that it's always positive
-                                    let tStamp = snd tube.Noise
                                     let n = snd(ASDofPhase(x, tStamp)) // freq, ASD(normalized)
                                     let npart = x.NumRays
                                     bXn ang npart n // do the product 
@@ -102,13 +102,15 @@ module Noise =
         // do the sum of the b*n2
         
         let sumProd = // frequencies*noise_PSD
+            printfn "time is: %+A" tube.Noise
+            let tStamp = (snd tube.Noise) 
+            
             mirror.Sensor.SavedData.ToArray() |> Array.filter(fun x -> x.Noise.Length <> 0) // filter the photons that arrive directly and don't contribute to the noise 
             |> Array.map(fun x -> 
                                     // the b(theta) and n(f)
                                     let ang = acos(x.Direction*mirror.Normal) |> abs  // be sure that it's always positive
-                                    let tStamp = snd tube.Noise
                                     //let n = snd(ASDofPhase(x, tStamp)) // freq, ASD(normalized)
-                                    let n2 = PSD_WELCH(tStamp,x.Noise|> Array.map(fun x -> sin(x)), // requires the sin(phase)
+                                    let n2 = PSD_WELCH(tStamp|> Array.map(fun x -> float x),x.Noise|> Array.map(fun x -> sin(x)), // requires the sin(phase)
                                                        "Hann",windowLengtht,windowLengtht/2,0.) 
                                     // n2 because it considers that the 
                                     let npart = x.NumRays               // I must consider that a ray may contain more than 1 particle

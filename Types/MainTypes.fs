@@ -51,7 +51,7 @@ module types =
         match raw_Material_Name with
         | x when x.StartsWith("ANG_") ->
             let angle = (acos(cos_inc)) 
-                        |> abs |> fun x -> (0.5*x/3.14159265359)*360. 
+                        |> abs |> fun x -> (x/3.14159265359)*180. 
                         |> round //|> int - non ce bisogno di utilizzare l'int, string gia e' in abastanza
                         |> string
             x.[4..x.Length-1]+"_"+angle

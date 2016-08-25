@@ -2,13 +2,13 @@
 // reference external modules
 #r @"..\Types\bin\Debug\Types.dll"
 #r @"..\RayTracing\bin\Debug\RayTracing.dll"
-#r @"..\Library1\bin\Debug\Library1.dll"
+#r @"..\Preprocessor\bin\Debug\Library1.dll"
 // load f# files 
 #load "BackTypes.fs"
 #load "SimpleShading.fs"
 #load "Camera.fs"
 open System.IO
-#load @"..\Library1\ReadMatLib.fs"
+#load @"..\Preprocessor\ReadMatLib.fs"
 
 let pi = 3.1415
 
@@ -25,7 +25,8 @@ open Types.ObjectTypes
 open Types.types
 open TypesStruct
 
-let lens = SphSurfaceLens(Point(5.1,0.,0.1),0.51<m>,0.1<m>,UnitVector(1.,-0.0,0.),true,"Material__27")
+let lens = SphSurfaceLens(Point(0.51,0.,0.1),0.51<m>,0.1<m>,UnitVector(1.,-0.5,0.),true,"Material__27")
+let lens2 = SphSurfaceLens(Point(0.51,0.,-0.1),0.51<m>,0.1<m>,UnitVector(-1.,-0.5,0.),false,"Material__27")
 let con = cone(0.1<m>,0.25<m>,Point(8.,0.,-0.150),UnitVector(0.,0.,1.),"Material__27")
 let pcon = truncatedCone(1.<m>,1.<m>,0.5<m>,Point(-0.5,-0.,-0.0),UnitVector(1.,0.,0.),"Material__27")
 let cy = cylinder(0.5<m>,1.<m>,Point(0.,-0.,0.),UnitVector(1.,0.,0.),"Material__27")
@@ -59,10 +60,10 @@ open BackwardRender.BackTypes
 
 let Camera = {EyePoint = Point(-2.0,-0.0,-0.0); LookAt= Vector(1.,0.,0.); Up=UnitVector(0.,0.,1.); // iris
                PixNumH=300;PixNumW=300;PixSize= 5e-4}
-let light0 = {origin= Point(-2.,-0.0,0.5);intensity = 1.} // for gourd
-let scene = {Camera=Camera;  Elements=[|Cylinder(cy);Cone(con);TruncatedCone(pcon)|] ; Materials=nmat ; Plights=[|light0|]} //[|SurfaceLens(lens)|]
+let light0 = {origin= Point(-2.,-0.0,1.5);intensity = 1.} // for gourd
+let scene = {Camera=Camera;  Elements=[|SurfaceLens(lens);SurfaceLens(lens2)|] ; Materials=nmat ; Plights=[|light0|]} //[|Cylinder(cy);Cone(con);TruncatedCone(pcon)|]
 //match scene.Elements.[0] with Cone x -> x.Origin
-let render = Do_Casting (scene,4,true)
+let render = Do_Casting (scene,1,true)
 let spath = "cylAndlens.bmp"
 
 // save in a file just in case
