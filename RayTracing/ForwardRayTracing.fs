@@ -32,11 +32,11 @@ let UpdateSensor(ray:Ray,intersection:Intersection,obj:Object):Unit =
 let UpdateSensorSelection(ray:Ray, intersection:Intersection, objs:Object[],objID:int) =
     UpdateSensor(ray,intersection,objs.[objID])
 *)
-let UpdateSensorPhase(ray:Ray,intersection:Intersection,obj:Object):Unit =
-    let sc = SensorContent(intersection.point,ray.uvec,
-                           ray.NumOfParticles, 
-                           (ray.OpticalPathTravelled/(match (ray.Wavelenght) with WaveLength x ->x))%(float(match ray.Wavelenght with WaveLength x -> x)), 
-                           ray.PhaseModulation ) // I need the intersection
+let UpdateSensorPhase(intersection:Intersection,obj:Object):Unit =
+    let sc = SensorContent(intersection.point,intersection.ray.uvec,
+                           intersection.ray.NumOfParticles, 
+                           ((intersection.ray.OpticalPathTravelled/(match intersection.ray.Wavelenght with WaveLength x -> x))*6.28318530718)%6.28318530718,  // 2*PI
+                           intersection.ray.PhaseModulation |> Array.map(fun x -> float x)) // I need the intersection
     match obj with
     | Cylinder x ->     x.Sensor.AddData(sc)
     | SurfaceLens x->   x.Sensor.AddData(sc)
@@ -45,8 +45,8 @@ let UpdateSensorPhase(ray:Ray,intersection:Intersection,obj:Object):Unit =
     | Sphere x->        x.Sensor.AddData(sc)
     | Annular_Disc x -> x.Disc.Sensor.AddData(sc)
 
-let UpdateSensorSelectionPhase(ray:Ray, intersection:Intersection, objs:Object[],objID:int) =
-    UpdateSensorPhase(ray,intersection,objs.[objID])
+let UpdateSensorSelectionPhase(intersection:Intersection, objs:Object[],objID:int) =
+    UpdateSensorPhase(intersection,objs.[objID])
   
 // Algorithm for the Ray tracing
 
@@ -97,7 +97,7 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
             // function with unit return
             //match ray.NumOfParticles with
             //| 1 ->
-            UpdateSensorSelectionPhase(ray,fst intersect,objs, snd intersect)
+            UpdateSensorSelectionPhase(fst intersect,objs, snd intersect)
             //printfn "%+A" ray.PhaseModulation
             //| _ ->
             //   UpdateSensorSelection(ray,fst intersect,objs, snd intersect)
@@ -107,7 +107,7 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
             // 1st - Update Sensor
             //match ray.NumOfParticles with
             //| 1 ->
-            UpdateSensorSelectionPhase(ray,fst intersect,objs, snd intersect)
+            UpdateSensorSelectionPhase(fst intersect,objs, snd intersect)
             //    printfn "%+A" ray.PhaseModulation
             //| _ ->
             //    UpdateSensorSelection(ray,fst intersect,objs, snd intersect)
@@ -116,7 +116,17 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
             //          //  //  only for the case of the arm cavity //  //
             //          This should avoid a stackoverflow problem
             let xavant = (fst intersect).point.X - (fst intersect).ray.from.X  // quant ha avancat
-            let boolsArm = (0.5< (fst intersect).point.X && (fst intersect).point.X < 2990.5) && ((abs xavant) < 0.5)
+            let cos_inc_direct = 
+                match objs.[(snd intersect)] with
+                | Cylinder x ->  (fst intersect).normal*(fst intersect).ray.uvec
+                | _ -> 1.
+
+            let boolsArm = 
+                match cos_inc_direct with
+                | y when y < 0.00873 -> ((abs xavant) < 3.0) // cos_inc_direct < 0.026 => thetha > 88.5 || 0.00873 -> 89.5°
+                //|x,_ when (500.< x && x < 2500.) -> ((abs xavant) < 2.0)
+                //|x,_ when  (9.5< x && x < 2990.5) -> ((abs xavant) < 0.5)
+                | _  -> false
             //
             //
             match boolsArm with 
@@ -147,8 +157,16 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
             //          //  //  only for the case of the arm cavity //  //
             //          This should avoid a stackoverflow problem
             let xavant = (fst intersect).point.X - (fst intersect).ray.from.X  // quant ha avancat
-
-            let boolsArm = (0.5 < (fst intersect).point.X && (fst intersect).point.X < 2999.5) && ((abs xavant) < 0.5) // it can go back...
+            let cos_inc_direct = //(fst intersect).normal*(fst intersect).ray.uvec
+               match objs.[(snd intersect)] with
+                | Cylinder x ->  (fst intersect).normal*(fst intersect).ray.uvec
+                | _ -> 1.
+            let boolsArm = 
+                match  cos_inc_direct with
+                | y when y < 0.00873 -> ((abs xavant) < 3.0)   // cos_inc_direct < 0.026 => thetha > 88.5
+                //|x,_ when (500.< x && x < 2500.) -> ((abs xavant) < 2.0)
+                //|x,_ when  (9.5< x && x < 2990.5) -> ((abs xavant) < 0.5)
+                | _ -> false
             //
   
             match boolsArm with 
