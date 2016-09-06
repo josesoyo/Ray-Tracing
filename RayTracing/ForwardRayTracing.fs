@@ -38,12 +38,12 @@ let UpdateSensorPhase(intersection:Intersection,obj:Object):Unit =
                            ((intersection.ray.OpticalPathTravelled/(match intersection.ray.Wavelenght with WaveLength x -> x))*6.28318530718)%6.28318530718,  // 2*PI
                            intersection.ray.PhaseModulation |> Array.map(fun x -> float x)) // I need the intersection
     match obj with
-    | Cylinder x ->     x.Sensor.AddData(sc)
-    | SurfaceLens x->   x.Sensor.AddData(sc)
-    | Disc x->          x.Sensor.AddData(sc)
-    | Cone x ->         x.Sensor.AddData(sc)
-    | Sphere x->        x.Sensor.AddData(sc)
-    | Annular_Disc x -> x.Disc.Sensor.AddData(sc)
+    | Cylinder x ->     x.Sensor.AddData(sc) //lock x.Sensor (fun () -> x.Sensor.AddData(sc))
+    | SurfaceLens x->   x.Sensor.AddData(sc) //lock x.Sensor (fun () -> x.Sensor.AddData(sc))
+    | Disc x->          x.Sensor.AddData(sc) //lock x.Sensor (fun () -> x.Sensor.AddData(sc))
+    | Cone x ->         x.Sensor.AddData(sc) //lock x.Sensor (fun () -> x.Sensor.AddData(sc))
+    | Sphere x->        x.Sensor.AddData(sc) //lock x.Sensor (fun () -> x.Sensor.AddData(sc))
+    | Annular_Disc x -> x.Disc.Sensor.AddData(sc) //lock x.Disc.Sensor (fun () -> x.Disc.Sensor.AddData(sc))
 
 let UpdateSensorSelectionPhase(intersection:Intersection, objs:Object[],objID:int) =
     UpdateSensorPhase(intersection,objs.[objID])

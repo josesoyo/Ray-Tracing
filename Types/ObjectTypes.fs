@@ -36,7 +36,8 @@ module ObjectTypes=
         member this.SavedData with get() = data
 
         member this.AddData(sc) =
-            data.Add(sc)//data <- Array.append data [|sc|]
+            //lock data ( fun () -> data.Add(sc))//data <- Array.append data [|sc|]
+            data.Add(sc) //data <- Array.append data [|sc|]
 
         new (exs) =
             Sensor(exs, false)

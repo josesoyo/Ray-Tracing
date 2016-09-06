@@ -41,9 +41,9 @@ let dy = dx
 let rady = 9.2<m>
 let cy = Point(0.,0.25e-6+dy-float rady,0.) 
 
-let EMX = SphSurfaceLens(cx,radx,0.00575<m>,ux,false,"Mirror")
+let EMX = SphSurfaceLens(cx,radx,0.0575<m>,ux,false,"Mirror")
 //let EMXs = disc(Point(float dx,0.,0.),0.05,ux,"Mirror")
-let EMY = SphSurfaceLens(cy,rady,0.00575<m>,uy,false,"Mirror")
+let EMY = SphSurfaceLens(cy,rady,0.0575<m>,uy,false,"Mirror")
 
 // 
 // Beam splitter
@@ -56,8 +56,8 @@ let BS = disc(cbs,radbs,ubs,"BeamSplitter")
 //  Sensors
 let cs = Point(0.,-0.2,0.)
 let us = UnitVector(0.,1.,0.)
-let radd = 0.004
-let Detector = disc(cs,radd,us,true)        // end phototodetector at the output of the interferometer
+let radd = 0.006
+let Detector =  disc(cs,radd,us,true)        // end phototodetector at the output of the interferometer
 
 let cs2 =  Point(0.03,0.,0.)
 let us2 = UnitVector(-1.,0.,0.)
@@ -111,10 +111,10 @@ let ray() = NewRay ps0 dir0 (0.00575) (0.00575) 1
 //  Perform the ray tracing
 //let
 let nrays = 500000 // 250660
-[|1..nrays|] |> Array.iter(fun x -> ForwardRay(ray(),Interferometer,mat))
-//  Nos possible to use Array.Parallel.iter due to some bug on f#
-// 
-//   Create the image
+#time
+
+[|1..nrays|] |> Array.Parallel.iter(fun x -> lock Detector (fun () -> ForwardRay(ray(),Interferometer,mat)))
+//  Sensor must be lock, if not the ResizeArray() doesn't work well with Array.Parallel and not all the photons are stored
 //
 
 printfn "num of particles on sensor are %d" (Detector.Sensor.SavedData.ToArray().Length) // .[0].Position
@@ -127,7 +127,7 @@ let snrs_mat2 = CreateImage_Points_from_disk_amplitude(Detector.Sensor.SavedData
                                                        Detector.Normal,Detector.Centre,Detector.Radius,200,200)
 
 //Detector.Sensor.SavedData |> Seq.iter(fun x ->printfn "%f" x.Phase)
-let lpath = Path.Combine(__SOURCE_DIRECTORY__,"int_phase.jpg")
+let lpath = Path.Combine(__SOURCE_DIRECTORY__,"int_phase2.jpg")
 SensorToImage(snrs_mat,lpath,200,200)
-let lpath2 = Path.Combine(__SOURCE_DIRECTORY__,"int_amplitude.jpg")
+let lpath2 = Path.Combine(__SOURCE_DIRECTORY__,"int_amplitude2.jpg")
 SensorToImage(snrs_mat2,lpath2,200,200)
