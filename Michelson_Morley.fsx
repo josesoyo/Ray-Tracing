@@ -72,7 +72,8 @@ let Interferometer = [|Disc(Detector);Disc(BS);SurfaceLens(EMX) ;SurfaceLens(EMY
 // Create Source
 let wavelength =  WaveLength(0.6e-6<m>) // red light
 
-let NewRay (pos:Point) (normal:UnitVector) (sigma:float) (rMax:float) (nOfParticles:int)=
+let NewRayCollimated (pos:Point) (normal:UnitVector) (sigma:float) (rMax:float) (nOfParticles:int)=
+    // defined on CreateRay on RayTracing
     let rotpoint = Matrix.RotateVector(UnitVector(0.,0.,1.),normal)
     let rfPos() =  // position function
 
@@ -106,7 +107,7 @@ let dir0 = UnitVector(1.,0.,0.)
 let normal = UnitVector(1.,0.,0.)
 let sigma = 0.1
 // Function to generate the rays
-let ray() = NewRay ps0 dir0 (0.00575) (0.00575) 1 
+let ray() = NewRayCollimated ps0 dir0 (0.00575) (0.00575) 1 
 
 //  Perform the ray tracing
 //let

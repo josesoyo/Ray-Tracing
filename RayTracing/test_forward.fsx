@@ -19,7 +19,7 @@ let p = Point(10.,0.,0.)
 let rad = 1.
 let nrm = UnitVector(-1.,0.,0.)
 let d = disc(p,rad,nrm,true)
-d.Sensor
+d.Sensor.SavedData.[0]
 let objs = [|Cylinder(cy) ;Disc(d)|]
 
 
@@ -75,19 +75,19 @@ SensorToImage(snsrs,pa, 450,450)
 //  Precious test was one cylinder with a disc inside it,
 //  Now I add a sphere
 
-let c = Point(2.,0.,0.)
+let c = Point(0.,0.,0.)
 let sph = sphere(c,0.25<m>,"Glass")
 
 
-let p2 = Point(2.541666666666666,0.,0.) // in a sphere of n=1.3 and ops 0.
-let p3 = Point(2.85,0.,0.)
-let p4 = Point(2.35,0.,0.)
+let p2 = Point(0.541666666666666,0.,0.) // in a sphere of n=1.3 and ops 0.
+let p3 = Point(0.79,0.,0.)
+let p4 = Point(0.26,0.,0.)
 let rad2 = 0.5
 let d2 = disc(p2,rad2,nrm,"air",false)
 let d3 = disc(p3,rad2,nrm,"air",true)
 let d4 = disc(p4,rad2,nrm,"air",false)
 // ;Disc(d2);Disc(d3); ; Disc(d4)
-let objs2 = [|Cylinder(cy); Disc(d2); Disc(d4);Disc(d3)|] //;Sphere(sph)
+let objs2 = [|Sphere(sph); Disc(d2); Disc(d4);Disc(d3)|] //; Cylinder(cy)
 d3.Sensor
 match objs2.[1] with 
 |Disc x -> x.Centre
@@ -95,7 +95,7 @@ match objs2.[1] with
 
 let manyRay2 = [|0..10000|]   // generate some rays on different directions from random points on the initial surface
                |> Array.map(fun x -> let pos = Samp2DGauss(1.1195,0.)
-                                     ({r with uvec=UnitVector(1., 0., 0.); from = Point(0.,pos.[0],pos.[1])}))
+                                     ({r with uvec=UnitVector(1., 0., 0.); from = Point(-1.,pos.[0],pos.[1])}))
 
 #time
 //[|0..10000|]   // generate some rays on different directions from random points on the initial surface
@@ -104,11 +104,11 @@ let manyRay2 = [|0..10000|]   // generate some rays on different directions from
 //                               |> ( fun x -> ForwardRay(x,objs,mat))
 //                      )
 manyRay2.Length
-manyRay2|> Array.iter( fun x -> ForwardRay(x,objs2,mat))
+manyRay2|> Array.Parallel.iter( fun x -> ForwardRay(x,objs2,mat))
 let nr = [|({r with uvec=UnitVector(1., 0., 0.); from = Point(0.,0.,0.)})|]
 nr|> Array.iter( fun x -> ForwardRay(x,objs2,mat))
 let data2 =
-    match (objs2.[3]) with
+    match (objs2.[1]) with
     | Disc x -> let vox = {Pmin = Point(-x.Radius,-x.Radius,0.); Pmax = Point(x.Radius,x.Radius,0.)}
                 x.Sensor.SavedData,vox,x.Normal, x.Centre, x.Radius , 450, 450
 let dat, _, uv2,pt2,rd2,_ ,_= data2

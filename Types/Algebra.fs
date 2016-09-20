@@ -213,6 +213,13 @@ module Algebra =
             let s = ve.Module()/modprod         // sin of angle
             let c = (from*t )/modprod           // Cos of angle
             if s = 0. && c = 1. then Matrix.ID(3,3) // Case are the same vector
+            else if s= 0. && c = -1. then
+                // just an inversion
+                let m = Matrix.ID(3,3)
+                m.RotMat.[0,0] <- -1.
+                m.RotMat.[1,1] <- -1.
+                m.RotMat.[2,2] <- -1.
+                m
             else
                 let mult = (1.-c)/(s*s)
                 let vx = Matrix(3,3)// 3x3 zeroMatrix

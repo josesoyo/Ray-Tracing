@@ -52,6 +52,7 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="CreateRay.fs" />
     <Compile Include="RayCore.fs" />
     <Compile Include="RayStructureIntersection.fs" />
     <Compile Include="ObjectSelection.fs" />
