@@ -3,9 +3,9 @@
 // First read the libraries
 
 // test on forward ray tacing
-#r @"Types\bin\Debug\Types.dll"
-#r @"RayTracing\bin\Debug\RayTracing.dll"
-#r @"PostProcess\bin\Debug\PostProcess.dll"
+#r @"../Types/bin/Debug/Types.dll"
+#r @"../RayTracing/bin/Debug/RayTracing.dll"
+#r @"../PostProcess/bin/Debug/PostProcess.dll"
 
 // libraries referenced
 open Types.Algebra
