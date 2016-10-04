@@ -50,9 +50,13 @@ let biConvex(roc1:float<m>,roc2:float<m>, axis:UnitVector, th:float<m>, dia:floa
     
     let centre1 = startingPoint+r1*axis // centre of surface1
     let centre2 =  startingPoint+float(th-roc2)*axis// centre of the surface2 
+    
+    let snrs1 = new Sensor(snrs)
+    let snrs2 = new Sensor(snrs)
+
     // Surfaces of both lenses
-    let s1 = SphSurfaceLens(centre1, roc1, dia, naxis,  true, matname, snrs, noise)
-    let s2 = SphSurfaceLens(centre2, roc2, dia, axis, true, matname, snrs, noise)
+    let s1 = SphSurfaceLens(centre1, roc1, dia, naxis,  true, matname, snrs1, noise)
+    let s2 = SphSurfaceLens(centre2, roc2, dia, axis, true, matname, snrs2, noise)
 
     let S2Th = r2*(1.-s2.CosMin)
     let S1Th = r1*(1.-s1.CosMin)
@@ -73,11 +77,14 @@ let biConcave(roc1:float<m>,roc2:float<m>, axis:UnitVector, th:float<m>, dia:flo
     let bol = true
     let r1, r2 = float roc1, float roc2
     
-    let centre1 = startingPoint // centre of surface1
+    let centre1 = startingPoint+float(roc1)*axis.Negate() // centre of surface1
     let centre2 =  startingPoint+float(th+roc2)*axis    // centre of the surface2 
     // Surfaces of both lenses
-    let s1 = SphSurfaceLens(centre1, roc1, dia, axis,  false, matname, snrs, noise)
-    let s2 = SphSurfaceLens(centre2, roc2, dia, naxis, false, matname, snrs, noise)
+    let snrs1 = new Sensor(snrs)
+    let snrs2 = new Sensor(snrs)
+
+    let s1 = SphSurfaceLens(centre1, roc1, dia, axis,  true, matname, snrs1, noise)
+    let s2 = SphSurfaceLens(centre2, roc2, dia, naxis, true, matname, snrs2, noise)
 
     let S2Th = r2*(1.-s2.CosMin)
     let S1Th = r1*(1.-s1.CosMin)
@@ -101,9 +108,14 @@ let Meniscus(roc1:float<m>,roc2:float<m>, axis:UnitVector, th:float<m>, dia:floa
     
     let centre1 = startingPoint+r1*axis        // centre of surface1
     let centre2 =  startingPoint+float(th+roc2)*axis// centre of the surface2 
+    
+    let snrs1 = new Sensor(snrs)
+    let snrs2 = new Sensor(snrs)
+
+
     // Surfaces of both lenses
-    let s1 = SphSurfaceLens(centre1, roc1, dia, naxis,  true, matname, snrs, noise)
-    let s2 = SphSurfaceLens(centre2, roc2, dia, naxis, false, matname, snrs, noise)
+    let s1 = SphSurfaceLens(centre1, roc1, dia, naxis,  true, matname, snrs1, noise)
+    let s2 = SphSurfaceLens(centre2, roc2, dia, naxis, true, matname, snrs2, noise)
 
     let S2Th = r2*(1.-s2.CosMin)
     let S1Th = r1*(1.-s1.CosMin)

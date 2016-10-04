@@ -44,6 +44,8 @@ module ObjectTypes=
         new () =
             // default sensor is a no-sensor
             Sensor(false, false)
+        new (sns:Sensor) =
+            Sensor(sns.Exists,sns.Terminate)
 
 
 
