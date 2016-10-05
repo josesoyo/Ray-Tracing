@@ -177,7 +177,7 @@ module intersections =
 
            
            let intersec_costh = isphere            // Cosinus between the normal of the lens(side of the lens) and the side in which the intersection happened
-                                 |> Array.map(fun x -> normalConcave x sLens.Convex)
+                                 //|> Array.map(fun x -> normalConcave x sLens.Convex)
                                  |> Array.map(fun x -> sLens.Axis*x.normal)
            let cond (costh:float) =
              // check if the intersection is done out of the part of the sphere that forms the lens
@@ -188,7 +188,7 @@ module intersections =
            Array.map2(fun y x -> {Inter= x; Cond=(cond y)}) intersec_costh isphere // check if it really intersects creating an 'intermediate' type 
            |> Array.filter(fun x -> x.Cond)         // filter those points in which it really intersects
            |> Array.map(fun x -> x.Inter)           // map the intersection
-           //|> Array.map(fun x -> normalConcave x sLens.Convex)
+           |> Array.map(fun x -> normalConcave x sLens.Convex)
            //|> Array.map(fun  x -> {normal= x.normal; point= x.point;ray= x.ray;MatName= x.MatName;t= x.t;
            //                        ObjectSensor= if sLens.Sensor.Exists then Some(SurfaceLens(sLens))
            //                                      else None
