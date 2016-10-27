@@ -224,9 +224,11 @@ let ShadingForward(intersection:Intersection,material:System.Collections.Generic
                                        |> fun x ->  [|{x with PhaseModulation = PhaseModulation(x, intersection,noise) }|]
                    | _ -> [||]
 
-        let rout = 
+        let rout = match nr with
+                   | nr when nr > 0 ->
                                 reflection(intersection,nr, cos_inc_direct) 
                                 |> fun x -> [|{x with PhaseModulation = PhaseModulation(x, intersection,noise) }|]
+                   | _ -> [||]
 
         let dout = match nd with
                    | nd when nd > 0 -> dispersion(intersection,nd, cos_inc_direct) 
