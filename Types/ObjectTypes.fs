@@ -327,17 +327,17 @@ module ObjectTypes=
         let WorldToObj = Matrix.RotateVector(nrm,UnitVector(0.,0.,1.))
 
         let mutable LBbox = {Pmin = Point.FromMeasures(-radius,-radius,0.<m>); Pmax = Point.FromMeasures(radius,radius,height)}
-        let ComputeWbox (objtoWorld:Matrix) lbox=
+        let ComputeWbox (objtoWorld:Matrix) lBbox=
                 // private function to compute the world Bounding Box
-                let NonTransformedEdges = [|LBbox.Pmin;
-                                            Point(LBbox.Pmin.X,LBbox.Pmax.Y,LBbox.Pmin.Z);
-                                            Point(LBbox.Pmax.X,LBbox.Pmin.Y,LBbox.Pmin.Z);
-                                            Point(LBbox.Pmax.X,LBbox.Pmax.Y,LBbox.Pmin.Z);
+                let NonTransformedEdges = [|lBbox.Pmin;
+                                            Point(lBbox.Pmin.X,lBbox.Pmax.Y,lBbox.Pmin.Z);
+                                            Point(lBbox.Pmax.X,lBbox.Pmin.Y,lBbox.Pmin.Z);
+                                            Point(lBbox.Pmax.X,lBbox.Pmax.Y,lBbox.Pmin.Z);
                                 
-                                            Point(LBbox.Pmin.X,LBbox.Pmin.Y,LBbox.Pmax.Z);
-                                            Point(LBbox.Pmax.X,LBbox.Pmin.Y,LBbox.Pmax.Z);
-                                            Point(LBbox.Pmin.X,LBbox.Pmax.Y,LBbox.Pmax.Z);
-                                            LBbox.Pmax|]
+                                            Point(lBbox.Pmin.X,lBbox.Pmin.Y,lBbox.Pmax.Z);
+                                            Point(lBbox.Pmax.X,lBbox.Pmin.Y,lBbox.Pmax.Z);
+                                            Point(lBbox.Pmin.X,lBbox.Pmax.Y,lBbox.Pmax.Z);
+                                            lBbox.Pmax|]
 
                 let TransformedEdges = NonTransformedEdges                  // Rotate as should be by normal direction
                                        |> Array.map(fun x -> objtoWorld.RotatePoint(x))
@@ -388,6 +388,81 @@ module ObjectTypes=
             truncatedCone(radius,height,maxHeight,origin, nrm, matname, sens, ([||],[||]))
         new (radius,height,maxHeight,origin, nrm, matname,nois) =
             truncatedCone(radius,height,maxHeight,origin, nrm, matname, Sensor(), nois)
+    
+    type box(pmin:Point, pmax:Point, axis:UnitVector, up:UnitVector, origin:Point,materialName:string ) =
+        // create a box based on the simple method of BBox
+        // have:
+        //  - BBox
+        //  - axis: which one is the axis of the box (0, 1, 0)
+        //  - Up: I cannot say normal, so to what it's translated the (0.,0.,1)
+        //  - Translation (from where it is defined? --> the local zero)
+        let lBBox = {Pmin=pmin;Pmax=pmax}
+        // rotation about up side
+        let zrotO2W =Matrix.RotateVector(UnitVector(0.,0.,1.), up)
+        let zrotW2O =Matrix.RotateVector(up,UnitVector(0.,0.,1.))
+        // rotation around the axis of the mount = axis of the lens that the mount holds
+        let xrotO2W = Matrix.RotateVector(UnitVector(0.,1.,0.), axis)
+        let xrotW2O = Matrix.RotateVector(axis,UnitVector(0.,1.,0.))
+        // Rotation matrix
+        let ObjToWorld = xrotO2W*zrotO2W  // y = BAx
+        let WorldToObj = zrotW2O*xrotW2O  // x = A^(-1)B^(-1)y
+
+
+        let ComputeWbox (objtoWorld:Matrix) LBbox=
+                // private function to compute the world Bounding Box
+                let NonTransformedEdges = [|LBbox.Pmin;
+                                            Point(LBbox.Pmin.X,LBbox.Pmax.Y,LBbox.Pmin.Z);
+                                            Point(LBbox.Pmax.X,LBbox.Pmin.Y,LBbox.Pmin.Z);
+                                            Point(LBbox.Pmax.X,LBbox.Pmax.Y,LBbox.Pmin.Z);
+                                
+                                            Point(LBbox.Pmin.X,LBbox.Pmin.Y,LBbox.Pmax.Z);
+                                            Point(LBbox.Pmax.X,LBbox.Pmin.Y,LBbox.Pmax.Z);
+                                            Point(LBbox.Pmin.X,LBbox.Pmax.Y,LBbox.Pmax.Z);
+                                            LBbox.Pmax|]
+
+                let TransformedEdges = NonTransformedEdges                  // Rotate as should be by normal direction
+                                       |> Array.map(fun x -> objtoWorld.RotatePoint(x))
+                let minTrfEdgesX =  (TransformedEdges |> Array.minBy(fun x -> x.X)).X   
+                let minTrfEdgesY =  (TransformedEdges |> Array.minBy(fun x -> x.Y)).Y
+                let minTrfEdgesZ =  (TransformedEdges |> Array.minBy(fun x -> x.Z)).Z 
+                let minTrfEdges = Point(minTrfEdgesX,minTrfEdgesY,minTrfEdgesZ)
+                // Min of the Box in world
+                let wPmin = minTrfEdges.MoveAndCreateNew(origin) 
+
+                let maxTrfEdgesX =  (TransformedEdges |> Array.maxBy(fun x -> x.X)).X   
+                let maxTrfEdgesY =  (TransformedEdges |> Array.maxBy(fun x -> x.Y)).Y 
+                let maxTrfEdgesZ =  (TransformedEdges |> Array.maxBy(fun x -> x.Z)).Z
+                let maxTrfEdges = Point(maxTrfEdgesX,maxTrfEdgesY,maxTrfEdgesZ)
+                // Max of Box in World
+                let wPmax = maxTrfEdges.MoveAndCreateNew(origin)
+                {Pmin=wPmin;Pmax=wPmax}
+        let wBBox = ComputeWbox ObjToWorld lBBox       // Generate Bounding box on the world
+
+
+        member this.Pmin with get() = pmin
+        member this.Pmax with get() = pmax
+        member this.LBBox with get() = lBBox
+        member this.WBBox with get() = wBBox
+        member this.Up with get() = up
+        member this.Axis with get() = axis
+        member this.Origin with get() = origin
+        member this.MaterialName with get() = materialName
+        member this.Obj2World with get() = ObjToWorld
+        member this.World2Obj with get() = WorldToObj
+
+        member this.LengthX() =
+            pmax.X-pmin.X
+        member this.LengthY() =
+            pmax.Y-pmin.Y
+        member this.LengthZ() =
+            pmax.Z-pmin.Z
+
+        new (lbox:BBox, axis, up, origin, materialName) =
+            box(lbox.Pmin, lbox.Pmax, axis, up, origin, materialName)
+        new (p0:Point, xLength:float,yLength:float,zLength:float, axis,up:UnitVector,origin, materialName) =
+            let pmax = p0.MoveAndCreateNew(Point(xLength,yLength,xLength))
+            box(p0,pmax, axis,up, origin, materialName)
+
 
 
     type OctreeSystem =                         // I consider that now only the triangles will be in the octree
@@ -408,6 +483,7 @@ module ObjectTypes=
     | Disc of disc
     | Annular_Disc of annular_disc
     | Sphere of sphere
+    | Box of box
     | Cone of cone
     | TruncatedCone of truncatedCone
 

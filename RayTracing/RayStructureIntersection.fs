@@ -25,7 +25,7 @@ module RayStructureIntersection =
         
         let p = part.Partition |> Array.map(fun parti -> (BBox_intersec(ray, (snd parti).Bbox), (snd parti)) )       // Obtain only the partitions withouth the which one is info
                                |> Array.sortBy(fun x -> fst x )                 // order groups by distance
-                               |> Array.filter(fun oc -> (fst oc) <> infinity)   // delete groups that don't intersect
+                               |> Array.filter(fun oc -> (fst oc) >0.)   // delete groups that don't intersect // originally: (fst oc) <> infinity
                     
         p |> Array.tryPick(fun x -> IntersectionGroup(ray, snd x, msh) ) 
 
@@ -45,7 +45,7 @@ module RayStructureIntersection =
         // Intersection of the octree
         let nodes1st = oct |> Array.map( fun octree -> intOctree(ray, octree))  // (dist, octree/partition)
                            |> Array.sortBy (fun oct -> fst oct)                 // Array ordered
-                           |> Array.filter(fun oct -> (fst oct)<> infinity)     // returns those that are not infinity, and negative = infinity
+                           |> Array.filter(fun oct -> (fst oct) > 0.)     // returns those that are not infinity, and negative = infinity
                            |> Array.map(fun oct -> snd oct)
         //let mutable initInteresection =  { normal=UnitVector(1.,1.,1.); point=Point(0.,0.,0.); ray=ray;MatName=""; t=0.<m>}
         // Iter the nodes until the first no empty is obtained.
@@ -68,7 +68,7 @@ module RayStructureIntersection =
         msh.groups 
         |> Array.map(fun parti -> (BBox_intersec(ray, parti.Bbox),parti) )       // Obtain only the partitions withouth the which one is info
         |> Array.sortBy(fun x -> fst x )                 // order groups by distance
-        |> Array.filter(fun oc -> (fst oc)<> infinity)   // delete groups that don't intersect      
+        |> Array.filter(fun oc -> (fst oc) > 0.  ) // delete groups that don't intersect      
         |> Array.tryPick(fun x -> IntersectionGroup(ray,(snd x),msh))
 
        

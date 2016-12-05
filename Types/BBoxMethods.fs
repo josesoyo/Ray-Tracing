@@ -4,7 +4,7 @@
 //  *BoxofUnion:            Computes the union of two boxes
 //  *BoxBoxIntersection:    Checks if two bbox have intersection -> bool 
 //  
-//  *BBox_intersec         Intersects ta ray with a bbox (no intersection -> infinity)
+//  *BBox_intersec         Intersects ta ray with a bbox (no intersection -> -infinity)
 // 
 
 open Types.ObjectTypes 
@@ -152,5 +152,5 @@ let BBox_intersec(ray:Ray, box:BBox) =
         elif tMaxOfMinL > 0. && tMinOfMaxL > 0. then // Both bigger than 0. -> the Normal solution
             tMaxOfMinL
         else    // Both lower than zero -> No collision discarded with an infinity
-            infinity
-    else infinity   // To say that it doesn't intersect
+            -infinity
+    else -infinity   // To say that it doesn't intersect

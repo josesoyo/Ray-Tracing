@@ -121,7 +121,10 @@ let inv_sqr() =
     let tho = 55e-6
     let tol, maxIter = 1e-7, 1000
 
-    let f0  (th:float) (th0:float) (x:float) = // function
+    //
+    //  About the function:
+    //  - I have used the Taylor expansion of the funtion to integrate since it sin(th)/th**2 cannot be integrated directly
+    let f0  (th:float) (th0:float) (x:float) = // function 
         k*(log(th/th0)-((th**2.)-(th0**2.))/(12.)+((th**5.)-(th0**5.))/(480.)-((th**7.)-(th0**7.))/(30240.)) - x
     let f1 th =    // derivate
         k*((1./th)-th/6.+(th**3.)/120.-(th**5.)/5040.) 

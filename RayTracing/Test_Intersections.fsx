@@ -30,7 +30,7 @@ let cy = cylinder(0.1<m>,1.5<m>,Point(10.1,-0.5,0.),UnitVector(0.,1.,0.),"someNa
 *)
 let r = {
          Wavelenght = WaveLength(5e-7<m>);
-         from = Point(0.,01.00,0.0); uvec = UnitVector(1.,0.,0.);
+         from = Point(-1.25,-1.0,1.0); uvec = UnitVector(1.,1.,0.);
          MaxLength = infi;
          OpticalPathTravelled = 0.<m>;
          NumBounces = 0uy; bounces = [];
@@ -72,3 +72,10 @@ d.Sensor.AddData(SensorContent(i.point,i.ray.uvec,1,
                                 [||]))
 d.Sensor.SavedData
 (1000.*3.+1e-7)%3.
+
+
+// intersection with a box
+let bb = box(Point(-0.5,-0.5,-0.5),Point(0.5,0.5,0.5),UnitVector(0.,0.,1.),Point(0.,0.,1.),"")
+bb.LBBox
+let io = intersect_Box(r,bb)
+io.[0]

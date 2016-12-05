@@ -19,12 +19,13 @@ module SimpleShading =
 
         // Ambient
         let Ia = 0.05
-        let AmbLight = Ia*scn.Materials.[intersection.MatName].T
+        let realMatName = RealMatName intersection.MatName (abs(intersection.ray.uvec*intersection.normal))
+        let AmbLight = Ia*scn.Materials.[realMatName].T
         
         // Diffuse
         // Diffuse
         let DiffLight (intersection:Intersection, light:Plight ,fatt:float, normLightDir:UnitVector,scn:scene) =
-            let KdOd = scn.Materials.[intersection.MatName].T
+            let KdOd = scn.Materials.[realMatName].T
             //let LightDir = light.origin - intersection.point
             //let NormLightDir = LightDir.Normalize() //dir from point to light
             let Id = light.intensity * (max (intersection.normal*(normLightDir)) 0.0)
@@ -35,7 +36,7 @@ module SimpleShading =
 
         // Specular
         let SpecLight (intersection:Intersection, light:Plight ,fatt:float, normLightDir:UnitVector,scn:scene)=
-            let Ks =  scn.Materials.[intersection.MatName].R
+            let Ks =  scn.Materials.[realMatName].R
             //let LightDir = light.origin - intersection.point
             //let NormLightDir = LightDir.Normalize() //dir from point to light
             let Rvect = (2.0*(intersection.normal)*(normLightDir))*intersection.normal + (-1.*normLightDir)

@@ -5,6 +5,7 @@ module intersections =
    open Types.types
    open Types
    open Types.ObjectTypes
+   open BBoxMethods
    open Microsoft.FSharp.Data.UnitSystems.SI.UnitSymbols
     
    //////////////////////////
@@ -292,3 +293,43 @@ module intersections =
                             )
             |> Array.map(fun x -> fst x)  // if the array is empty and the type is defined, it doesn't raise an error
 
+
+   let intersect_Box(ray:Ray, bx:box) =
+        // Perform the intersection between a box and a ray, the setps are:
+        //  - transform the ray to local coordinates
+        
+        // transform to local coordinates 
+        let rot = bx.World2Obj
+        let rot2World = bx.Obj2World                                             // rotate from object coordinates to world coordinates
+        let lrayPos = (rot.RotateVector((ray.from - bx.Origin))).ToPoint()        // Point in local coordinates of the box
+        let lrayDir = rot.RotateVector(ray.uvec)                                  // direction on the local coordinates
+
+        let nray = {ray with uvec=lrayDir ;from=lrayPos }  
+        // perform the ray-lbbox intersection
+        let t = BBox_intersec(nray,bx.LBBox) |> LanguagePrimitives.FloatWithMeasure<m>
+        match t with
+        | x when x > 0.<m>->
+
+            let travel1 = ray.OpticalPathTravelled + ray.IndexOfRefraction*t
+            let ray1= {ray with OpticalPathTravelled = travel1}               // ray with the path travelled
+            let point1 = (ray.from + float(t)*ray.uvec)                       // intersection point in the world
+
+            let dnormal = 
+               let l_point = (nray.from + float(t)*nray.uvec)                 // local intersection point to see the orientation
+               // since it is on local coordinates one will be the same as min/max X/Y/Z
+               match l_point with 
+               // x
+               | x when x.X - bx.Pmin.X < 1e-10 ->  rot2World.RotateVector(UnitVector(-1.,0.,0.))
+               | x when x.X - bx.Pmax.X < 1e-10 ->  rot2World.RotateVector(UnitVector(1.,0.,0.))
+               // y
+               | x when x.Y - bx.Pmin.Y  < 1e-10-> rot2World.RotateVector(UnitVector(0.,-1.,0.))
+               | x when x.Y - bx.Pmax.Y  < 1e-10-> rot2World.RotateVector(UnitVector(0.,1.,0.))
+               // z
+               | x when x.Z - bx.Pmin.Z < 1e-10 -> rot2World.RotateVector(UnitVector(0.,0.,-1.))
+               | x when x.Z - bx.Pmax.Z  < 1e-10-> rot2World.RotateVector(UnitVector(0.,0.,1.))
+               | _ -> 
+                    printfn "\n\nError on the match of the normal of the intersection of intersect_Box!!!!!\n\n"
+                    UnitVector(-1.,-1.,-1.)
+            [|{normal = dnormal ;point= point1; ray= ray1; MatName = bx.MaterialName; t= t} |]
+
+        | _ -> [| |]

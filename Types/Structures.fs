@@ -9,6 +9,7 @@ open System
 // Create some functions that will create complex structures - My idea is:
 //    - Baffles
 //    - lens
+//    - Mirror (discs with the cylinder)
 
 let Create_Baffles(extRad:float<m>,intRad:float<m>,orig:Point, baffle_Angle, //,baffle_Length:float<m> - not necessary, stupid
                     thickness:float<m>, nrm:UnitVector, matname:string,
@@ -175,3 +176,25 @@ let CreateLensBiConcave(r1:float, r2:float, axis:UnitVector3D, th:float, dia:flo
     let cylSide = GenerateCylinder(dia/2., 0.,cylth,startingPoint+axis.ScaleBy(S1Th),naxis,mat)
 (S1,cylSide,S2)   
 *)
+
+
+
+let mirror_flat(axis:UnitVector, th:float<m>, dia:float<m>, startingPoint:Point, matnameS1:string, matnameS2:string, matnameExt:string,snrs:Sensor, noise:noise) =
+    // create a plane mirror
+    //  _____
+    //  |   |
+    //  |   |-> (axis)
+    //  |___|
+    //  
+    //  s1  s2
+    // stargting point at s1
+
+    let naxis = axis.Negate()
+    
+    let s1 = disc(startingPoint,float(dia)/2.,naxis,matnameS1,(new Sensor(snrs)),noise)
+    let s2 = disc((startingPoint+float(th)*axis),
+                   float(dia)/2.,axis,matnameS2,(new Sensor(snrs)),noise) 
+
+    let edge = cylinder(dia/2.,th,startingPoint,axis,matnameExt)
+
+    [|Disc(s1);Cylinder(edge);Disc(s2)|]
