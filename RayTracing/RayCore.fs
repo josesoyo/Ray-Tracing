@@ -319,14 +319,14 @@ module intersections =
                // since it is on local coordinates one will be the same as min/max X/Y/Z
                match l_point with 
                // x
-               | x when x.X - bx.Pmin.X < 1e-10 ->  rot2World.RotateVector(UnitVector(-1.,0.,0.))
-               | x when x.X - bx.Pmax.X < 1e-10 ->  rot2World.RotateVector(UnitVector(1.,0.,0.))
+               | x when abs(x.X - bx.Pmin.X) < 1e-10 ->  rot2World.RotateVector(UnitVector(-1.,0.,0.))
+               | x when abs(x.X - bx.Pmax.X) < 1e-10 ->  rot2World.RotateVector(UnitVector(1.,0.,0.))
                // y
-               | x when x.Y - bx.Pmin.Y  < 1e-10-> rot2World.RotateVector(UnitVector(0.,-1.,0.))
-               | x when x.Y - bx.Pmax.Y  < 1e-10-> rot2World.RotateVector(UnitVector(0.,1.,0.))
+               | x when abs(x.Y - bx.Pmin.Y)  < 1e-10-> rot2World.RotateVector(UnitVector(0.,-1.,0.))
+               | x when abs(x.Y - bx.Pmax.Y)  < 1e-10-> rot2World.RotateVector(UnitVector(0.,1.,0.))
                // z
-               | x when x.Z - bx.Pmin.Z < 1e-10 -> rot2World.RotateVector(UnitVector(0.,0.,-1.))
-               | x when x.Z - bx.Pmax.Z  < 1e-10-> rot2World.RotateVector(UnitVector(0.,0.,1.))
+               | x when abs(x.Z - bx.Pmin.Z) < 1e-10 -> rot2World.RotateVector(UnitVector(0.,0.,-1.))
+               | x when abs(x.Z - bx.Pmax.Z)  < 1e-10-> rot2World.RotateVector(UnitVector(0.,0.,1.))
                | _ -> 
                     printfn "\n\nError on the match of the normal of the intersection of intersect_Box!!!!!\n\n"
                     UnitVector(-1.,-1.,-1.)

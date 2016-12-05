@@ -389,7 +389,7 @@ module ObjectTypes=
         new (radius,height,maxHeight,origin, nrm, matname,nois) =
             truncatedCone(radius,height,maxHeight,origin, nrm, matname, Sensor(), nois)
     
-    type box(pmin:Point, pmax:Point, axis:UnitVector, up:UnitVector, origin:Point,materialName:string ) =
+    type box(pmin:Point, pmax:Point, axis:UnitVector, up:UnitVector, origin:Point,materialName:string ,sensor:Sensor, nois:noise) =
         // create a box based on the simple method of BBox
         // have:
         //  - BBox
@@ -449,6 +449,9 @@ module ObjectTypes=
         member this.MaterialName with get() = materialName
         member this.Obj2World with get() = ObjToWorld
         member this.World2Obj with get() = WorldToObj
+        member this.Sensor with get() = sensor 
+        member this.UpdateSensor(sc) = sensor.AddData(sc)
+        member this.Noise with get() = nois
 
         member this.LengthX() =
             pmax.X-pmin.X
@@ -458,10 +461,10 @@ module ObjectTypes=
             pmax.Z-pmin.Z
 
         new (lbox:BBox, axis, up, origin, materialName) =
-            box(lbox.Pmin, lbox.Pmax, axis, up, origin, materialName)
+            box(lbox.Pmin, lbox.Pmax, axis, up, origin, materialName,Sensor(),([||],[||]))
         new (p0:Point, xLength:float,yLength:float,zLength:float, axis,up:UnitVector,origin, materialName) =
             let pmax = p0.MoveAndCreateNew(Point(xLength,yLength,xLength))
-            box(p0,pmax, axis,up, origin, materialName)
+            box(p0,pmax, axis,up, origin, materialName,Sensor(),([||],[||]))
 
 
 
