@@ -110,68 +110,20 @@ createBMP(render1,npath)
 //      Render a U200 mount
 //
 
-
-let U200(orig:Point,axis:UnitVector,up:UnitVector,mat:string, side:char,nois:noise ) =
-    // as always +Z is up
-    // define the cylinder that holds the lens plus the two boxes depending on the left or right configuration
-    // 
-    // important about sensor:  There is a single sensor, so all of them update the same
-    let th_holder = 0.001525<m>     // thickness of the holder
-    let th_G =    0.0099<m>         // Thickness G basado sul plot
-    let cyl_len = th_holder+th_G    // thickness of the holder
-
-    let cy_int = cylinder(25.4e-3<m>,cyl_len,orig,axis,mat,Sensor(),nois)    
-    let cy_out = cylinder(35.75e-3<m>,cyl_len,orig,axis,mat,Sensor(),nois)
-    // discs of faces
-    let orig2 = orig+float(cyl_len)*axis
-    let fst_disc = annular_disc(orig,25.4e-3,35.7e-3,axis.Negate(),mat,Sensor(),nois)
-    let snd_disc = annular_disc(orig2,25.4e-3,35.7e-3,axis,mat,Sensor(),nois)
-    let bx1,bx2 =
-        let A = 73.2e-3   // all side
-        let B = 38.1e-3   // from centre to down side
-        let E = 38.4e-3   // length of the holder withouth the screw
-        match side with
-        | 'L' ->
-            // the box  is on the left side (-X)
-            let b1 = box( {Pmin=Point(B-A, float(-1.*th_holder), -B); Pmax=Point(B , E, -25.4e-3)},
-                           axis, up,orig,mat
-                         )
-            let b2 = box( {Pmin=Point( -B, float(-1.*th_holder),-B); Pmax=Point(-25.4e-3, E, A-B)},
-                           axis, up,orig,mat
-                         )
-            (b1,b2)
-        | 'R' ->
-            // the box is on the right side (+X)
-            let b1 = box( {Pmin=Point(-B, float(-1.*th_holder), -B); Pmax=Point(A-B , E, -25.4e-3)},
-                           axis, up,orig,mat
-                         )
-            let b2 = box( {Pmin=Point( 25.4e-3, float(-1.*th_holder),-B); Pmax=Point(B, E, A-B)},
-                           axis, up,orig,mat
-                         )
-            (b1,b2)
-        | _   -> 
-           failwith "Error defining the boxes of U200" //(for i in 0..10 do printfn "Error defining the side of a mount U200 from Newport!\n")
-           // the box is on the right side (+X)
-           //let b1 = box( {Pmin=Point(-B, float(-1.*th_holder), -B); Pmax=Point(A-B , E, -25.4e-3)},
-           //               axis, up,orig,mat
-           //             )
-           //let b2 = box( {Pmin=Point( 25.4e-3, float(-1.*th_holder),-B); Pmax=Point(B, E, A-B)},
-           //               axis, up,orig,mat
-           //             )
-           //(b1,b2)
-
-    [|Cylinder(cy_int); Cylinder(cy_out); Annular_Disc(fst_disc); Annular_Disc(snd_disc); Box(bx1); Box(bx2) |]
-    //[|Cylinder(cy_int); Cylinder(cy_out); Box(bx1); Box(bx2) |]
-
+#load @"../VIRGO/Mounts.fsx"
+open mounts
 let l_U200 = U200(Point(0.,0.,0.),UnitVector(0.,1.,0.),UnitVector(0.,0.,1.),"Material__27",'L',([||],[||]))
 let r_U200 = U200(Point(0.,0.,0.),UnitVector(0.,1.,0.),UnitVector(0.,0.,1.),"Material__27",'R',([||],[||]))
 
+
+let l_M8822 = M8822(Point(0.,0.,0.),UnitVector(0.,1.,0.),UnitVector(0.,0.,1.),"Material__27",'L',([||],[||]))
+let r_M8822 = M8822(Point(0.,0.,0.),UnitVector(0.,1.,0.),UnitVector(0.,0.,1.),"Material__27",'R',([||],[||]))
 
 // Create a Camera and the scene - Camera on 0,0,0 pointing to 1,0,0
 
 open BackwardRender.Camera
 open BackwardRender.BackTypes
-
+(*
 // front side
 let Camera = {EyePoint = Point(-0.50,-1.50,-0.0); LookAt= Vector(0.34,1.,0.0); Up=UnitVector(0.,0.,1.); // iris
                PixNumH=300;PixNumW=300;PixSize= 4e-4}
@@ -179,20 +131,20 @@ let Camera = {EyePoint = Point(-0.50,-1.50,-0.0); LookAt= Vector(0.34,1.,0.0); U
 let light0 = {origin= Point(2.,-1.50,-10.5);intensity = 1.}    // light the system 
 let light1 = {origin= Point(-0.05,-10.00,0.0);intensity =0.75}    // light the system
 
-(*
+*)
+
 // up side
 let Camera = {EyePoint = Point(-0.00,-0.00,1.50); LookAt= Vector(0.,0.0,-1.0); Up=UnitVector(0.,1.,0.); // iris
                PixNumH=300;PixNumW=300;PixSize= 5e-4}
 
 let light0 = {origin= Point(-2.,1.50,0.5);intensity = 1.}    // light the system 
 let light1 = {origin= Point(-0.05,0.00,0.0);intensity =0.75}    // light the system
-*)
 
-let scene = {Camera=Camera;  Elements=r_U200;Materials=nmat ; Plights=[|light0|]}
+let scene = {Camera=Camera;  Elements=r_M8822;Materials=nmat ; Plights=[|light0|]}
 //(Array.concat [[|Cylinder(cy2);Cylinder(cy)|];[|bim.[0];bim.[2]|] ]); Materials=nmat ; Plights=[|light0;light1|]} //[|Cylinder(cy);Cone(con);TruncatedCone(pcon)|]
 //match scene.Elements.[0] with Cone x -> x.Origin
 let render = Do_Casting (scene,2,true)
-let spath = "U200R_front.bmp" // save on the folder of BackWardRender
+let spath = "M8822R_up.bmp" // save on the folder of BackWardRender
 
 // save in a file just in case
 let separator = ";"

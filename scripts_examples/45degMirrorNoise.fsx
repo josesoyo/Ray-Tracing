@@ -42,7 +42,7 @@ let phNoise  =
     //let rndom = System.Random()
     //[|rndom.NextDouble()*6.30|]      // random phase
     [|0.|]
-let ampNoise = [|Vector(0.,0.5e-6,0.5e-6) |]    // amplitude
+let ampNoise = [|Vector(0.,10.5e-6,10.5e-6) |]    // amplitude
 
 // this method works on , but not on IFsharp
 let noise = (fNoise,ampNoise,phNoise) |||> Array.map3(fun x y z -> (x,y,z)) // (frequency, Amplitude,phase)[]
@@ -53,7 +53,7 @@ let noise = (fNoise,ampNoise,phNoise) |||> Array.map3(fun x y z -> (x,y,z)) // (
 
 // Signals on the ray
 let f1,f2,f3 = 40.,110.,120.         // frequency
-let a1,a2,a3 = 1.,1.,1.        // amplitudes
+let a1,a2,a3 = 0.051,0.1,0.01        // amplitudes
 let ph1,ph2,ph3 = 3., 0.78,2.6       // phase
 
 
@@ -72,14 +72,18 @@ Chart.Line(([|(0.)..(1./1024.)..(2.)|],initphmod) ||> Array.map2(fun x y -> (x,y
 // scene
 // Define the system with the mirror that has noise
 let bilens = biConvex(0.10293<m>,0.10293<m>,UnitVector(0.,0.,1.),2.5e-3<m>,10e-3<m>,Point(0.,0.,0.), "NBK7",Sensor(),([| |],[||]))
-
-let focusing_point =  Point(0.,0.,0.09919+0.5e-3)  // 0.09919+2.5e-3
+10e-3
+let focusing_z = 0.09919+2.5e-3//+2.5e-3
+let focusing_point =  Point(0.,0.,focusing_z)  // 0.09919+2.5e-3
 let reflecting_point = focusing_point
-let mirror = disc(focusing_point,0.1,UnitVector(0.,-1.,-1.),"Mirror",Sensor(),(noise,timestamp)) //(noise,timestamp))
-let sensor_point = Point(0.,-0.05,0.09919+0.5e-3)
+let mirror = disc(focusing_point,0.1,UnitVector(0.,-1.,-1.),"Mirror") //(noise,timestamp))
+let dispersion_mirror_point = reflecting_point.MoveAndCreateNew(Point(0.,0.,-1e-6))
+let dispersion_mirror = disc(dispersion_mirror_point,0.0051,UnitVector(0.,-1.,-1.),"Mirror",Sensor(),(noise,timestamp)) //(noise,timestamp))
+
+let sensor_point = Point(0.,-0.05,focusing_z)
 let sensor = disc(sensor_point,0.5,UnitVector(0.,1.,0.),"",Sensor(true,true),([| |],[||]))
 
-let sistema_2 = Array.append bilens [|Disc(sensor); Disc(mirror)|]
+let sistema_2 = Array.append bilens [|Disc(sensor); Disc(mirror); Disc(dispersion_mirror)|]
 //
 //
 
@@ -96,14 +100,16 @@ let rn() = CollimatedRayWithNoise initphmod
 
 //////  //////  //////////////////////////////////////////////
 let Nrays = 5000
-// Ray tracing
-[|1..Nrays|] |> Array.Parallel.iter(fun _ -> lock sensor (fun () -> ForwardRay(rn(),sistema_2,mat) ))
+// Ray tracingfafa
+#time
+[|1..Nrays|] |> Array.Parallel.iter(fun _ -> lock sensor.Sensor.SavedData (fun () -> ForwardRay(rn (),sistema_2,mat) ))
 //////  //////  /////////////////////////////////////////////
 
 (*
 // things that I can check
-(sensor.Sensor.SavedData.[1].Noise, rn().PhaseModulation) ||> Array.map2(fun x y -> x-y)      // difference beween fina ray and original ray
+(sensor.Sensor.SavedData.[2].Noise, rn().PhaseModulation) ||> Array.map2(fun x y -> x-y)      // difference beween fina ray and original ray
 sensor.Sensor.SavedData.Count                                                                 // number of rays hitting the sensor
+sensor.Sensor.SavedData.ToArray() |> Array.filter(fun x -> not(Array.isEmpty(x.Noise))) |> fun x -> x.Length
 *)
 
 let ASD_Photons (time:float[]) (snrs:Sensor) =
@@ -112,13 +118,14 @@ let ASD_Photons (time:float[]) (snrs:Sensor) =
     let windows_length = 512
     let sum_ASD = 
         data.ToArray() 
+        |> Array.filter(fun x -> x.Noise.Length <> 0)
         |> Array.map(fun x ->snd(PSD_WELCH(time,x.Noise |> Array.map(fun x -> sin(x)),"Hann",windows_length,260,0.) ) )
         |> fun asds -> 
             [|0..asds.[0].Length-1|]
             |> Array.map(fun i ->
                              (asds |> Array.sumBy(fun eachone -> eachone.[i])) 
                          )        
-    let freq ,_ = PSD_WELCH(time,data.[0].Noise,"",windows_length,256,0.)
+    let freq ,_ = PSD_WELCH(time,(data.ToArray()|> Array.filter(fun x -> x.Noise.Length <> 0) |> fun x -> x.[0].Noise),"",windows_length,256,0.)
     (freq, sum_ASD)
 
 let out_asd = ASD_Photons timestamp sensor.Sensor

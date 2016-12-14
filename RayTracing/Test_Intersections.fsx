@@ -30,7 +30,7 @@ let cy = cylinder(0.1<m>,1.5<m>,Point(10.1,-0.5,0.),UnitVector(0.,1.,0.),"someNa
 *)
 let r = {
          Wavelenght = WaveLength(5e-7<m>);
-         from = Point(-1.25,-1.0,1.0); uvec = UnitVector(1.,1.,0.);
+         from = Point(-1.25,-0.004,0.0); uvec = UnitVector(1.,0.,0.);
          MaxLength = infi;
          OpticalPathTravelled = 0.<m>;
          NumBounces = 0uy; bounces = [];

@@ -83,7 +83,8 @@ let CreateImage_Points_from_disk_amplitude(data0:seq<SensorContent>,wavelength:W
     Sensor_re
 
 
-let CreateImage_Points_from_disk(data:SensorContent[],size:BBox, rot:UnitVector, center: Point, radius:float, n:int,m:int) =
+let CreateImage_Points_from_disk(data0:seq<SensorContent>,size:BBox, rot:UnitVector, center: Point, radius:float, n:int,m:int) =
+    let data = Seq.toArray data0
     // translate and rotate the points to transformthem into a local coordinates
     let rotationMat = Matrix.RotateVector(rot,UnitVector(0.,0.,1.))                 //  Rotation
     let Translation = center.ToVector()     //  Translation is the position of the original center

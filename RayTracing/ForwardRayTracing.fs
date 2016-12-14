@@ -41,9 +41,11 @@ let UpdateSensorPhase(intersection:Intersection,obj:Object):Unit =
     | Cylinder x ->     x.Sensor.AddData(sc) //lock x.Sensor (fun () -> x.Sensor.AddData(sc))
     | SurfaceLens x->   x.Sensor.AddData(sc) //lock x.Sensor (fun () -> x.Sensor.AddData(sc))
     | Disc x->          x.Sensor.AddData(sc) //lock x.Sensor (fun () -> x.Sensor.AddData(sc))
-    | Cone x ->         x.Sensor.AddData(sc) //lock x.Sensor (fun () -> x.Sensor.AddData(sc))
-    | Sphere x->        x.Sensor.AddData(sc) //lock x.Sensor (fun () -> x.Sensor.AddData(sc))
     | Annular_Disc x -> x.Disc.Sensor.AddData(sc) //lock x.Disc.Sensor (fun () -> x.Disc.Sensor.AddData(sc))
+    | Sphere x->        x.Sensor.AddData(sc) //lock x.Sensor (fun () -> x.Sensor.AddData(sc))
+    | Cone x ->         x.Sensor.AddData(sc) //lock x.Sensor (fun () -> x.Sensor.AddData(sc))
+    | TruncatedCone x ->x.Cone.Sensor.AddData(sc)
+    | Box x ->          x.Sensor.AddData(sc)
 
 let UpdateSensorSelectionPhase(intersection:Intersection, objs:Object[],objID:int) =
     UpdateSensorPhase(intersection,objs.[objID])
@@ -61,6 +63,7 @@ let IsItSensor(objs:Object[], id:int):bool*bool =
     | Sphere x ->       (x.Sensor.Exists, x.Sensor.Terminate)
     | Cone x ->         (x.Sensor.Exists, x.Sensor.Terminate)
     | TruncatedCone x ->(x.Cone.Sensor.Exists, x.Cone.Sensor.Terminate)
+    | Box x ->          (x.Sensor.Exists, x.Sensor.Terminate)
 
 let getNoise(objs:Object[], id:int) =
     match objs.[id] with
@@ -71,80 +74,56 @@ let getNoise(objs:Object[], id:int) =
     | Sphere x ->       x.Noise
     | Cone x ->         x.Noise
     | TruncatedCone x ->x.Cone.Noise
+    | Box x   ->        x.Noise
 
 // Main Function - initial ray must be computed before
 // This function only traces one ray, so it reques a superfunction to trace all the rays and probably do the parallel stuff
-let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.IDictionary<string,Material>) = // MaxRays:int
+let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.IDictionary<string,Material>,level:int) = // MaxRays:int
    
     // match intersection with Sensor or not Sensor and return Rays or end
     // intersecta
     let intersect:(Intersection*int) =  
         // find the closest intersection and if it doesn't exists, then return a non existent value
+        if level >= 1000 then
+            failwith "Stack level deeper than 10000"
+
         let rei = intersection_all_forward(ray,objs)
-        if  Array.isEmpty rei then ({ normal=UnitVector(1.,0.,0.); point=Point(0.,0.,0.); ray=ray;MatName="none" ; t= 1.<m>},-1)  
+        //printfn "the level is %d" level
+        if  Array.isEmpty rei then ({ normal=UnitVector(1.,0.,0.); point=Point(0.,0.,0.); ray=ray; MatName="none" ; t= 1.<m>},-1)  
         else 
             rei 
             |> Array.minBy(fun x -> (fst x).t) 
           
     match snd intersect with
     | x when x >= 0 ->
-        let sensorOrNot = IsItSensor(objs,snd intersect) // Is this intersected ibject a sensor?  - (snd intersect) is the number of object that is a sensor
+        let sensorOrNot = IsItSensor(objs,snd intersect) // Is this intersected ibject a sensor?  - (snd intersect) is the object's number in the Array
         let noise = getNoise(objs,snd intersect)
         // do sensor or not
         match sensorOrNot with
         |(true, true) -> 
             // it's sensor and end
             // function with unit return
-            //match ray.NumOfParticles with
-            //| 1 ->
+         
             UpdateSensorSelectionPhase(fst intersect,objs, snd intersect)
-            //printfn "%+A" ray.PhaseModulation
-            //| _ ->
-            //   UpdateSensorSelection(ray,fst intersect,objs, snd intersect)
             
         |(true, false) ->   
             // sensor, but not end
             // 1st - Update Sensor
-            //match ray.NumOfParticles with
-            //| 1 ->
-            UpdateSensorSelectionPhase(fst intersect,objs, snd intersect)
-            //    printfn "%+A" ray.PhaseModulation
-            //| _ ->
-            //    UpdateSensorSelection(ray,fst intersect,objs, snd intersect)
-            
-            //
-            //          //  //  only for the case of the arm cavity //  //
-            //          This should avoid a stackoverflow problem
-            let xavant = (fst intersect).point.X - (fst intersect).ray.from.X  // quant ha avancat
-            let cos_inc_direct = 
-                match objs.[(snd intersect)] with
-                | Cylinder x ->  (fst intersect).normal*(fst intersect).ray.uvec
-                | _ -> 1.
 
-            let boolsArm = 
-                match cos_inc_direct with
-                | y when y < 0.00873 -> ((abs xavant) < 3.0) // cos_inc_direct < 0.026 => thetha > 88.5 || 0.00873 -> 89.5°
-                //|x,_ when (500.< x && x < 2500.) -> ((abs xavant) < 2.0)
-                //|x,_ when  (9.5< x && x < 2990.5) -> ((abs xavant) < 0.5)
-                | _  -> false
-            //
-            //
-            match boolsArm with 
-            | true ->  // if it doesn't advance, then it shouldn't arrive
-                () 
+            UpdateSensorSelectionPhase(fst intersect,objs, snd intersect)
+
+            // 2nd - Shading
+            // filter the rays that have been dispersed more times that the maximum allowable
+            let rays:Ray[] = ShadingForward( fst intersect, material,noise) |> Array.filter(fun x -> x.NumBounces <= x.MaxDispersions)
+            // check that the number of dispersive reflections is not more than the expected
+            match Array.isEmpty rays with
             | false ->
-                // 2nd - Shading
-                // filter the rays that have been dispersed more times that the maximum allowable
-                let rays:Ray[] = ShadingForward( fst intersect, material,noise) |> Array.filter(fun x -> x.NumBounces <= x.MaxDispersions)
-                // check that the number of dispersive reflections is not more than the expected
-                match Array.isEmpty rays with
-                | false ->
-                    match ray.NumBounces with
-                    | n when n <= ray.MaxDispersions -> 
-                        // 3nd - Continue the ray tracing
-                        rays |> Array.iter(fun r -> ForwardRay (r,objs,material))
-                    | _ -> () // end
-                | true -> () // end it's absorbed
+               // match ray.NumBounces with
+               //| n when n <= ray.MaxDispersions -> 
+               //     // 3nd - Continue the ray tracing
+               rays |> Array.iter(fun r -> ForwardRay (r,objs,material,level+1))
+               // | _ -> () // end
+            | true -> () // end it's absorbed
             //
             //      //              //
             //
@@ -152,45 +131,26 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
         |(_, _ ) ->  // (false , _ )
             //not end => just continue
             // 1st - Shading
-            // filter the rays that have been dispersed more times that the maximum allowable
-            //
-            //          //  //  only for the case of the arm cavity //  //
-            //          This should avoid a stackoverflow problem
-            let xavant = (fst intersect).point.X - (fst intersect).ray.from.X  // quant ha avancat
-            let cos_inc_direct = //(fst intersect).normal*(fst intersect).ray.uvec
-               match objs.[(snd intersect)] with
-                | Cylinder x ->  (fst intersect).normal*(fst intersect).ray.uvec
-                | _ -> 1.
-            let boolsArm = 
-                match  cos_inc_direct with
-                | y when y < 0.00873 -> ((abs xavant) < 3.0)   // cos_inc_direct < 0.026 => thetha > 88.5
-                //|x,_ when (500.< x && x < 2500.) -> ((abs xavant) < 2.0)
-                //|x,_ when  (9.5< x && x < 2990.5) -> ((abs xavant) < 0.5)
-                | _ -> false
-            //
-  
-            match boolsArm with 
-            | true ->  // if it doesn't advance, then it shouldn't arrive
-                () 
-            | false ->
 
-                let rays:Ray[] = ShadingForward( fst intersect, material,noise) |> Array.filter(fun x -> x.NumBounces <= x.MaxDispersions)
-                match Array.isEmpty rays with
-                | false ->
-                    // check that the number of dispersive reflections is not more than the expected
-                    match ray.NumBounces with
-                    | n when n <= ray.MaxDispersions -> 
-                        // 2nd - continue ray tracing 
-                        rays |> Array.iter(fun r -> ForwardRay (r,objs,material))
-                    | _ -> 
-                        () // end withouth producing anything
-                | true ->  () // end it's absorbed
+            // filter the rays that have been dispersed more times that the maximum allowable
+            let rays:Ray[] = ShadingForward( fst intersect, material,noise) |> Array.filter(fun x -> x.NumBounces <= x.MaxDispersions)
+
+            match Array.isEmpty rays with
+            | false ->
+                // check that the number of dispersive reflections is not more than the expected
+                //match ray.NumBounces with
+                //| n when n <= ray.MaxDispersions -> 
+                //    // 2nd - continue ray tracing 
+                rays |> Array.iter(fun r -> ForwardRay (r,objs,material,level+1))
+                //| _ -> 
+                //    () // end withouth producing anything
+            | true ->  () // end it's absorbed
 
     | _ -> ()  // no intersection, nothing happens
 
 
 let RayTraceAll(rays:Ray[],objs,material) =
     // do the bucle of all the rays
-    // This function requires that the rays are introduced
+    // This function requires that all the rays are previously computed
 
-    rays |> Array.iter( fun x -> ForwardRay(x,objs,material))       
+    rays |> Array.iter( fun x -> ForwardRay(x,objs,material,0))       

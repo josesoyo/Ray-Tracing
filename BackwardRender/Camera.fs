@@ -42,8 +42,8 @@ module Camera =
                                 from= camera.EyePoint; uvec= direct.ToUnitVector();                 // From and direction
                                 MaxLength = infi                              // Max distance can travell (should be infinite by defect)
                                 OpticalPathTravelled= 0.<m>;                   // Optical Path Length Modified after every step with the IOR
-                                NumBounces = 0uy; bounces= [];     // Num of bounces + the positions (Just in case for the future)
-                                MaxDispersions = 3uy;
+                                NumBounces = 0.; bounces= [];     // Num of bounces + the positions (Just in case for the future)
+                                MaxDispersions = 3.;
                                 NumOfParticles = 0;                               // Num of photos -> To split in a Lambertian surface, etc...
                                 IndexOfRefraction=1.;
                                 PhaseModulation = [||]

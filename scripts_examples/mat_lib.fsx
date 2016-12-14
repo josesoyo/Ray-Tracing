@@ -104,7 +104,7 @@ let steel_high_angles =
     |]
 let mout = [|{MatName= "Mirror"; R=1.; T=0.;
                     n=(2.,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 1e-6};
-               {MatName= "Mirror_Half"; R=1.; T=0.;
+               {MatName= "Mirror_Half"; R=0.5; T=0.0;
                     n=(2.,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.};
                {MatName= "BeamSplitter"; R=0.5; T=0.5;
                     n=(1.,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.};
@@ -116,8 +116,35 @@ let mout = [|{MatName= "Mirror"; R=1.; T=0.;
                     n=(2.5835,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.00005 };//  50e-6}; no0.74
                 {MatName= "Baffle_DLC"; R=1e-6; T=0.;                               //     Diamon-Like Carbon   - not know well
                     n=(1.,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 500e-6};
-                {MatName= "Baffle_AbsGlass"; R=1e-2; T=0.;                               //     Silicon Carbide
-                    n=(1.,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 500e-6}
+                {MatName= "Baffle_AbsGlass"; R=1e-2; T=0.;                               //     
+                    n=(1.,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 500e-6};
+                {MatName= "NBK7"; R=0.5; T=1.;                               //     
+                    n=(1.50669,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 500e-6};
+                {MatName= "BK7_T"; R=0.; T=1.;                               //    
+                    n=(1.50669,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 500e-6};
+               
+               
+                // materials from SNEB
+                {MatName= "Suprasil3001_0bar"; R=0.096; T=0.04;     //  I use 4% reflecting as for raw glass aprox
+                    n=(1.45003,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-6};
+                {MatName= "Suprasil3001_0bar_R"; R=1.; T=0.0;                               //     S
+                    n=(1.45003,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-6};
+                {MatName= "Herasil_0bar";  R=0.096; T=0.04;                             //    
+                    n=(1.45012,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-6};
+                {MatName= "Herasil_0bar_SemiREFLECT";  R=0.5; T=0.5;                             //    
+                    n=(1.45012,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-6};
+                {MatName= "R0.08_T0.92"; R=0.08; T=0.92;                               //   
+                    n=(1.45012,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-6};
+                {MatName= "R0.99_T0.01"; R=0.99; T=0.01;                               //   
+                    n=(1.45012,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-6};
+                {MatName= "R0.002_T0.998"; R=0.002; T=0.998;                               //     
+                    n=(1.45012,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-6};
+                {MatName= "Herasil_0bar_R"; R=1.; T=0.;
+                    n=(1.45012,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0e-6};
+                {MatName= "Herasil_0bar_T"; R=0.; T=1.;
+                    n=(1.45012,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0e-6};
+                {MatName= "Absorb"; R=0.0; T=0.0;     //  I use 4% reflecting as for raw glass aprox
+                    n=(1.45003,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 01.e-6};
 
 
                 |]

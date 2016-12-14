@@ -21,7 +21,7 @@ let dispersion(intersection:Intersection,numOfParticles:int, cos_inc:float) =
     // numOfParticles is the nmber photons that will be dispersed. Each dispersed day contains only 1 particle after dispersion
     //compute the dispersed ray: random direction on an hemisphere
     let ray = {intersection.ray with  
-                from= intersection.point; NumBounces = intersection.ray.NumBounces + 1uy;
+                from= intersection.point; NumBounces = intersection.ray.NumBounces + 1.;//1uy;
                  OpticalPathTravelled = intersection.ray.OpticalPathTravelled - (match intersection.ray.Wavelenght with WaveLength x -> x)/2. 
                  }
 
@@ -55,7 +55,7 @@ let reflection(intersection:Intersection,numOfParticles:int, cos_inc:float) =
     
     // return the new ray - the one from the intersection modified with the extra pathLengt
     {ray with 
-        uvec = newvect; from = intersection.point;              // update the point in which the ray comes from
+        uvec = newvect; from = intersection.point;  NumBounces = intersection.ray.NumBounces + 0.0025;          // update the point in which the ray comes from + 400 reflections = 1 dispersion
         OpticalPathTravelled = ray.OpticalPathTravelled  + (match ray.Wavelenght with WaveLength x -> x)/2.; // only the half wavelength because is the ray from intersection
         NumOfParticles=numOfParticles}
     //  end of Reflection
@@ -64,20 +64,30 @@ let transmission(intersection:Intersection, ior:float, numOfParticles:int, cos_i
     //
     let ray = intersection.ray
     let RayDir = ray.uvec
+    (*
     //let LightDir = RayDir.Negate() //Ray that incides on the surface * -1
     let SideRay (rayIndex,index, ci, normal:UnitVector) =   
         // Changes the situation checking from air or to  
        //if rayIndex = index then 
-       if ci < 0. then 
+       if ci < 0. then      // normals opposites: INSIDE
         // the ray is inside the material
         (-ci, 1./index, normal.Negate()) 
-       else
+       else                 // OUTSIDE
         (ci, index, normal)
     //let n = ior // With AIR
-    let ci = -cos_inc0  //intersection.normal*(LightDir) //Cosinus incident angle
- 
-    let (cos_inc,nu,vnormal) = SideRay(ray.IndexOfRefraction,ior ,ci, intersection.normal)
-    let inv_n = 1./nu // It is used the inverse = (n_from/n_to)
+    *)
+    let cos_inc,vnormal = 
+        if cos_inc0 < 0. then
+            -cos_inc0  ,intersection.normal//  Normals always same side of Ray that comes, so no need to match ci
+        else 
+           cos_inc0  ,intersection.normal.Negate()
+    let nu = //SideRay(ray.IndexOfRefraction,ior ,ci, intersection.normal)
+        if (ray.IndexOfRefraction) = ior then
+            // inside
+             1./ior 
+        else
+            // outside
+             ior 
     let AngCritic n_transm =
         // Obtain Critical angle for TIR
         if n_transm > 1. then
@@ -89,6 +99,7 @@ let transmission(intersection:Intersection, ior:float, numOfParticles:int, cos_i
     let ang_inc = acos(cos_inc)
     //
     if ang_inc < ang_critic then // TIR
+        let inv_n = 1./nu // It is used the inverse = (n_from/n_to)
         let cos_trans = sqrt(1.-(inv_n*inv_n )*(1.-cos_inc*cos_inc)) // Cosinus transmited
         let vtrans = (inv_n)*RayDir + (-1.)*(cos_trans - inv_n*cos_inc)*vnormal
         let newvect = vtrans.ToUnitVector()
@@ -107,7 +118,8 @@ let transmission(intersection:Intersection, ior:float, numOfParticles:int, cos_i
                NumOfParticles=numOfParticles}
     else  reflection ({intersection with 
                             ray = {ray with 
-                                     OpticalPathTravelled = ray.OpticalPathTravelled - (match ray.Wavelenght with WaveLength x -> x)/2. }
+                                     OpticalPathTravelled = ray.OpticalPathTravelled - (match ray.Wavelenght with WaveLength x -> x)/2.;
+                                     NumBounces = intersection.ray.NumBounces + 0.1 }
                         } ,numOfParticles, cos_inc
                        
                        ) // Else reflected  = TIR -> reduced the OPtravelled by wavelength/2   
@@ -131,6 +143,7 @@ let RayProbabilityes(material:System.Collections.Generic.IDictionary<string,Mate
             printfn "The name is:%s and there's no angle"  intersection.MatName
             intersection.MatName
     *)
+    //printfn "the material is: %s" nmatname 
     material.[nmatname].T, material.[nmatname].R, material.[nmatname].LambPPM
     
 
@@ -159,6 +172,7 @@ let ShadingForward(intersection:Intersection,material:System.Collections.Generic
         | _ ->
             [||]
     *)
+    | n when n = 0 -> [||]  // just in case!
     | n when n = 1 ->
        // Case when raytracing of a single ray
         
@@ -167,7 +181,8 @@ let ShadingForward(intersection:Intersection,material:System.Collections.Generic
         // options: transmission, reflection or dispersion. Absortion is done implicitly
         match coin with 
         | c when c <= pt -> 
-            let out = transmission(intersection,fst material.[intersection.MatName].n,1, cos_inc_direct) 
+            let index_of_refraction = fst material.[intersection.MatName].n
+            let out = transmission(intersection, index_of_refraction, 1, cos_inc_direct) 
             [|{out with PhaseModulation = PhaseModulation(out, intersection,noise) }|]
             //[|out|]
         | c when pt < c && c <= (pt+pr) -> 
@@ -188,7 +203,7 @@ let ShadingForward(intersection:Intersection,material:System.Collections.Generic
         let pt, pr , pd = RayProbabilityes(material, intersection, cos_inc_direct)
         let nr, nt , nd =
             let fpart = float(intersection.ray.NumOfParticles)  // float of the number of particles
-            if (1.-pt - pr - pd) < 1e-10 then // I don't trust they match perfectly
+            if (1.-pt - pr - pd) < 1e-10 then // No absortion: I don't trust they match perfectly
                 // No absortion
                 let r, t = int(fpart*pr) , int(fpart*pt)
                 (r,t, intersection.ray.NumOfParticles-r-t )
@@ -210,8 +225,8 @@ let ShadingForward(intersection:Intersection,material:System.Collections.Generic
                     | 'R' -> (r+missing,t,d)
                     | 'D' -> (r,t,d+missing)
                     | 'A' -> (r,t,d)
-                    | _ ->  printfn "Impossible error on ShadingForward??"
-                            (-2147483648,-2147483648,-2147483648) // -2147483648 = inf infinity
+                    | _ ->   failwith "Impossible error on ShadingForward??"
+                            
                 else // ERROR control
                     printfn "Theres an error on ShadingForward"
                     System.Console.ReadKey() |> ignore // stop the computation
@@ -220,7 +235,10 @@ let ShadingForward(intersection:Intersection,material:System.Collections.Generic
         
 
         let tout = match nt with
-                   | nt when nt > 0 -> transmission(intersection,fst material.[intersection.MatName].n,nt,cos_inc_direct) 
+                   | nt when nt > 0 -> 
+
+                        let index_of_refraction = fst material.[intersection.MatName].n
+                        transmission(intersection, index_of_refraction, nt,cos_inc_direct) 
                                        |> fun x ->  [|{x with PhaseModulation = PhaseModulation(x, intersection,noise) }|]
                    | _ -> [||]
 

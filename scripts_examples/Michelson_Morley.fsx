@@ -29,14 +29,14 @@ open materials
 
 //
 //  End Mirrors
-let ux = UnitVector(-1.,0.,0.)
+let ux = UnitVector(1.,0.,0.)
 let dx = 0.07150 // 0.00575
 let radx = 2.2<m> //2.2<m>
 let cx = Point(dx-float radx,0.,0.)
 
 
 
-let uy = UnitVector(0.,-1.,0.)
+let uy = UnitVector(0.,1.,0.)
 let dy = dx
 let rady = 9.2<m>
 let cy = Point(0.,0.25e-6+dy-float rady,0.) 

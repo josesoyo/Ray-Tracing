@@ -30,8 +30,8 @@ let NewRayCollimated (pos:Point) (normal:UnitVector) (sigma:float) (rMax:float) 
          from = rPos; uvec = rvect;
          MaxLength = infi;
          OpticalPathTravelled = (sqrt(rPos.Z*rPos.Z+rPos.Y*rPos.Y)/17005.) |> LanguagePrimitives.FloatWithMeasure<m>;
-         NumBounces = 0uy; bounces = [];
-         MaxDispersions = 3uy;
+         NumBounces = 0.; bounces = [];
+         MaxDispersions = 3.;//3uy;
          NumOfParticles = 1;
          IndexOfRefraction = 1.
          PhaseModulation = [||]

@@ -28,8 +28,8 @@ module types =
                 from: Point; uvec: UnitVector;                 // From and direction
                 MaxLength:float<m>                              // Max distance can travell (should be infinite by defect)
                 OpticalPathTravelled: float<m>;                   // Optical Path Length Modified after every step with the IOR
-                NumBounces: byte;
-                MaxDispersions: byte;                              // Maximum bounces on dispersive media that can be done
+                NumBounces:float; //byte;
+                MaxDispersions: float;//byte;                              // Maximum bounces on dispersive media that can be done
                 mutable bounces: float list;     // Num of bounces + the positions (Just in case for the future)
                 NumOfParticles: int;                               // Num of photos -> To split in a Lambertian surface, etc...
                 // If NumOfParticles is equal to 0 means that I'm doing single ray tracing          (no splitting)
@@ -44,14 +44,14 @@ module types =
 
     
     // New intersection type created because I must know which one is the object when the intersected object is a sensor
-    type Intersection = { normal:UnitVector; point:Point; ray:Ray;MatName:string ; t:float<m>}//; ObjectSensor:Object Option}
+    type Intersection = { normal:UnitVector; point:Point; ray:Ray;MatName:string;  t:float<m>}
 
     let RealMatName (raw_Material_Name:string) (cos_inc:float) = 
         // find the real name of a material
         match raw_Material_Name with
         | x when x.StartsWith("ANG_") ->
-            let angle = (acos(cos_inc)) 
-                        |> abs |> fun x -> (x/3.14159265359)*180. 
+            let angle = (acos( abs(cos_inc)) ) 
+                        |> fun x -> (x/3.14159265359)*180. 
                         |> round //|> int - non ce bisogno di utilizzare l'int, string gia e' in abastanza
                         |> string
             x.[4..x.Length-1]+"_"+angle

@@ -57,7 +57,7 @@ module ObjectSelection =
     let intersection_all(ray:Ray,objs:Object[]) =
         // do the intersection with all the objects of the scene
         objs 
-        |> Array.map(fun x -> match_element(ray, x))                // already must return intersections which contains t > 0.
+        |> Array.Parallel.map(fun x -> match_element(ray, x))                // already must return intersections which contains t > 0.
         //|> Array.map(fun x ->UnSomeNone(x) ) 
         |> Array.filter(fun x -> x <> None)
                                  // old method
@@ -70,13 +70,13 @@ module ObjectSelection =
         // Function intended to use with forward ray tracing
         // The Array.mapi allows me to track the objects in order to later test if they are a sensor or not
         objs 
-        |> Array.mapi(fun i x -> (match_element(ray, x),i))                // already must return intersections which contains t > 0.
+        |> Array.Parallel.mapi(fun i x -> (match_element(ray, x),i))                // already must return intersections which contains t > 0.
         //|> Array.map(fun x ->UnSomeNone(x) ) 
         |> Array.filter(fun x ->fst x <> None)
                                  // old method
                                  //let nar = UnSomeNone(x)
                                  //not(Array.isEmpty(nar))) 
-        |> Array.map(fun x-> match fst x with Some y -> (y,snd x) )  // Equivalent to an Array.collect - SHOULD NEVER GIVE None BECAUSE I HAVE PREVIOULT FILTERED
+        |> Array.map(fun x-> match fst x with Some y -> (y,snd x) | _ -> failwith "")  // Equivalent to an Array.collect - SHOULD NEVER GIVE None BECAUSE I HAVE PREVIOULT FILTERED
         //|> Array.minBy(fun x -> (fst x).t)  // I cannot do it here, if it receives an empty array, returns an error
 
 

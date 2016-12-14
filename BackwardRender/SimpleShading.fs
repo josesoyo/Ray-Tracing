@@ -59,7 +59,7 @@ module SimpleShading =
                             Wavelenght=intersection.ray.Wavelenght;
                             bounces=  intersection.ray.bounces;  NumBounces= intersection.ray.NumBounces; 
                             NumOfParticles= intersection.ray.NumOfParticles;
-                            MaxDispersions = 3uy;       // I use the rule of 3 dispersions
+                            MaxDispersions = 3.;       // I use the rule of 3 dispersions
                             PhaseModulation = [||]
                             }
              

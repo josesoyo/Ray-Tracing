@@ -37,8 +37,8 @@ let NewRay (pos:Point) (normal:UnitVector) (sigma:float) (rMax:float) (nOfPartic
          from = rPos; uvec = rvect;
          MaxLength = infi;
          OpticalPathTravelled = 0.<m>;
-         NumBounces = 0uy; bounces = [];
-         MaxDispersions = 3uy;
+         NumBounces = 0.; bounces = [];
+         MaxDispersions = 3.;
          NumOfParticles = nOfParticles;
          IndexOfRefraction = 1.
          PhaseModulation = [||]
@@ -77,7 +77,7 @@ let all (i:int) (path_init:string) rayfunc nRays rTube lTube rMirror rBaffle noi
                 //Annular_Disc(baffle_imperfection2)
                 |]
 
-    [|1..nRays|] |> Array.Parallel.iter(fun x -> ForwardRay(rayfunc(),objs,mat) ) // ok, look like works
+    [|1..nRays|] |> Array.Parallel.iter(fun x -> ForwardRay(rayfunc(),objs,mat,0) ) // ok, look like works
     //let i = 0
     //printfn "the iteration %d has ratios of:\nm2:%f\tm1:%f" i (float m2.Sensor.SavedData.Length /float m22.Sensor.SavedData.Length) (float  m1.Sensor.SavedData.Length/float m11.Sensor.SavedData.Length)
     printfn "the iteration %d has produced:\nm2:%d\tm1:%d\tBaffle:%d" i (m2.Sensor.SavedData.Count) (m1.Sensor.SavedData.Count) baffle_end.Disc.Sensor.SavedData.Count

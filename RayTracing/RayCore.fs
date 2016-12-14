@@ -171,12 +171,13 @@ module intersections =
     match isphere with 
     | [||] -> [||]
     | _ -> 
+           (*
            let normalConcave(intersect: Intersection) (bol:bool) =
              if sLens.Convex then intersect
              else
                 {intersect with normal = intersect.normal.Negate()}
+           *)
 
-           
            let intersec_costh = isphere            // Cosinus between the normal of the lens(side of the lens) and the side in which the intersection happened
                                  //|> Array.map(fun x -> normalConcave x sLens.Convex)
                                  |> Array.map(fun x -> sLens.Axis*x.normal)
@@ -189,7 +190,7 @@ module intersections =
            Array.map2(fun y x -> {Inter= x; Cond=(cond y)}) intersec_costh isphere // check if it really intersects creating an 'intermediate' type 
            |> Array.filter(fun x -> x.Cond)         // filter those points in which it really intersects
            |> Array.map(fun x -> x.Inter)           // map the intersection
-           |> Array.map(fun x -> normalConcave x sLens.Convex)
+           //|> Array.map(fun x -> normalConcave x sLens.Convex)
            //|> Array.map(fun  x -> {normal= x.normal; point= x.point;ray= x.ray;MatName= x.MatName;t= x.t;
            //                        ObjectSensor= if sLens.Sensor.Exists then Some(SurfaceLens(sLens))
            //                                      else None
@@ -204,6 +205,10 @@ module intersections =
 
         let dot1 = dsk.Normal*ray.from.ToVector()
         let dot2 = dsk.Normal*ray.uvec
+        let nrm =   // check that the normal is on the same side as the ray comes
+            if dot2 < 0. then dsk.Normal
+            else dsk.Normal.Negate()
+
         let dt = -(dot1+dsk.ConstantOfAPlane)/dot2 // |> LanguagePrimitives.FloatWithMeasure<m>
         let tm = dt |> LanguagePrimitives.FloatWithMeasure<m>
         let np = (ray.from + (dt)*ray.uvec)
@@ -212,7 +217,7 @@ module intersections =
         match rad with
         | x when x <= dsk.Radius ->
             let nray = {ray with OpticalPathTravelled = ray.OpticalPathTravelled + ray.IndexOfRefraction*(tm)}
-            [|{normal = dsk.Normal;point= np; ray= nray; MatName = dsk.MatName; t= tm}|]
+            [|{normal = nrm;point= np; ray= nray; MatName = dsk.MatName; t= tm}|]
         | _ ->  [||]
 
    let intersect_annular_disc  (ray:Ray,adsk:annular_disc) =     
