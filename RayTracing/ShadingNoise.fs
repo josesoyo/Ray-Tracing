@@ -52,7 +52,7 @@ let PhaseModulation(shadedRay:Ray,inter:Intersection,ns:noise) =
         | true ->
             // if it's empty, there isn't modulation   -> first interaction with an oscillating element
             timeStamps 
-            |> Array.map(fun t -> (ww*SINMOD t)
+            |> Array.Parallel.map(fun t -> (ww*SINMOD t)
                          ) // Phase modulation
                                 
         | false ->
