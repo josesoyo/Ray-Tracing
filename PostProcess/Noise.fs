@@ -45,20 +45,20 @@ module Noise =
         if ang > thmin then
             k/ang/ang
         else k/thmin/thmin
-    let bXn (an:float) (npart:int) (n:float[]) =
+    let bXn (an:float) (npart:float) (n:float[]) =
         // Returns the value of the product of the probability of the direction of this ray on the mirror per the spectral density of the phase change
         // considers that the input n is ASD
         // sns.SavedData.[0].Direction
-        let fpart = float npart 
+        let fpart =  npart 
         let n2 = n |> Array.map(fun x -> fpart*x*x)         // if there are 2 particles, it is considered twice, three three times, etc..
         let prb:float = b_theta(an) // b(theta)
         n2 |> Array.map(fun x -> prb*x)
 
-    let bXn2 (an:float) (npart:int) (n2:float[]) =
+    let bXn2 (an:float) (npart:float) (n2:float[]) =
         // Returns the value of the product of the probability of the direction of this ray on the mirror per the spectral density of the phase change
         // Already considers that the input is PSD: n2
         // sns.SavedData.[0].Direction
-        let fpart = float npart 
+        let fpart =  npart 
         let prb:float = b_theta(an) // b(theta)
         n2 |> Array.map(fun x -> fpart*prb*x)              // if there are 2 particles, it is considered twice, three three times, etc..
 
@@ -79,7 +79,7 @@ module Noise =
                                     // the b(theta) and n(f)
                                     let ang = acos(x.Direction*mirror.Normal) |> abs  // be sure that it's always positive
                                     let n = snd(ASDofPhase(x, tStamp)) // freq, ASD(normalized)
-                                    let npart = x.NumRays
+                                    let npart = x.FracOfRay
                                     bXn ang npart n // do the product 
                           )
             |> fun allNoise -> // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
@@ -113,7 +113,7 @@ module Noise =
                                     let n2 = PSD_WELCH(tStamp|> Array.map(fun x -> float x),x.Noise|> Array.map(fun x -> sin(x)), // requires the sin(phase)
                                                        "Hann",windowLengtht,windowLengtht/2,0.) 
                                     // n2 because it considers that the 
-                                    let npart = x.NumRays               // I must consider that a ray may contain more than 1 particle
+                                    let npart = x.FracOfRay               // I must consider that a ray may contain more than 1 particle
                                     fst n2 ,bXn2 ang npart (snd n2) // do the product 
                           )
             |> fun allNoise -> // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]

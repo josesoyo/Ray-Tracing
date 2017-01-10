@@ -7,6 +7,8 @@ open Types.types
 open Types.ObjectTypes
 open RayTracing.RayStructureIntersection
 open Random // Here I defined PI
+open System
+open System.Threading.Tasks
 //
 // for OpenCL case
 open FSCL.Compiler
@@ -58,10 +60,14 @@ let PhaseModulation(shadedRay:Ray,inter:Intersection,ns:noise) =
         | false ->
             // if it's not empty, then the modulation must be summed to the one that the ray already contains
             let prevMod =  shadedRay.PhaseModulation
-            (prevMod,timeStamps)
-            ||> Array.map2(fun old t -> old+(ww*SINMOD t)
-                           ) // Phase modulation
-
+            //(prevMod,timeStamps)
+            //||> Array.map2(fun old t -> old+(ww*SINMOD t)
+            //               ) // Phase modulation
+            // Parallel.For method, actyally is like using [|0..timeStamps.Len-1|] |> Array.Parallel.map(fun  -> (prevMod.[i]+(ww*SINMOD timeStamps.[i])))
+            Parallel.For(0, (prevMod.Length), fun i -> (prevMod.[i] <- prevMod.[i]+(ww*SINMOD timeStamps.[i])) ) |> ignore
+            // return the output updated on the same array. 
+            prevMod
+            // Might create problems if it wasn't because I am redefining the modulation on ShadingForward
 (**
 
 OpenCL case with FSCL

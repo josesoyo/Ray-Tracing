@@ -53,15 +53,10 @@ module SimpleShading =
             let LightDir = light.origin - intersection.point
             let NormLightDir = LightDir.ToUnitVector()
             
-            let RayLight = {uvec=NormLightDir; from=intersection.point; 
-                            MaxLength = (LightDir.Module() |> LanguagePrimitives.FloatWithMeasure<m>); 
-                            OpticalPathTravelled=intersection.ray.OpticalPathTravelled; IndexOfRefraction=intersection.ray.IndexOfRefraction;
-                            Wavelenght=intersection.ray.Wavelenght;
-                            bounces=  intersection.ray.bounces;  NumBounces= intersection.ray.NumBounces; 
-                            NumOfParticles= intersection.ray.NumOfParticles;
-                            MaxDispersions = 3.;       // I use the rule of 3 dispersions
-                            PhaseModulation = [||]
-                            }
+            let RayLight = {intersection.ray with
+                                uvec=NormLightDir; from=intersection.point; 
+                                MaxLength = (LightDir.Module() |> LanguagePrimitives.FloatWithMeasure<m>); 
+                             }
              
             let intersects = intersection_all(RayLight,scn.Elements)
                              //scn.Elements 

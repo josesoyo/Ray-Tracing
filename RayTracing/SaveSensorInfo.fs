@@ -7,8 +7,8 @@ open Random
 open Microsoft.FSharp.Data.UnitSystems.SI.UnitSymbols
 //Here I want to process and save the information on the sensor once the raytracing has finished.
 //By that I mean that this part is once all the rays have finished
-
 // the process consist on read all thedata on the array and then find for each position the local coordinates on pixel
+
 let pixNumber (size:BBox) (pixSizeX:float) (pixSizeY:float) (n:int) (m:int) (p:Point) = //(p2:Point)=
     // I'll use the idea of functional programming to subtitute the repeated variables
     if abs p.Z  > 1e-8 then printfn "There's an ERRROR on the sensor when it's translated to zero \nThe value of z is: %f" p.Z
@@ -23,9 +23,10 @@ let pixNumber (size:BBox) (pixSizeX:float) (pixSizeY:float) (n:int) (m:int) (p:P
     xpix, ypix
 
 // Position sensor, the easy one
-let CreateImage_Points_from_disk_phase(data0:seq<SensorContent>,wavelength:Wavelength,size:BBox, rot:UnitVector, center: Point, radius:float, n:int,m:int) =
+let CreateImage_Points_from_disk_phase(data0:seq<SensorContent>,wavelength:Wavelength, rot:UnitVector, center: Point, radius:float, n:int,m:int) =
     // translate and rotate the points to transformthem into a local coordinates
     let data = Seq.toArray data0
+    let size ={Pmin=Point(-radius,-radius,0.); Pmax=Point(radius,radius,0.) }
     let rotationMat = Matrix.RotateVector(rot,UnitVector(0.,0.,1.))                 //  Rotation
     let Translation = center.ToVector()     //  Translation is the position of the original center
     let points_Local = data |> Array.map(fun x -> let p = (x.Position)+(-1.)*Translation
@@ -53,9 +54,10 @@ let CreateImage_Points_from_disk_phase(data0:seq<SensorContent>,wavelength:Wavel
     Sensor_re
 
 
-let CreateImage_Points_from_disk_amplitude(data0:seq<SensorContent>,wavelength:Wavelength,size:BBox, rot:UnitVector, center: Point, radius:float, n:int,m:int) =
+let CreateImage_Points_from_disk_amplitude(data0:seq<SensorContent>,wavelength:Wavelength, rot:UnitVector, center: Point, radius:float, n:int,m:int) =
     // translate and rotate the points to transformthem into a local coordinates
     let data = Seq.toArray data0
+    let size ={Pmin=Point(-radius,-radius,0.); Pmax=Point(radius,radius,0.) }
     let rotationMat = Matrix.RotateVector(rot,UnitVector(0.,0.,1.))                 //  Rotation
     let Translation = center.ToVector()     //  Translation is the position of the original center
     let points_Local = data |> Array.map(fun x -> let p = (x.Position)+(-1.)*Translation
@@ -83,8 +85,9 @@ let CreateImage_Points_from_disk_amplitude(data0:seq<SensorContent>,wavelength:W
     Sensor_re
 
 
-let CreateImage_Points_from_disk(data0:seq<SensorContent>,size:BBox, rot:UnitVector, center: Point, radius:float, n:int,m:int) =
+let CreateImage_Points_from_disk(data0:seq<SensorContent>, rot:UnitVector, center: Point, radius:float, n:int,m:int) =
     let data = Seq.toArray data0
+    let size ={Pmin=Point(-radius,-radius,0.); Pmax=Point(radius,radius,0.) }
     // translate and rotate the points to transformthem into a local coordinates
     let rotationMat = Matrix.RotateVector(rot,UnitVector(0.,0.,1.))                 //  Rotation
     let Translation = center.ToVector()     //  Translation is the position of the original center

@@ -63,7 +63,7 @@ module ObjectSelection =
                                  // old method
                                  //let nar = UnSomeNone(x)
                                  //not(Array.isEmpty(nar))) 
-        |> Array.map(fun x-> match x with Some x -> x )  // Equivalent to an Array.collect - SHOULD NEVER GIVE None BECAUSE I HAVE PREVIOUsLy FILTERED
+        |> Array.map(fun x-> match x with Some x -> x | _ -> failwith "??")  // Equivalent to an Array.collect - SHOULD NEVER GIVE None BECAUSE I HAVE PREVIOUsLy FILTERED
         //|> Array.collect(fun x -> match x with Some x -> [|x|] | None -> [||])
     let intersection_all_forward(ray:Ray,objs:Object[]) =
         // do the intersection with all the objects of the scene
@@ -76,7 +76,7 @@ module ObjectSelection =
                                  // old method
                                  //let nar = UnSomeNone(x)
                                  //not(Array.isEmpty(nar))) 
-        |> Array.map(fun x-> match fst x with Some y -> (y,snd x) | _ -> failwith "")  // Equivalent to an Array.collect - SHOULD NEVER GIVE None BECAUSE I HAVE PREVIOULT FILTERED
+        |> Array.map(fun x-> match fst x with Some y -> (y,snd x) | _ -> failwith "??")  // Equivalent to an Array.collect - SHOULD NEVER GIVE None BECAUSE I HAVE PREVIOULT FILTERED
         //|> Array.minBy(fun x -> (fst x).t)  // I cannot do it here, if it receives an empty array, returns an error
 
 

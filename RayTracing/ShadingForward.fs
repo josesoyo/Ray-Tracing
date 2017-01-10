@@ -16,9 +16,9 @@ type transmision = (Ray*Intersection*float*int) -> Ray        // Rays transmitte
 type dispersion = (Ray*Intersection*System.Collections.Generic.IDictionary<string,Material>) -> Ray[]       // ppm/2pi
 type absortion = Unit -> Unit                                                                               // Shouldn't exist - Just to remember it's an effect
 
-let dispersion(intersection:Intersection,numOfParticles:int, cos_inc:float) =
+let dispersion(intersection:Intersection,fracOfRay:float, cos_inc:float) =
     // Disperse light: 
-    // numOfParticles is the nmber photons that will be dispersed. Each dispersed day contains only 1 particle after dispersion
+    // fracOfRay is the fraction of the original ray that will be dispersed. Each dispersed ray contains the respective fraction
     //compute the dispersed ray: random direction on an hemisphere
     let ray = {intersection.ray with  
                 from= intersection.point; NumBounces = intersection.ray.NumBounces + 1.;//1uy;
@@ -29,15 +29,16 @@ let dispersion(intersection:Intersection,numOfParticles:int, cos_inc:float) =
         if cos_inc < 0. then    // intersection.normal*intersection.ray.uvec
             Matrix.RotateVector(UnitVector(0.,0.,1.), intersection.normal)          // from to
         else Matrix.RotateVector(UnitVector(0.,0.,1.), intersection.normal.Negate()) 
-    let nuvec = [|1..numOfParticles|] 
+
+    let nuvec = [|1..intersection.ray.NumOfParticlesCreated|]       // creates one new vector for each particle created on dispersion
                 |> Array.map(fun x -> UnitVector(SampUnitHemisphereToCart() ))//SampUnitHemiCosToCart()) ) 
                 |> Array.map (fun uv -> rotmat.RotateVector(uv))    // New direction for the ray
     nuvec
-    |> Array.map(fun uv -> {ray with uvec = uv; NumOfParticles=1})
+    |> Array.map(fun uv -> {ray with uvec = uv; FracOfRay=fracOfRay/float(intersection.ray.NumOfParticlesCreated)})
 
         
 
-let reflection(intersection:Intersection,numOfParticles:int, cos_inc:float) = 
+let reflection(intersection:Intersection,fracOfRay:float, cos_inc:float) = 
     // perform the reflection
     //It returns the reflected ray
     //
@@ -57,10 +58,10 @@ let reflection(intersection:Intersection,numOfParticles:int, cos_inc:float) =
     {ray with 
         uvec = newvect; from = intersection.point;  NumBounces = intersection.ray.NumBounces + 0.0025;          // update the point in which the ray comes from + 400 reflections = 1 dispersion
         OpticalPathTravelled = ray.OpticalPathTravelled  + (match ray.Wavelenght with WaveLength x -> x)/2.; // only the half wavelength because is the ray from intersection
-        NumOfParticles=numOfParticles}
+        FracOfRay=fracOfRay}
     //  end of Reflection
  
-let transmission(intersection:Intersection, ior:float, numOfParticles:int, cos_inc0:float) =
+let transmission(intersection:Intersection, ior:float, fracOfRay:float, cos_inc0:float) =
     //
     let ray = intersection.ray
     let RayDir = ray.uvec
@@ -111,18 +112,19 @@ let transmission(intersection:Intersection, ior:float, numOfParticles:int, cos_i
         | x when x = ior ->    // leaving the material 
             {ray with               // ray from intersection there's no opticalpathlength extra, already included
                uvec = newvect; from = intersection.point; IndexOfRefraction = 1.
-               NumOfParticles=numOfParticles}
+               FracOfRay=fracOfRay}
         | _ ->
             {ray with               // ray from intersection there's no opticalpathlength extra, already included
                uvec = newvect; from = intersection.point; IndexOfRefraction = ior
-               NumOfParticles=numOfParticles}
+               FracOfRay=fracOfRay}
     else  reflection ({intersection with 
                             ray = {ray with 
                                      OpticalPathTravelled = ray.OpticalPathTravelled - (match ray.Wavelenght with WaveLength x -> x)/2.;
+                                     // the +0.1 on NumBounces is because some TIR can lead to a bucle
                                      NumBounces = intersection.ray.NumBounces + 0.1 }
-                        } ,numOfParticles, cos_inc
-                       
+                        } ,fracOfRay, cos_inc
                        ) // Else reflected  = TIR -> reduced the OPtravelled by wavelength/2   
+                       
 
 
 let RayProbabilityes(material:System.Collections.Generic.IDictionary<string,Material>,intersection:Intersection, cos_inc:float) =
@@ -151,28 +153,10 @@ let RayProbabilityes(material:System.Collections.Generic.IDictionary<string,Mate
 let ShadingForward(intersection:Intersection,material:System.Collections.Generic.IDictionary<string,Material>, noise:noise):(Ray[]) =
     // Create the shading of the ray tracing. This Function must be modified many times
     let cos_inc_direct = intersection.normal*intersection.ray.uvec   // I set the cosinus considering that the ray direction is on the direction of the intersection
-    match intersection.ray.NumOfParticles with
+    match intersection.ray.FracOfRay with
+    // just in case!
+    | n when n <= 0. -> [||]  
     (*
-    | n when n = 0 ->
-        // Case when I'm doing single raytracing
-        
-        let pt, pr , pd = RayProbabilityes(material, intersection)
-        let coin = rnd.NextDouble()     // coin because it will be used for the selection
-        // options: transmission, reflection or dispersion. Absortion is done implicitly
-        match coin with 
-        | c when c <= pt -> 
-            let out = {transmission(intersection,fst material.[intersection.MatName].n,0) with NoiseAdd = (Array.append intersection.ray.NoiseAdd [| SingleFreqNoiseAdd(intersection.ray,intersection,noise) |] )}
-            [|out|]
-        | c when pt < c && c <= (pt+pr) -> 
-            let out =  {reflection(intersection,0) with NoiseAdd = (Array.append intersection.ray.NoiseAdd [| SingleFreqNoiseAdd(intersection.ray,intersection,noise) |] ) }
-            [| out |]
-        | c when pt+pr < c && c <= pt+pr+pd ->
-            let out ={dispersion(intersection,0) with NoiseAdd = (Array.append intersection.ray.NoiseAdd [| SingleFreqNoiseAdd(intersection.ray,intersection,noise) |]) }  // to modify, dispersion
-            [| out |]
-        | _ ->
-            [||]
-    *)
-    | n when n = 0 -> [||]  // just in case!
     | n when n = 1 ->
        // Case when raytracing of a single ray
         
@@ -197,23 +181,24 @@ let ShadingForward(intersection:Intersection,material:System.Collections.Generic
             //[| out |]
         | _ ->
             [||]
-
+    *)
     | _ ->
         // Many particles case. The option that is going to be chosed must be explained
         let pt, pr , pd = RayProbabilityes(material, intersection, cos_inc_direct)
-        let nr, nt , nd =
-            let fpart = float(intersection.ray.NumOfParticles)  // float of the number of particles
-            if (1.-pt - pr - pd) < 1e-10 then // No absortion: I don't trust they match perfectly
+        let nt, nr , nd =
+            let fpart = (intersection.ray.FracOfRay)  // float of the fraction of original ray
+            (*
+            if (1.-pt - pr - pd) < 1e-10 then // No absortion: I don't trust they match perfectly *)
                 // No absortion
-                let r, t = int(fpart*pr) , int(fpart*pt)
-                (r,t, intersection.ray.NumOfParticles-r-t )
+            ((fpart*pt),(fpart*pr), pd*fpart )
+            (*
             else
                 // absortion of the material
-                let r, t = int(fpart*pr) , int(fpart*pt)
-                let d = int(fpart*pd) 
-                let a = int(fpart*(1.-pt-pr-pd))
-                let missing = (intersection.ray.NumOfParticles-r-d-a-t) // in case the sum of the parts is not giving the total
-                if  missing = 0 then
+                let r, t = (fpart*pr) , (fpart*pt)
+                let d = (fpart*pd) 
+                let a = (fpart*(1.-pt-pr-pd))
+                let missing = (fpart-r-d-a-t) // in case the sum of the parts is not giving the total
+                if  missing = 0. then
                     // no missing "particles"
                     (r, t, d)
                 else if missing > 0 then
@@ -232,10 +217,10 @@ let ShadingForward(intersection:Intersection,material:System.Collections.Generic
                     System.Console.ReadKey() |> ignore // stop the computation
                     (r,t, d )
 
-        
+                *)
 
         let tout = match nt with
-                   | nt when nt > 0 -> 
+                   | nt when nt > 0. -> 
 
                         let index_of_refraction = fst material.[intersection.MatName].n
                         transmission(intersection, index_of_refraction, nt,cos_inc_direct) 
@@ -243,13 +228,13 @@ let ShadingForward(intersection:Intersection,material:System.Collections.Generic
                    | _ -> [||]
 
         let rout = match nr with
-                   | nr when nr > 0 ->
+                   | nr when nr > 0. ->
                                 reflection(intersection,nr, cos_inc_direct) 
                                 |> fun x -> [|{x with PhaseModulation = PhaseModulation(x, intersection,noise) }|]
                    | _ -> [||]
 
         let dout = match nd with
-                   | nd when nd > 0 -> dispersion(intersection,nd, cos_inc_direct) 
+                   | nd when nd > 0. -> dispersion(intersection,nd, cos_inc_direct) 
                                        |> Array.map( fun x -> {x with PhaseModulation =PhaseModulation(x, intersection,noise) })// to modify, dispersion
                    | _ -> [||]
           

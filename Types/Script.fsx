@@ -284,3 +284,21 @@ nw.b1
 let defaulttest = test(99,00)
 let nt = {nw with A = -10}
 let nt = {ne with a1 = -10}
+
+
+//
+//  Parallel.for test
+//
+open System
+open System.Threading.Tasks
+let rand = System.Random()
+#time
+let a = Array.zeroCreate<float> 100000
+let b = [ for i in 0..100000 do yield rand.NextDouble()]//Array.create 100000 
+let c = Array.create 100000 2.
+Parallel.For(0,100,fun ctr -> (printfn"ciao  %d" ctr))
+
+Parallel.For(0,100000,fun ctr -> (a.[ctr]<-(cos(b.[ctr])*sin(c.[ctr])))) |> ignore
+[|0..(100000-1)|]|> Array.iter(fun ctr-> a.[ctr]<-(cos(b.[ctr])*sin(c.[ctr])))
+[|0..(100000-1)|]|> Array.Parallel.iter(fun ctr-> a.[ctr]<-(cos(b.[ctr])*sin(c.[ctr])))
+a

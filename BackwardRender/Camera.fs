@@ -44,7 +44,8 @@ module Camera =
                                 OpticalPathTravelled= 0.<m>;                   // Optical Path Length Modified after every step with the IOR
                                 NumBounces = 0.; bounces= [];     // Num of bounces + the positions (Just in case for the future)
                                 MaxDispersions = 3.;
-                                NumOfParticles = 0;                               // Num of photos -> To split in a Lambertian surface, etc...
+                                NumOfParticlesCreated = 0;                               // Num of photos -> To split in a Lambertian surface, etc...
+                                FracOfRay = 1.;
                                 IndexOfRefraction=1.;
                                 PhaseModulation = [||]
                                 }

@@ -8,7 +8,7 @@ open Random
 open Microsoft.FSharp.Data.UnitSystems.SI.UnitSymbols
 
 
-let NewRayCollimated (pos:Point) (normal:UnitVector) (sigma:float) (rMax:float) (nOfParticles:int) wvl =
+let NewRayCollimated (pos:Point) (normal:UnitVector) (sigma:float) (rMax:float) (nOfParticlesDisp:int) wvl =
     let rotpoint = Matrix.RotateVector(UnitVector(0.,0.,1.),normal)
     let rfPos() =  // position function
 
@@ -31,8 +31,9 @@ let NewRayCollimated (pos:Point) (normal:UnitVector) (sigma:float) (rMax:float) 
          MaxLength = infi;
          OpticalPathTravelled = (sqrt(rPos.Z*rPos.Z+rPos.Y*rPos.Y)/17005.) |> LanguagePrimitives.FloatWithMeasure<m>;
          NumBounces = 0.; bounces = [];
-         MaxDispersions = 3.;//3uy;
-         NumOfParticles = 1;
+         MaxDispersions = 3.;
+         NumOfParticlesCreated = nOfParticlesDisp;
+         FracOfRay = 1.;
          IndexOfRefraction = 1.
          PhaseModulation = [||]
     }

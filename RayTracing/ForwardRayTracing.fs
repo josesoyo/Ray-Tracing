@@ -34,7 +34,7 @@ let UpdateSensorSelection(ray:Ray, intersection:Intersection, objs:Object[],objI
 *)
 let UpdateSensorPhase(intersection:Intersection,obj:Object):Unit =
     let sc = SensorContent(intersection.point,intersection.ray.uvec,
-                           intersection.ray.NumOfParticles, 
+                           intersection.ray.FracOfRay, 
                            ((intersection.ray.OpticalPathTravelled/(match intersection.ray.Wavelenght with WaveLength x -> x))*6.28318530718)%6.28318530718,  // 2*PI
                            intersection.ray.PhaseModulation |> Array.map(fun x -> float x)) // I need the intersection
     match obj with
@@ -64,6 +64,7 @@ let IsItSensor(objs:Object[], id:int):bool*bool =
     | Cone x ->         (x.Sensor.Exists, x.Sensor.Terminate)
     | TruncatedCone x ->(x.Cone.Sensor.Exists, x.Cone.Sensor.Terminate)
     | Box x ->          (x.Sensor.Exists, x.Sensor.Terminate)
+    | _     ->          failwith "Object type not accepted for Sensor"
 
 let getNoise(objs:Object[], id:int) =
     match objs.[id] with
@@ -75,17 +76,21 @@ let getNoise(objs:Object[], id:int) =
     | Cone x ->         x.Noise
     | TruncatedCone x ->x.Cone.Noise
     | Box x   ->        x.Noise
+    | _     ->          failwith "Object type not accepted for Noise"
+
 
 // Main Function - initial ray must be computed before
 // This function only traces one ray, so it reques a superfunction to trace all the rays and probably do the parallel stuff
 let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.IDictionary<string,Material>,level:int) = // MaxRays:int
-   
+    if level >= 1000 then
+        // This will prevent stackOverFlow error in case there's a strange loop on reflection.
+        failwith "Stack level deeper than 10000"
+    //if ray.FracOfRay < 1e-22 then
+   //     printfn "The fraction of the original ray is %e" ray.FracOfRay    
     // match intersection with Sensor or not Sensor and return Rays or end
     // intersecta
     let intersect:(Intersection*int) =  
         // find the closest intersection and if it doesn't exists, then return a non existent value
-        if level >= 1000 then
-            failwith "Stack level deeper than 10000"
 
         let rei = intersection_all_forward(ray,objs)
         //printfn "the level is %d" level
@@ -114,7 +119,7 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
 
             // 2nd - Shading
             // filter the rays that have been dispersed more times that the maximum allowable
-            let rays:Ray[] = ShadingForward( fst intersect, material,noise) |> Array.filter(fun x -> x.NumBounces <= x.MaxDispersions)
+            let rays:Ray[] = ShadingForward( fst intersect, material,noise) |> Array.filter(fun x -> (x.NumBounces <= x.MaxDispersions && ray.FracOfRay > 1e-22))
             // check that the number of dispersive reflections is not more than the expected
             match Array.isEmpty rays with
             | false ->
@@ -133,7 +138,7 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
             // 1st - Shading
 
             // filter the rays that have been dispersed more times that the maximum allowable
-            let rays:Ray[] = ShadingForward( fst intersect, material,noise) |> Array.filter(fun x -> x.NumBounces <= x.MaxDispersions)
+            let rays:Ray[] = ShadingForward( fst intersect, material,noise) |> Array.filter(fun x -> (x.NumBounces <= x.MaxDispersions && ray.FracOfRay > 1e-22))
 
             match Array.isEmpty rays with
             | false ->
