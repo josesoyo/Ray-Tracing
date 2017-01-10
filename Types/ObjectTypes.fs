@@ -8,16 +8,16 @@ module ObjectTypes=
     open Types.types
     open System
     // Sensor type
-    type SensorContent(pos,dir,nr,ph,ns) =
+    type SensorContent(pos,dir,fr,ph,ns) =
 
         let position:Point = pos
         let direction:UnitVector = dir
-        let numRays:int = nr
-        let phase:float =ph
+        let fracOfRay:float = fr
+        let phase:float = ph
         let noise:float[] =  ns   // obtained from the spectral density :'a[] (byte*float)
         member this.Position with get() = position
         member this.Direction with get() = direction
-        member this.NumRays with get () = numRays
+        member this.FracOfRay with get () = fracOfRay
         member this.Phase with get() = phase
         member this.Noise with get() = noise
 
