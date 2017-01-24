@@ -43,12 +43,12 @@ let Rmirror = 0.175<m>
 let Rbaffle = 0.176 //<m>
 let wavelength = WaveLength(1.064e-6<m>)
 let BeamWaist = 0.028<m>
-let nRepeat =  2
-let Nrays = 5000
-let particlesPerRay = 30
+let nRepeat =  1
+let Nrays = 1000
+let particlesPerRay = 5
 
 // Define the cylinder
-let t , Amplitude,Amplitude2 = [|(0.)..(1./5000.)..(1.50-1./5000.)|], Vector(0.,0.,0.075e-6) ,Vector(0.,0.075e-6,0.)  // Temporal series for the phase scan 20000
+let t , Amplitude,Amplitude2 = [|(0.)..(1./10000.)..(5.0-1./10000.)|], Vector(0.,0.,0.075e-6) ,Vector(0.,0.075e-6,0.)  // Temporal series for the phase scan 20000
 let Amplitude_big,Amplitude_big2 =  Vector(0.,0.,100.e-6), Vector(0.,100.e-6,0.)
 let noise = ([|(10.,Amplitude,0.);(10.,Amplitude2,(PI/7.))|] , t)    // (f,) 
 let noise_upconversion = ([|(5.,Amplitude_big,0.);(5.,Amplitude_big2,(PI/6.))|], t)
@@ -82,7 +82,8 @@ let NewRay (pos:Point) (normal:UnitVector) (sigma:float) (rMax:float) (nOfPartic
          OpticalPathTravelled = 0.<m>;
          NumBounces = 0.; bounces = [];
          MaxDispersions = 3.;
-         NumOfParticles = nOfParticles;
+         NumOfParticlesCreated = nOfParticles;
+         FracOfRay = 1.
          IndexOfRefraction = 1.
          PhaseModulation = [||]
     }
@@ -119,7 +120,7 @@ let all (i:int) (path_init:string)=
                 //Annular_Disc(baffle_imperfection2)
                 |]
 
-    [|1..Nrays|] |> Array.Parallel.iter(fun x -> ForwardRay(ray(),objs,mat,0) ) // ok, look like works
+    [|1..Nrays|] |> Array.iter(fun x -> ForwardRay(ray(),objs,mat,0) ) // ok, look like works -   Parallel
     //let i = 0
     //printfn "the iteration %d has ratios of:\nm2:%f\tm1:%f" i (float m2.Sensor.SavedData.Length /float m22.Sensor.SavedData.Length) (float  m1.Sensor.SavedData.Length/float m11.Sensor.SavedData.Length)
     printfn "the iteration %d has produced:\nm2:%d\tm1:%d\tBaffle:0X0" i (m2.Sensor.SavedData.Count) (m1.Sensor.SavedData.Count) //baffle_end.Disc.Sensor.SavedData.Count
@@ -198,7 +199,7 @@ let all (i:int) (path_init:string)=
 
 
 
-let path_base = Path.Combine( __SOURCE_DIRECTORY__, "notebooks/data_simple_tube/")
+let path_base = Path.Combine( __SOURCE_DIRECTORY__, "out/")
 //let path_init, i = path_base, 1
 //
 //      Run the many ray simulations

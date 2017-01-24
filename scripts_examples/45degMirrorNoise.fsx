@@ -36,8 +36,8 @@ let mat = dict(mout |> Array.map(fun x -> (x.MatName,x)))
 
 
 // define the noise on the scene
-let timestamp = [|(0.)..(1./1024.)..(2.)|]
-let fNoise = [|20.|]                            // Hz
+let timestamp = [|(0.)..(1./256.)..(2.)|]
+let fNoise = [|10.|]                            // Hz
 let phNoise  = 
     //let rndom = System.Random()
     //[|rndom.NextDouble()*6.30|]      // random phase
@@ -82,7 +82,6 @@ let dispersion_mirror = disc(dispersion_mirror_point,0.0051,UnitVector(0.,-1.,-1
 
 let sensor_point = Point(0.,-0.05,focusing_z)
 let sensor = disc(sensor_point,0.5,UnitVector(0.,1.,0.),"",Sensor(true,true),([| |],[||]))
-
 let sistema_2 = Array.append bilens [|Disc(sensor); Disc(mirror); Disc(dispersion_mirror)|]
 //
 //
@@ -99,10 +98,10 @@ let rn() = CollimatedRayWithNoise initphmod
 
 
 //////  //////  //////////////////////////////////////////////
-let Nrays = 5000
+let Nrays = 5//000
 // Ray tracingfafa
 #time
-[|1..Nrays|] |> Array.Parallel.iter(fun _ -> lock sensor.Sensor.SavedData (fun () -> ForwardRay(rn (),sistema_2,mat) ))
+[|1..Nrays|] |> Array.Parallel.iter(fun _ -> lock sensor.Sensor.SavedData (fun () -> ForwardRay(rn (),sistema_2,mat,0) ))
 //////  //////  /////////////////////////////////////////////
 
 (*
@@ -112,6 +111,42 @@ sensor.Sensor.SavedData.Count                                                   
 sensor.Sensor.SavedData.ToArray() |> Array.filter(fun x -> not(Array.isEmpty(x.Noise))) |> fun x -> x.Length
 *)
 
+//-----------------------// 
+//                       //
+//  saving file tests    //
+//   Write and Read      //
+//-----------------------//
+printfn " There are %d photons on the sensor" sensor.Sensor.SavedData.Count
+__SOURCE_DIRECTORY__
+let dir = Path.Combine(__SOURCE_DIRECTORY__, "test.dat")
+sensor.Sensor.SavedData.[0].FracOfRay
+// Write a file Line by line creating a format
+let writeLines (filePath:string) (data:seq<SensorContent>) =
+    //let dir = filePath
+    let sw = new StreamWriter(filePath)
+    sw.WriteLine("Fr Px Py Pz Ux Uy Yz Ph")
+    data |> Seq.iter(fun i -> sw.WriteLine(string(i.FracOfRay)+" "+string(i.Position.X)+" "+ string(i.Position.Y)+ " "+string(i.Position.Z)+ " "+string(i.Direction.X)+" "+ string(i.Direction.Y)+ " "+string(i.Direction.Z)+" "+string(i.Phase)))
+    sw.Close()
+
+writeLines dir (sensor.Sensor.SavedData)
+// Read a file line by line
+let readLines (filePath:string) = seq {
+    use sr = new StreamReader (filePath)       // open streamReader
+    while not sr.EndOfStream do
+        yield sr.ReadLine ()                   // Read a line
+    sr.Close()                                 // close streamReadder
+            }
+let inp = readLines dir
+let aaaa = (inp) |> Seq.map(fun x -> x.Split(' ') ) 
+           |> Seq.skip 2//fun x -> x.[2..x.Length-1]                            // The two first lines are the headers  
+           |> Seq.map(fun x -> x|> Seq.map(fun y -> float(y)))
+aaaa.[6]
+Seq.
+//-------------------// 
+//                   //
+//  Fourier tests    //
+//                   //
+//-------------------//
 let ASD_Photons (time:float[]) (snrs:Sensor) =
     // function to summ all the frequencies of all the photons
     let data = snrs.SavedData

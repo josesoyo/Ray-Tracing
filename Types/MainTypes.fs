@@ -42,7 +42,20 @@ module types =
                 // for NoiseAdd, I will need some function in order to sum the noise on the right frequency, but up to now, as a first step I am planning to use a single frequency
                 }
 
-    
+    // SourceType
+    type IsSPhere =
+          | IsSphere of (float)  // ROC positive is convex, negative is concave
+          | Other of string
+
+    type Source = { Position:Point;
+                    Direction:UnitVector;
+                    Diameter:float;
+                    waist:float;             // [m]
+                    Power:float ;            // [W]
+                    Label:string;
+                    IsSphere:IsSPhere       // Union type that contains (rad*diameter) or a string to say nothing               
+                    }
+
     // New intersection type created because I must know which one is the object when the intersected object is a sensor
     type Intersection = { normal:UnitVector; point:Point; ray:Ray;MatName:string;  t:float<m>}
 

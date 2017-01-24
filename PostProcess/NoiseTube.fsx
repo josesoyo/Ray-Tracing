@@ -40,8 +40,8 @@ let Nrays = 100
 // Define the cylinder
 let t , Amplitude = [|(0.)..(1./400.)..4.|], Vector(0.,0.,0.15e-6)   // Temporal series for the phase scan
 let Amplitude_big =  Vector(0.,0.,2e-6)
-let noise = ([|(10uy,Amplitude,0)|], t)    // (f,) 
-let noise_upconversion = ([|(10uy,Amplitude_big,0.)|], t)
+let noise = ([|(10.,Amplitude,0)|], t)    // (f,) 
+let noise_upconversion = ([|(10.,Amplitude_big,0.)|], t)
 let tube = cylinder(Rtube,Ltube,Point(0.,0.,0.),UnitVector(1.,0.,0.),"Tube", Sensor(), noise_upconversion)
 
 // define the mirrors
@@ -77,9 +77,10 @@ let NewRay (pos:Point) (normal:UnitVector) (sigma:float) (rMax:float) =
          from = rPos; uvec = rvect;
          MaxLength = infi;
          OpticalPathTravelled = 0.<m>;
-         NumBounces = 0uy; bounces = [];
-         MaxDispersions = 3uy;
-         NumOfParticles = 1;
+         NumBounces = 0.; bounces = [];
+         MaxDispersions = 3.;
+         NumOfParticlesCreated= 1;
+         FracOfRay = 1.;
          IndexOfRefraction = 1.
          PhaseModulation = [||]
     }
@@ -92,7 +93,7 @@ let path_save = @"Vibration1_sin_upconversion.txt"
 //File.WriteAllLines( path_save, [|"1.33";"3.522"|]) // check if the writting will be ok
 
 [|1..Nrays|] |> Array.iter(fun x -> printfn "\n\nNray\n\n"
-                                    ForwardRay(ray(),objs,mat) ) // ok, look like works
+                                    ForwardRay(ray(),objs,mat,0) ) // ok, look like works
 // Save the phase
 let ph = m2.Sensor.SavedData.[0].Noise |> Array.map(fun c -> string(c))
 

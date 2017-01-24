@@ -119,7 +119,7 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
 
             // 2nd - Shading
             // filter the rays that have been dispersed more times that the maximum allowable
-            let rays:Ray[] = ShadingForward( fst intersect, material,noise) |> Array.filter(fun x -> (x.NumBounces <= x.MaxDispersions && ray.FracOfRay > 1e-22))
+            let rays:Ray[] = ShadingForward( fst intersect, material,noise) |> Array.filter(fun x -> (x.NumBounces <= x.MaxDispersions && x.FracOfRay > 1e-09))
             // check that the number of dispersive reflections is not more than the expected
             match Array.isEmpty rays with
             | false ->
@@ -138,7 +138,7 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
             // 1st - Shading
 
             // filter the rays that have been dispersed more times that the maximum allowable
-            let rays:Ray[] = ShadingForward( fst intersect, material,noise) |> Array.filter(fun x -> (x.NumBounces <= x.MaxDispersions && ray.FracOfRay > 1e-22))
+            let rays:Ray[] = ShadingForward( fst intersect, material,noise) |> Array.filter(fun x -> (x.NumBounces <= x.MaxDispersions && x.FracOfRay > 1e-09))
 
             match Array.isEmpty rays with
             | false ->

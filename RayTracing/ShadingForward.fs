@@ -128,25 +128,15 @@ let transmission(intersection:Intersection, ior:float, fracOfRay:float, cos_inc0
 
 
 let RayProbabilityes(material:System.Collections.Generic.IDictionary<string,Material>,intersection:Intersection, cos_inc:float) =
-    // function created because it must be more complicated in the future
+    // Select from the material which one is the reflectivity, transmitivity and dispersion
+    // It is considered that the software works with FIELD, so we require the square root of the probability
+
+    let nmatname = RealMatName intersection.MatName cos_inc                     // case we are working with a material whose properties depends on the AOI
     
-    let nmatname = RealMatName intersection.MatName cos_inc
-    (*
-        match intersection.MatName with
-        | x when x.StartsWith("ANG_") ->
-            let angle = (acos(cos_inc)) 
-                        |> abs |> fun x -> (0.5*x/PI)*90. 
-                        |> round //|> int - non ce bisogno di utilizzare l'int, string gia e' in abastanza
-                        |> string
-            let nnn= x.[4..x.Length-1]+"_"+angle
-            printfn "the angle is:%f\nThe name is:%s" cos_inc nnn
-            nnn
-        | _ ->  
-            printfn "The name is:%s and there's no angle"  intersection.MatName
-            intersection.MatName
-    *)
+
     //printfn "the material is: %s" nmatname 
-    material.[nmatname].T, material.[nmatname].R, material.[nmatname].LambPPM
+    // Decision to work with Field amplitude, not power
+    sqrt(material.[nmatname].T), sqrt(material.[nmatname].R), sqrt(material.[nmatname].LambPPM)
     
 
 // Functions
@@ -155,7 +145,9 @@ let ShadingForward(intersection:Intersection,material:System.Collections.Generic
     let cos_inc_direct = intersection.normal*intersection.ray.uvec   // I set the cosinus considering that the ray direction is on the direction of the intersection
     match intersection.ray.FracOfRay with
     // just in case!
-    | n when n <= 0. -> [||]  
+    | n when n <= 0. -> 
+        //[||]  // not possible - Delete or failwith
+        failwithf "Not possible to have a fraction of a ray lower than zero\nThe current ray is:\n%+A" intersection.ray
     (*
     | n when n = 1 ->
        // Case when raytracing of a single ray
