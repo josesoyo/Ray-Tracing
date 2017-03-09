@@ -302,7 +302,7 @@ module Algebra =
                      )
 
                 (1./deter)*newM // return the transpose matrix
-                               
+
                                
 
   

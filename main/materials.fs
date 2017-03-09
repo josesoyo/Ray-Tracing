@@ -131,6 +131,10 @@ let mout = [|{MatName= "Mirror"; R=1.; T=0.;
                     n=(1.45003,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-6};
                 {MatName= "Suprasil3001_0bar_R"; R=1.; T=0.0;                               //     S
                     n=(1.45003,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-6};
+                {MatName= "Suprasil3001_0bar_T"; R=0.; T=1.0;                               //     S
+                    n=(1.45003,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-6};
+                {MatName= "Suprasil3001_0bar_ETM_R"; R=0.999999; T=0.000001;                               //     S
+                    n=(1.45003,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-6};
                 {MatName= "Herasil_0bar";  R=0.096; T=0.04;                             //    
                     n=(1.45012,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-6};
                 {MatName= "Herasil_0bar_SemiREFLECT";  R=0.5; T=0.5;                             //    

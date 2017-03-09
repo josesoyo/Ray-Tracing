@@ -8,7 +8,7 @@ let welch_method(data:float[],window:float[],overlap:int,fs:float) =
     // window -> Window for the method
     // windowl -< length of each window (not needed)
     // overlap -> overlap between 2 subdivisions
-    // fs -> max frequency to compute??
+    // fs -> max frequency to compute?? (not implemented)
     let winlen = window.Length              // size of each periodogram
     let step = winlen-overlap               // step between 2 periodograms
     let k = 1+(data.Length-winlen)/step     // number of sections to compute the periodogram
@@ -72,3 +72,8 @@ let PSD_WELCH(timeStamp:float[],data:float[],windowName:string,windowLengtht:int
     let PSD = welch_method(data,winds,overlap,fs)
     //printfn "are freq and PSD the same length?: %+A" (PSD.Length = frequencies.Length)
     (frequencies, PSD.[0..frequencies.Length-1])
+
+
+let ASD_WELCH(timeStamp:float[],data:float[],windowName:string,windowLengtht:int,overlap:int,fs:float)   =   
+    // return the ASD 
+    PSD_WELCH(timeStamp, data, windowName, windowLengtht ,overlap ,fs) |> fun (x, y) -> (x, y|> Array.map(fun asd -> sqrt(asd)))

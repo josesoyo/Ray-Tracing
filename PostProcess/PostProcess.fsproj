@@ -52,6 +52,7 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="waveproduct.fs" />
     <Compile Include="periodogram.fs" />
     <Compile Include="Noise.fs" />
     <None Include="NoiseTube.fsx" />

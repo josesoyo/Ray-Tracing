@@ -215,8 +215,8 @@ let ShadingForward(intersection:Intersection,material:System.Collections.Generic
                    | nt when nt > 0. -> 
 
                         let index_of_refraction = fst material.[intersection.MatName].n
-                        transmission(intersection, index_of_refraction, nt,cos_inc_direct) 
-                                       |> fun x ->  [|{x with PhaseModulation = PhaseModulation(x, intersection,noise) }|]
+                        [|transmission(intersection, index_of_refraction, nt,cos_inc_direct) |]   // no modulation when transmitted!!!!
+                                       //|> fun x ->  [|{x with PhaseModulation = PhaseModulation(x, intersection,noise) }|]
                    | _ -> [||]
 
         let rout = match nr with

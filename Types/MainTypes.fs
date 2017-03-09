@@ -45,18 +45,21 @@ module types =
     // SourceType
     type IsSPhere =
           | IsSphere of (float)  // ROC positive is convex, negative is concave
-          | Other of string
+          | Other of string //Other of string
 
     type Source = { Position:Point;
                     Direction:UnitVector;
                     Diameter:float;
-                    waist:float;             // [m]
+                    Waist:float;             // [m]
+                    Radius_beam:float;       // [m] radius of the beam
                     Power:float ;            // [W]
                     Label:string;
-                    IsSphere:IsSPhere       // Union type that contains (rad*diameter) or a string to say nothing               
+                    IsSphere:IsSPhere        // Union type that contains (rad*diameter) or a string to say nothing 
+                    RadiusOfCurvature:float  // [m] RoC of the gaussian beam      -> to compute the phase out of the centre
+                    Phase:float              // accumulated phase [accumulated + Guoy]        
                     }
 
-    // New intersection type created because I must know which one is the object when the intersected object is a sensor
+    // New intersection type created because I must know which one is the object when the intersected object fsharp a sensor
     type Intersection = { normal:UnitVector; point:Point; ray:Ray;MatName:string;  t:float<m>}
 
     let RealMatName (raw_Material_Name:string) (cos_inc:float) = 

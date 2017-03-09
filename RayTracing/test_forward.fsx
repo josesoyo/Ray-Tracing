@@ -28,9 +28,10 @@ let r = {
          from = Point(0.,00.00,0.0); uvec = UnitVector(1.,0.,0.);
          MaxLength = infi;
          OpticalPathTravelled = 0.<m>;
-         NumBounces = 0uy; bounces = [];
-         MaxDispersions = 1uy;
-         NumOfParticles = 10;
+         NumBounces = 0.; bounces = [];
+         MaxDispersions = 1.;
+         NumOfParticlesCreated = 1;
+         FracOfRay = 1.;
          IndexOfRefraction = 1.
          PhaseModulation = [||]
         }
@@ -53,14 +54,14 @@ let manyRays = [|0..1000000|]   // generate some rays on different directions fr
 //                               ({r with uvec=UnitVector(1., rnd.NextDouble(), rnd.NextDouble()); from = Point(0.,pos.[0],pos.[1])})
 //                               |> ( fun x -> ForwardRay(x,objs,mat))
 //                      )
-manyRays|> Array.map( fun x -> ForwardRay(x,objs,mat))
+manyRays|> Array.map( fun x -> ForwardRay(x,objs,mat, 0))
 //manyRays |> Array.iter( fun x -> ForwardRay(x,objs,mat)) // 
 #time
 let data =
     match (objs.[1]) with
     | Disc x -> let vox = {Pmin = Point(-x.Radius,-x.Radius,0.); Pmax = Point(x.Radius,x.Radius,0.)}
-                x.Sensor.SavedData,vox,x.Normal, x.Centre, x.Radius , 450, 450
-let _, _, uv,pt,rd,_ ,_= data
+                x.Sensor.SavedData,x.Normal, x.Centre, x.Radius , 450, 450
+let _,  uv,pt,rd,_ ,_= data
 
 manyRays.Length
 printfn "ciao"
@@ -113,14 +114,14 @@ let manyRay2 = [|0..10000|]   // generate some rays on different directions from
 //                               |> ( fun x -> ForwardRay(x,objs,mat))
 //                      )
 manyRay2.Length
-manyRay2|> Array.iter( fun x -> ForwardRay(x,objs2,mat))
+manyRay2|> Array.iter( fun x -> ForwardRay(x,objs2,mat, 0))
 //let nr = [|({r with uvec=UnitVector(1., 0., 0.); from = Point(0.,0.,0.)})|]
 //nr|> Array.iter( fun x -> ForwardRay(x,objs2,mat))
 let data2 =
-    match (objs2.[1]) with
+    match (objs2.[3]) with
     | Disc x -> let vox = {Pmin = Point(-x.Radius,-x.Radius,0.); Pmax = Point(x.Radius,x.Radius,0.)}
-                x.Sensor.SavedData,vox,x.Normal, x.Centre, x.Radius , 450, 450
-let dat, _, uv2,pt2,rd2,_ ,_= data2
+                x.Sensor.SavedData,x.Normal, x.Centre, x.Radius , 450, 450
+let dat,  uv2,pt2,rd2,_ ,_= data2
 
 
 dat.Count
@@ -163,15 +164,15 @@ let manyRay3 = [|0..2000|]   // generate some rays on different directions from 
 
 manyRay3.[2].from
 #time
-manyRay3|> Array.iter( fun x -> ForwardRay(x,objs3,mat))
+manyRay3|> Array.iter( fun x -> ForwardRay(x,objs3,mat,0 ))
 //sdisc.Sensor.SavedData.Length
 
 // plot it
 let data3 =
     match (objs3.[1]) with
     | Disc x -> let vox = {Pmin = Point(-x.Radius,-x.Radius,0.); Pmax = Point(x.Radius,x.Radius,0.)}
-                x.Sensor.SavedData,vox,x.Normal, x.Centre, x.Radius , 450, 450
-let dat3, _, uv3,pt3,rd3,_ ,_= data3
+                x.Sensor.SavedData,x.Normal, x.Centre, x.Radius , 450, 450
+let dat3, uv3,pt3,rd3,_ ,_= data3
 
 let snsrs3 = CreateImage_Points_from_disk(data3)
 //let pa = Path.Combine( __SOURCE_DIRECTORY__,"test.png")

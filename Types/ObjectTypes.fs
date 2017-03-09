@@ -465,6 +465,9 @@ module ObjectTypes=
         new (p0:Point, xLength:float,yLength:float,zLength:float, axis,up:UnitVector,origin, materialName) =
             let pmax = p0.MoveAndCreateNew(Point(xLength,yLength,zLength))
             box(p0,pmax, axis,up, origin, materialName,Sensor(),([||],[||]))
+        new (p0:Point, xLength:float,yLength:float,zLength:float, axis,up:UnitVector,origin, materialName,nois) =
+            let pmax = p0.MoveAndCreateNew(Point(xLength,yLength,zLength))
+            box(p0,pmax, axis,up, origin, materialName,Sensor(),nois)
 
 
 
