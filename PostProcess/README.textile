@@ -2,6 +2,6 @@ Postprocessing Library
 
 This part of the code has been designed to perform all the required analysis that will be done after the ray tracing finishes.
 
-Currently it contains some routines to compute the PSD. That can be computed directly from the definition and using the welch method with periodograms.
+Currently it contains some routines to compute PSD or ASD of the phase change or sensitivity equivalent for a michelson gravitational wave interferometer. That can be computed directly from the definition and using the welch method with periodograms.
 
-Also it contains some functions to compute the noise based on Vinet's paper from 1997.
+Also it contains some functions to compute the noise based on Vinet's paper from 1997 is we analyze a similar system.
