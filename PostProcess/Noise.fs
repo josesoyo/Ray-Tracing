@@ -396,7 +396,7 @@ module Noise =
                                          
 
 
-        let ur, ul, dr, dl = path_save.Replace(".dat", "UR."), path_save.Replace(".dat", "UL."), path_save.Replace(".dat", "DR."), path_save.Replace(".dat", "DL.")
+        let ur, ul, dr, dl = path_save.Replace(".dat", "UR.dat"), path_save.Replace(".dat", "UL.dat"), path_save.Replace(".dat", "DR.dat"), path_save.Replace(".dat", "DL.dat")
         File.WriteAllLines( ur, (frequencies, suum_UL) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
         File.WriteAllLines( ul, (frequencies, suum_UL) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
         File.WriteAllLines( dr, (frequencies, suum_DR) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
@@ -548,7 +548,7 @@ module Noise =
 
 
 
-        let ur, ul, dr, dl = path_save.Replace(".dat", "UR."), path_save.Replace(".dat", "UL."), path_save.Replace(".dat", "DR."), path_save.Replace(".dat", "DL.")
+        let ur, ul, dr, dl = path_save.Replace(".dat", "UR.dat"), path_save.Replace(".dat", "UL.dat"), path_save.Replace(".dat", "DR.dat"), path_save.Replace(".dat", "DL.dat")
         File.WriteAllLines( ur, (frequencies, suum_UL) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
         File.WriteAllLines( ul, (frequencies, suum_UL) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
         File.WriteAllLines( dr, (frequencies, suum_DR) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
