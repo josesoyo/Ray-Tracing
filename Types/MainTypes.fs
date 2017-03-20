@@ -53,6 +53,7 @@ module types =
                     Waist:float;             // [m]
                     Radius_beam:float;       // [m] radius of the beam
                     Power:float ;            // [W]
+                    Dispersion:float;        // fraction of dispersed light
                     Label:string;
                     IsSphere:IsSPhere        // Union type that contains (rad*diameter) or a string to say nothing 
                     RadiusOfCurvature:float  // [m] RoC of the gaussian beam      -> to compute the phase out of the centre

@@ -186,84 +186,92 @@ module Noise =
         File.WriteAllLines( path_save, phs |> Array.map(fun x -> string(x)) )
 
 
-    let Phase_NoiseAlone (dsc:disc,  windowLengtht:int, path_save:string) = //(roc:float) (waist:float) (diameter:float) (pw:float) =
+    let Phase_NoiseAlone (dsc:disc, dsp_orig:float, windowLengtht:int, path_save:string) = //(roc:float) (waist:float) (diameter:float) (pw:float) =
         // compute the total phase change produced by the photons impinging on the detector
         //let dsc = match obj with Disc x -> x | _ -> failwith "the sensor should be a disc sensor"
         let snrs = dsc.Sensor
         let timeStamps = snd dsc.Noise                                                                // the Noise works a: ((frequency, Amplitude,phase)[], t_sampling)
         let frequencies = (1./(timeStamps.[windowLengtht-1]-timeStamps.[0]), 0.5/(timeStamps.[1]-timeStamps.[0])) 
                           ||> fun freqMin freqMax -> [|(0.)..(freqMin)..freqMax|] //       define the frequencies 
+        let sqr_disp0 = sqrt(dsp_orig)                                              // the Noise works a: ((frequency, Amplitude,phase)[], t_sampling)
 
         // I need to iter the values of the sensor, multiply dotprod*noise(freq) and sum them
-        let suum =
-            match (snrs.SavedData.Count) with
-            | y when y>0 ->    
-                snrs.SavedData                                                                            // read the sensor info
-                |> Seq.map( fun x ->
-                               let _ , asd = 
-                                    match x.Noise.Length with
-                                    | z when z > 0 ->
-                                        ASD_WELCH(timeStamps,x.Noise|> Array.map(fun y -> sin(y+x.Phase)),    // consider the dinamic and the static phase
-                                                  "Hann",windowLengtht, windowLengtht/2, 0.)
-                                    | _ -> (Array.zeroCreate<float> frequencies.Length , Array.zeroCreate<float> frequencies.Length )
-                               asd                                                                        // return the total phase change at the defined frequency
-                            )
+        //let suum =
+        match (snrs.SavedData.Count) with
+        | y when y>0 ->    
+            snrs.SavedData                                                                            // read the sensor info
+            |> Seq.map( fun x ->
+                            let asd = 
+                                match x.Noise.Length with
+                                | z when z > 0 ->
+                                    ASD_WELCH(timeStamps,x.Noise|> Array.map(fun y -> sin(y+x.Phase)),    // consider the dinamic and the static phase
+                                                "Hann",windowLengtht, windowLengtht/2, 0.)
+                                    ||> Array.map2(fun _ y -> y*x.FracOfRay*sqr_disp0)
+                                | _ -> (Array.zeroCreate<float> frequencies.Length )
+                            asd                                                                        // return the total phase change at the defined frequency
+                        )
                           
-                |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                    let noiseSummed =
-                        [|0..((allNoise) |> Seq.head).Length-1|] 
-                        |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                    noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            | y when y<= 0 ->   Array.zeroCreate<float> frequencies.Length                                   
+            |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
+                let noiseSummed =
+                    [|0..((allNoise) |> Seq.head).Length-1|] 
+                    |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
+                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
+            // save the file
+            |> fun suum -> File.WriteAllLines( path_save, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) )    
+        // if there are no rays on the detector, do not save a file
+        | y when y<= 0 ->  'c' |> ignore// Array.zeroCreate<float> frequencies.Length                                   
 
-        File.WriteAllLines( path_save, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
 
 
 
-    let PhaseChange (dsc:disc, src:Source, windowLengtht:int, path_save:string) = //(roc:float) (waist:float) (diameter:float) (pw:float) =
+    let PhaseChange (dsc:disc, src:Source, dsp_orig:float, windowLengtht:int, path_save:string) = //(roc:float) (waist:float) (diameter:float) (pw:float) =
         // compute the total phase change produced by the photons impinging on the detector
         //let dsc = match obj with Disc x -> x | _ -> failwith "the sensor should be a disc sensor"
         let snrs = dsc.Sensor
-        let timeStamps = snd dsc.Noise                                                                // the Noise works a: ((frequency, Amplitude,phase)[], t_sampling)
+        let inv_sqrt_power_at_surface = 1./sqrt(src.Power)
+        let timeStamps = snd dsc.Noise    
+        let sqr_disp0 = sqrt(dsp_orig)                                              // the Noise works a: ((frequency, Amplitude,phase)[], t_sampling)
         //let windowLengtht = 
         // I need to iter the values of the sensor, multiply dotprod*noise(freq) and sum them
         let frequencies = (1./(timeStamps.[windowLengtht-1]-timeStamps.[0]), 0.5/(timeStamps.[1]-timeStamps.[0])) 
                           ||> fun freqMin freqMax -> [|(0.)..(freqMin)..freqMax|] //       define the frequencies 
-        let suum =
-            match (snrs.SavedData.Count) with
-            | y when y>0 ->                                                                                     // read the sensor info 
-                snrs.SavedData
-                |> Seq.map( fun x ->
-                                let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                   // dot product, phase_gauss_meters
-                                let _ , asd = 
-                                    match x.Noise.Length with
-                                    | z when z > 0 ->
-                                        ASD_WELCH(timeStamps,x.Noise|> Array.map(fun y -> sin(y+x.Phase+ph_gauss_met)),    // consider the dinamic and the static phase
-                                                  "Hann",windowLengtht, windowLengtht/2, 0.)
-                                    | _ -> (Array.zeroCreate<float> frequencies.Length , Array.zeroCreate<float> frequencies.Length )
-                                let abcd = 'c'
-                                asd |> Array.map(fun x -> x*dotprod)                                            // return the total phase change at the defined frequency
-                            )
+        //let suum =
+        match (snrs.SavedData.Count) with
+        | y when y>0 ->                                                                                     // read the sensor info 
+            snrs.SavedData
+            |> Seq.map( fun x ->
+                            let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                   // dot product, phase_gauss_meters
+                            let _ , asd = 
+                                match x.Noise.Length with
+                                | z when z > 0 ->
+                                    ASD_WELCH(timeStamps,x.Noise|> Array.map(fun y -> sin(y+x.Phase+ph_gauss_met)),    // consider the dinamic and the static phase
+                                                "Hann",windowLengtht, windowLengtht/2, 0.)
+                                | _ -> (Array.zeroCreate<float> frequencies.Length , Array.zeroCreate<float> frequencies.Length )
+                                
+                            asd |> Array.map(fun x -> x*dotprod*sqr_disp0*inv_sqrt_power_at_surface)                   // return the total phase change at the defined frequency
+                        )
                           
-                |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                    let noiseSummed =
-                        [|0..((allNoise) |> Seq.head).Length-1|] 
-                        |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                    noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            | y when y<= 0 ->   Array.zeroCreate<float> frequencies.Length                                   
+            |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
+                let noiseSummed =
+                    [|0..((allNoise) |> Seq.head).Length-1|] 
+                    |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
+                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
+            |> fun suum -> File.WriteAllLines( path_save, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
+        | y when y<= 0 ->  'c' |> ignore // Array.zeroCreate<float> frequencies.Length                                   
 
-        File.WriteAllLines( path_save, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
 
 
 
         
 
-    let PhaseChange_QPD (dsc:disc , src:Source, windowLengtht:int , path_save:string) = //(roc:float) (waist:float) (diameter:float) (pw:float) =
+    let PhaseChange_QPD (dsc:disc , src:Source, dsp_orig:float, windowLengtht:int , path_save:string) = //(roc:float) (waist:float) (diameter:float) (pw:float) =
         // compute the total phase change produced by the photons impinging on a quadrant photodetector
         // it divides the space on the centre on the 4 quadrants and returns the phase for each quadrant
         //let dsc = match obj with Disc x -> x | _ -> failwith "the sensor should be a disc sensor"
+        let inv_sqrt_power_at_surface = 1./sqrt(src.Power)
         let snrs = dsc.Sensor
-        let timeStamps = snd dsc.Noise                                                                // the Noise works a: ((frequency, Amplitude,phase)[], t_sampling)
+        let timeStamps = snd dsc.Noise                                               // the Noise works a: ((frequency, Amplitude,phase)[], t_sampling)
+        let sqr_disp0 = sqrt(dsp_orig)                    
         //let windowLengtht = 
         // I need to iter the values of the sensor, multiply dotprod*noise(freq) and sum them
         // from global to local coordinates
@@ -281,138 +289,136 @@ module Noise =
         let frequencies = (1./(timeStamps.[windowLengtht-1]-timeStamps.[0]), 0.5/(timeStamps.[1]-timeStamps.[0])) 
                           ||> fun freqMin freqMax -> [|(0.)..(freqMin)..freqMax|] //       define the frequencies 
 
+        let ur, ul, dr, dl = path_save.Replace(".dat", "UR.dat"), path_save.Replace(".dat", "UL.dat"), path_save.Replace(".dat", "DR.dat"), path_save.Replace(".dat", "DL.dat")
         //
         //  Upper side of the sensor
         //
-        let suum_UR =
-          match (snrs.SavedData.Count) with
-            | y when y>0 ->                                                                               // read the sensor info 
-                snrs.SavedData                                                                                        // read the sensor info
-                |> Seq.filter(fun p -> //  filter to create the upper left
-                                       let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
-                                       if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
-                                       (p_local.X > 0. && p_local.Y > 0.)
-                                )                                             
-                |> Seq.map( fun x ->
-                                let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                        // dot product, phase_gauss_meters
-                                let _ , asd = 
-                                    match x.Noise.Length with
-                                    | z when z > 0 ->
-                                        ASD_WELCH(timeStamps,x.Noise|> Array.map(fun y -> sin(y+x.Phase+ph_gauss_met)),    // consider the dinamic and the static phase
-                                                  "Hann",windowLengtht, windowLengtht/2, 0.)
-                                    | _ -> (Array.zeroCreate<float> frequencies.Length , Array.zeroCreate<float> frequencies.Length )
-                                asd |> Array.map(fun x -> x*dotprod)                                                  // return the total phase change at the defined frequency
-                            )
+        //let suum_UR =
+        match (snrs.SavedData.Count) with
+        | y when y>0 -> 
+            //                            //
+            //  upper side of the sensor  //
+            //                            //
+                                                                                          // read the sensor info 
+            //  UR  //
+            snrs.SavedData                                                                                        // read the sensor info
+            |> Seq.filter(fun p -> //  filter to create the upper left
+                                    let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
+                                    if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
+                                    (p_local.X > 0. && p_local.Y > 0.)
+                            )                                             
+            |> Seq.map( fun x ->
+                            let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                        // dot product, phase_gauss_meters
+                            let _ , asd = 
+                                match x.Noise.Length with
+                                | z when z > 0 ->
+                                    ASD_WELCH(timeStamps,x.Noise|> Array.map(fun y -> sin(y+x.Phase+ph_gauss_met)),    // consider the dinamic and the static phase
+                                                "Hann",windowLengtht, windowLengtht/2, 0.)
+                                | _ -> (Array.zeroCreate<float> frequencies.Length , Array.zeroCreate<float> frequencies.Length )
+                            asd |> Array.map(fun x -> x*dotprod*sqr_disp0*inv_sqrt_power_at_surface)                                            // return the total phase change at the defined frequency
+                        )
                           
-                |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                    let noiseSummed =
-                        [|0..((allNoise) |> Seq.head).Length-1|] 
-                        |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                    noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            | y when y<= 0 ->   Array.zeroCreate<float> frequencies.Length                                   
+            |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
+                let noiseSummed =
+                    [|0..((allNoise) |> Seq.head).Length-1|] 
+                    |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
+                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
+            |> fun suum_UR -> File.WriteAllLines( ur, (frequencies, suum_UR) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
  
-        let suum_UL =
-          match (snrs.SavedData.Count) with
-            | y when y>0 ->                                                                               // read the sensor info 
-                snrs.SavedData                                                                                        // read the sensor info
-                |> Seq.filter(fun p -> //  filter to create the upper left
-                                       let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
-                                       if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
-                                       (p_local.X <= 0. && p_local.Y > 0.)
-                                )                                             
-                |> Seq.map( fun x ->
-                                let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                        // dot product, phase_gauss_meters
-                                let _ , asd = 
-                                    match x.Noise.Length with
-                                    | z when z > 0 ->
-                                        ASD_WELCH(timeStamps,x.Noise|> Array.map(fun y -> sin(y+x.Phase+ph_gauss_met)),    // consider the dinamic and the static phase
-                                                  "Hann",windowLengtht, windowLengtht/2, 0.)
-                                    | _ -> (Array.zeroCreate<float> frequencies.Length , Array.zeroCreate<float> frequencies.Length )
-                                asd |> Array.map(fun x -> x*dotprod)                                                  // return the total phase change at the defined frequency
-                            )
+            //  UL  //
+            snrs.SavedData                                                                                        // read the sensor info
+            |> Seq.filter(fun p -> //  filter to create the upper left
+                                    let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
+                                    if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
+                                    (p_local.X <= 0. && p_local.Y > 0.)
+                            )                                             
+            |> Seq.map( fun x ->
+                            let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                        // dot product, phase_gauss_meters
+                            let _ , asd = 
+                                match x.Noise.Length with
+                                | z when z > 0 ->
+                                    ASD_WELCH(timeStamps,x.Noise|> Array.map(fun y -> sin(y+x.Phase+ph_gauss_met)),    // consider the dinamic and the static phase
+                                                "Hann",windowLengtht, windowLengtht/2, 0.)
+                                | _ -> (Array.zeroCreate<float> frequencies.Length , Array.zeroCreate<float> frequencies.Length )
+                            asd |> Array.map(fun x -> x*dotprod*sqr_disp0*inv_sqrt_power_at_surface)                                             // return the total phase change at the defined frequency
+                        )
                           
-                |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                    let noiseSummed =
-                        [|0..((allNoise) |> Seq.head).Length-1|] 
-                        |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                    noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            | y when y<= 0 ->   Array.zeroCreate<float> frequencies.Length                                   
-        //
-        //  Lower side of the sensor
-        //
-        let suum_DR =
-          match (snrs.SavedData.Count) with
-            | y when y>0 ->                                                                               // read the sensor info 
-                snrs.SavedData                                                                                        // read the sensor info
-                |> Seq.filter(fun p -> //  filter to create the upper left
-                                       let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
-                                       if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
-                                       (p_local.X > 0. && p_local.Y <= 0.)
-                                )                                             
-                |> Seq.map( fun x ->
-                                let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                        // dot product, phase_gauss_meters
-                                let _ , asd = 
-                                    match x.Noise.Length with
-                                    | z when z > 0 ->
-                                        ASD_WELCH(timeStamps,x.Noise|> Array.map(fun y -> sin(y+x.Phase+ph_gauss_met)),    // consider the dinamic and the static phase
-                                                  "Hann",windowLengtht, windowLengtht/2, 0.)
-                                    | _ -> (Array.zeroCreate<float> frequencies.Length , Array.zeroCreate<float> frequencies.Length )
-                                asd |> Array.map(fun x -> x*dotprod)                                                  // return the total phase change at the defined frequency
-                            )
+            |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
+                let noiseSummed =
+                    [|0..((allNoise) |> Seq.head).Length-1|] 
+                    |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
+                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
+            |> fun suum_UL -> File.WriteAllLines( ul, (frequencies, suum_UL) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
+        
+            //                            //
+            //  Lower side of the sensor  //
+            //                            //
+            
+
+            //  DR  //                                    
+            snrs.SavedData                                                    // read the sensor info
+            |> Seq.filter(fun p -> //  filter to create the upper left
+                                    let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
+                                    if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
+                                    (p_local.X > 0. && p_local.Y <= 0.)
+                            )                                             
+            |> Seq.map( fun x ->
+                            let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                        // dot product, phase_gauss_meters
+                            let _ , asd = 
+                                match x.Noise.Length with
+                                | z when z > 0 ->
+                                    ASD_WELCH(timeStamps,x.Noise|> Array.map(fun y -> sin(y+x.Phase+ph_gauss_met)),    // consider the dinamic and the static phase
+                                                "Hann",windowLengtht, windowLengtht/2, 0.)
+                                | _ -> (Array.zeroCreate<float> frequencies.Length , Array.zeroCreate<float> frequencies.Length )
+                            asd |> Array.map(fun x -> x*dotprod*sqr_disp0*inv_sqrt_power_at_surface)                                                  // return the total phase change at the defined frequency
+                        )
                           
-                |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                    let noiseSummed =
-                        [|0..((allNoise) |> Seq.head).Length-1|] 
-                        |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                    noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            | y when y<= 0 ->   Array.zeroCreate<float> frequencies.Length                                   
-        let suum_DL =
-          match (snrs.SavedData.Count) with
-            | y when y>0 ->                                                                               // read the sensor info 
-                snrs.SavedData                                                                                        // read the sensor info
-                |> Seq.filter(fun p -> //  filter to create the upper left
-                                       let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
-                                       if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
-                                       (p_local.X <= 0. && p_local.Y <= 0.)
-                                )                                             
-                |> Seq.map( fun x ->
-                                let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                        // dot product, phase_gauss_meters
-                                let _ , asd = 
-                                    match x.Noise.Length with
-                                    | z when z > 0 ->
-                                        ASD_WELCH(timeStamps,x.Noise|> Array.map(fun y -> sin(y+x.Phase+ph_gauss_met)),    // consider the dinamic and the static phase
-                                                  "Hann",windowLengtht, windowLengtht/2, 0.)
-                                    | _ -> (Array.zeroCreate<float> frequencies.Length , Array.zeroCreate<float> frequencies.Length )
+            |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
+                let noiseSummed =
+                    [|0..((allNoise) |> Seq.head).Length-1|] 
+                    |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
+                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
+            |> fun suum_DR -> File.WriteAllLines( dr, (frequencies, suum_DR) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
 
-                                asd |> Array.map(fun x -> x*dotprod)                                                  // return the total phase change at the defined frequency
-                            )
+            //  DL  //                                                                  
+            snrs.SavedData                                                                                        // read the sensor info
+            |> Seq.filter(fun p -> //  filter to create the upper left
+                                    let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
+                                    if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
+                                    (p_local.X <= 0. && p_local.Y <= 0.)
+                            )                                             
+            |> Seq.map( fun x ->
+                            let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                        // dot product, phase_gauss_meters
+                            let _ , asd = 
+                                match x.Noise.Length with
+                                | z when z > 0 ->
+                                    ASD_WELCH(timeStamps,x.Noise|> Array.map(fun y -> sin(y+x.Phase+ph_gauss_met)),    // consider the dinamic and the static phase
+                                                "Hann",windowLengtht, windowLengtht/2, 0.)
+                                | _ -> (Array.zeroCreate<float> frequencies.Length , Array.zeroCreate<float> frequencies.Length )
+
+                            asd |> Array.map(fun x -> x*dotprod*sqr_disp0*inv_sqrt_power_at_surface)                                                  // return the total phase change at the defined frequency
+                        )
                           
-                |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                    let noiseSummed =
-                        [|0..((allNoise) |> Seq.head).Length-1|] 
-                        |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                    noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            | y when y<= 0 ->   Array.zeroCreate<float> frequencies.Length                                   
-                                         
-
-
-        let ur, ul, dr, dl = path_save.Replace(".dat", "UR.dat"), path_save.Replace(".dat", "UL.dat"), path_save.Replace(".dat", "DR.dat"), path_save.Replace(".dat", "DL.dat")
-        File.WriteAllLines( ur, (frequencies, suum_UL) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
-        File.WriteAllLines( ul, (frequencies, suum_UL) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
-        File.WriteAllLines( dr, (frequencies, suum_DR) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
-        File.WriteAllLines( dl, (frequencies, suum_DL) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
-
-
-
+            |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
+                let noiseSummed =
+                    [|0..((allNoise) |> Seq.head).Length-1|] 
+                    |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
+                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
+            |> fun suum_DL -> File.WriteAllLines( dl, (frequencies, suum_DL) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
+        // if there are no photons impinging the sensor, then do not create files
+        | y when y<= 0 ->   'c' |> ignore //Array.zeroCreate<float> frequencies.Length                                   
 
         
 
-    let PhaseChange_QPD_decentre (dsc:disc , src:Source ,windowLengtht:int , dx:float , dy:float , path_save:string) = //(roc:float) (waist:float) (diameter:float) (pw:float) =
+    let PhaseChange_QPD_decentre (dsc:disc , src:Source, dsp_orig:float ,windowLengtht:int , dx:float , dy:float , path_save:string) = //(roc:float) (waist:float) (diameter:float) (pw:float) =
         // compute the total phase change produced by the photons impinging on a quadrant photodetector
         // it divides the space on the centre on the 4 quadrants and returns the phase for each quadrant
         //let dsc = match obj with Disc x -> x | _ -> failwith "the sensor should be a disc sensor"
+        let inv_sqrt_power_at_surface = 1./sqrt(src.Power)
         let snrs = dsc.Sensor
         let timeStamps = snd dsc.Noise                                                                // the Noise works a: ((frequency, Amplitude,phase)[], t_sampling)
+        let sqr_disp0 = sqrt(dsp_orig)                    
+
         //let windowLengtht = 
         // I need to iter the values of the sensor, multiply dotprod*noise(freq) and sum them
         // from global to local coordinates
@@ -430,135 +436,130 @@ module Noise =
                           ||> fun freqMin freqMax -> [|(0.)..(freqMin)..freqMax|] //       define the frequencies 
         
 
+        let ur, ul, dr, dl = path_save.Replace(".dat", "UR.dat"), path_save.Replace(".dat", "UL.dat"), path_save.Replace(".dat", "DR.dat"), path_save.Replace(".dat", "DL.dat")
         //
         //  Upper side of the sensor
         //
-        let suum_UR =
-          match (snrs.SavedData.Count) with
-            | y when y>0 ->                                                                               // read the sensor info 
-                snrs.SavedData                                                                                        // read the sensor info
-                |> Seq.filter(fun p -> //  filter to create the upper left
-                                       let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
-                                       if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
-                                       (p_local.X > dx  && p_local.Y > dy )
-                                )                                             
-                |> Seq.map( fun x ->
-                                let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                        // dot product, phase_gauss_meters
-                                let _ , asd = 
-                                    match x.Noise.Length with
-                                    | z when z > 0 ->
-                                        ASD_WELCH(timeStamps,x.Noise|> Array.map(fun y -> sin(y+x.Phase+ph_gauss_met)),    // consider the dinamic and the static phase
-                                                  "Hann",windowLengtht, windowLengtht/2, 0.)
-                                    | _ -> (Array.zeroCreate<float> frequencies.Length , Array.zeroCreate<float> frequencies.Length )
-
-                                asd |> Array.map(fun x -> x*dotprod)                                                  // return the total phase change at the defined frequency
-                            )
+        //let suum_UR =
+        match (snrs.SavedData.Count) with
+        | y when y>0 -> 
+            //                            //
+            //  upper side of the sensor  //
+            //                            //
+                                                                                          // read the sensor info 
+            //  UR  //
+            snrs.SavedData                                                                                        // read the sensor info
+            |> Seq.filter(fun p -> //  filter to create the upper left
+                                    let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
+                                    if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
+                                    (p_local.X > dx && p_local.Y > dy)
+                            )                                             
+            |> Seq.map( fun x ->
+                            let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                        // dot product, phase_gauss_meters
+                            let _ , asd = 
+                                match x.Noise.Length with
+                                | z when z > 0 ->
+                                    ASD_WELCH(timeStamps,x.Noise|> Array.map(fun y -> sin(y+x.Phase+ph_gauss_met)),    // consider the dinamic and the static phase
+                                                "Hann",windowLengtht, windowLengtht/2, 0.)
+                                | _ -> (Array.zeroCreate<float> frequencies.Length , Array.zeroCreate<float> frequencies.Length )
+                            asd |> Array.map(fun x -> x*dotprod*sqr_disp0*inv_sqrt_power_at_surface)                                                  // return the total phase change at the defined frequency
+                        )
                           
-                |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                    let noiseSummed =
-                        [|0..((allNoise) |> Seq.head).Length-1|] 
-                        |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                    noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            | y when y<= 0 ->   Array.zeroCreate<float> frequencies.Length                                   
-        let suum_UL =
-          match (snrs.SavedData.Count) with
-            | y when y>0 ->                                                                               // read the sensor info 
-                snrs.SavedData                                                                                        // read the sensor info
-                |> Seq.filter(fun p -> //  filter to create the upper left
-                                       let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
-                                       if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
-                                       (p_local.X <= dx && p_local.Y > dy)
-                                )                                             
-                |> Seq.map( fun x ->
-                                let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                        // dot product, phase_gauss_meters
-                                let _ , asd = 
-                                    match x.Noise.Length with
-                                    | z when z > 0 ->
-                                        ASD_WELCH(timeStamps,x.Noise|> Array.map(fun y -> sin(y+x.Phase+ph_gauss_met)),    // consider the dinamic and the static phase
-                                                  "Hann",windowLengtht, windowLengtht/2, 0.)
-                                    | _ -> (Array.zeroCreate<float> frequencies.Length , Array.zeroCreate<float> frequencies.Length )
-
-                                asd |> Array.map(fun x -> x*dotprod)                                                  // return the total phase change at the defined frequency
-                            )
+            |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
+                let noiseSummed =
+                    [|0..((allNoise) |> Seq.head).Length-1|] 
+                    |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
+                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
+            |> fun suum_UR -> File.WriteAllLines( ur, (frequencies, suum_UR) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
+ 
+            //  UL  //
+            snrs.SavedData                                                                                        // read the sensor info
+            |> Seq.filter(fun p -> //  filter to create the upper left
+                                    let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
+                                    if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
+                                    (p_local.X <= dx && p_local.Y > dy)
+                            )                                             
+            |> Seq.map( fun x ->
+                            let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                        // dot product, phase_gauss_meters
+                            let _ , asd = 
+                                match x.Noise.Length with
+                                | z when z > 0 ->
+                                    ASD_WELCH(timeStamps,x.Noise|> Array.map(fun y -> sin(y+x.Phase+ph_gauss_met)),    // consider the dinamic and the static phase
+                                                "Hann",windowLengtht, windowLengtht/2, 0.)
+                                | _ -> (Array.zeroCreate<float> frequencies.Length , Array.zeroCreate<float> frequencies.Length )
+                            asd |> Array.map(fun x -> x*dotprod*sqr_disp0*inv_sqrt_power_at_surface)                                                  // return the total phase change at the defined frequency
+                        )
                           
-                |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                    let noiseSummed =
-                        [|0..((allNoise) |> Seq.head).Length-1|] 
-                        |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                    noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            | y when y<= 0 ->   Array.zeroCreate<float> frequencies.Length                                   
-        //
-        //  Lower side of the sensor
-        //
-        let suum_DR =
-          match (snrs.SavedData.Count) with
-            | y when y>0 ->                                                                               // read the sensor info 
-                snrs.SavedData                                                                                        // read the sensor info
-                |> Seq.filter(fun p -> //  filter to create the upper left
-                                       let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
-                                       if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
-                                       (p_local.X > dx && p_local.Y <= dy)
-                                )                                             
-                |> Seq.map( fun x ->
-                                let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                        // dot product, phase_gauss_meters
-                                let _ , asd = 
-                                    match x.Noise.Length with
-                                    | z when z > 0 ->
-                                        ASD_WELCH(timeStamps,x.Noise|> Array.map(fun y -> sin(y+x.Phase+ph_gauss_met)),    // consider the dinamic and the static phase
-                                                  "Hann",windowLengtht, windowLengtht/2, 0.)
-                                    | _ -> (Array.zeroCreate<float> frequencies.Length , Array.zeroCreate<float> frequencies.Length )
+            |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
+                let noiseSummed =
+                    [|0..((allNoise) |> Seq.head).Length-1|] 
+                    |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
+                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
+            |> fun suum_UL -> File.WriteAllLines( ul, (frequencies, suum_UL) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
+        
+            //                            //
+            //  Lower side of the sensor  //
+            //                            //
+            
 
-                                asd |> Array.map(fun x -> x*dotprod)                                                  // return the total phase change at the defined frequency
-                            )
+            //  DR  //                                    
+            snrs.SavedData                                                    // read the sensor info
+            |> Seq.filter(fun p -> //  filter to create the upper left
+                                    let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
+                                    if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
+                                    (p_local.X > dx && p_local.Y <= dy)
+                            )                                             
+            |> Seq.map( fun x ->
+                            let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                        // dot product, phase_gauss_meters
+                            let _ , asd = 
+                                match x.Noise.Length with
+                                | z when z > 0 ->
+                                    ASD_WELCH(timeStamps,x.Noise|> Array.map(fun y -> sin(y+x.Phase+ph_gauss_met)),    // consider the dinamic and the static phase
+                                                "Hann",windowLengtht, windowLengtht/2, 0.)
+                                | _ -> (Array.zeroCreate<float> frequencies.Length , Array.zeroCreate<float> frequencies.Length )
+                            asd |> Array.map(fun x -> x*dotprod*sqr_disp0*inv_sqrt_power_at_surface)                                                  // return the total phase change at the defined frequency
+                        )
                           
-                |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                    let noiseSummed =
-                        [|0..((allNoise) |> Seq.head).Length-1|] 
-                        |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                    noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            | y when y<= 0 ->   Array.zeroCreate<float> frequencies.Length                                   
-        let suum_DL =
-          match (snrs.SavedData.Count) with
-            | y when y>0 ->                                                                               // read the sensor info 
-                snrs.SavedData                                                                                        // read the sensor info
-                |> Seq.filter(fun p -> //  filter to create the upper left
-                                       let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
-                                       if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
-                                       (p_local.X <= dx && p_local.Y <= dy)
-                                )                                             
-                |> Seq.map( fun x ->
-                                let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                        // dot product, phase_gauss_meters
-                                let _ , asd = 
-                                    match x.Noise.Length with
-                                    | z when z > 0 ->
-                                        ASD_WELCH(timeStamps,x.Noise|> Array.map(fun y -> sin(y+x.Phase+ph_gauss_met)),    // consider the dinamic and the static phase
-                                                  "Hann",windowLengtht, windowLengtht/2, 0.)
-                                    | _ -> (Array.zeroCreate<float> frequencies.Length , Array.zeroCreate<float> frequencies.Length )
+            |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
+                let noiseSummed =
+                    [|0..((allNoise) |> Seq.head).Length-1|] 
+                    |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
+                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
+            |> fun suum_DR -> File.WriteAllLines( dr, (frequencies, suum_DR) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
 
-                                asd |> Array.map(fun x -> x*dotprod)                                                  // return the total phase change at the defined frequency
-                            )
+            //  DL  //                                                                  
+            snrs.SavedData                                                                                        // read the sensor info
+            |> Seq.filter(fun p -> //  filter to create the upper left
+                                    let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
+                                    if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
+                                    (p_local.X <= dx && p_local.Y <= dy)
+                            )                                             
+            |> Seq.map( fun x ->
+                            let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                        // dot product, phase_gauss_meters
+                            let _ , asd = 
+                                match x.Noise.Length with
+                                | z when z > 0 ->
+                                    ASD_WELCH(timeStamps,x.Noise|> Array.map(fun y -> sin(y+x.Phase+ph_gauss_met)),    // consider the dinamic and the static phase
+                                                "Hann",windowLengtht, windowLengtht/2, 0.)
+                                | _ -> (Array.zeroCreate<float> frequencies.Length , Array.zeroCreate<float> frequencies.Length )
+
+                            asd |> Array.map(fun x -> x*dotprod*sqr_disp0*inv_sqrt_power_at_surface)                                                  // return the total phase change at the defined frequency
+                        )
                           
-                |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                    let noiseSummed =
-                        [|0..((allNoise) |> Seq.head).Length-1|] 
-                        |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                    noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            | y when y<= 0 ->   Array.zeroCreate<float> frequencies.Length                                   
-                                         
+            |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
+                let noiseSummed =
+                    [|0..((allNoise) |> Seq.head).Length-1|] 
+                    |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
+                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
+            |> fun suum_DL -> File.WriteAllLines( dl, (frequencies, suum_DL) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
+        // if there are no photons impinging the sensor, then do not create files
+        | y when y<= 0 ->   'c' |> ignore //Array.zeroCreate<float> frequencies.Length                                   
 
-
-
-        let ur, ul, dr, dl = path_save.Replace(".dat", "UR.dat"), path_save.Replace(".dat", "UL.dat"), path_save.Replace(".dat", "DR.dat"), path_save.Replace(".dat", "DL.dat")
-        File.WriteAllLines( ur, (frequencies, suum_UL) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
-        File.WriteAllLines( ul, (frequencies, suum_UL) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
-        File.WriteAllLines( dr, (frequencies, suum_DR) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
-        File.WriteAllLines( dl, (frequencies, suum_DL) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
-
-    let PhaseChange_QPD_decentreX (dsc:disc , src:Source , windowLengtht:int , dx:float , path_save:string) = 
+    let PhaseChange_QPD_decentreX (dsc:disc , src:Source , dsp_orig:float, windowLengtht:int , dx:float , path_save:string) = 
         // same as before, but scan only on X axis
-        PhaseChange_QPD_decentre (dsc , src , windowLengtht , dx , 0. , path_save)
+        PhaseChange_QPD_decentre (dsc , src ,dsp_orig, windowLengtht , dx , 0. , path_save)
         
         
-    let PhaseChange_QPD_decentreY (dsc:disc , src:Source, windowLengtht:int , dy:float , path_save:string) = 
+    let PhaseChange_QPD_decentreY (dsc:disc , src:Source,dsp_orig, windowLengtht:int , dy:float , path_save:string) = 
         // same as before, but scan only on Y axis
-        PhaseChange_QPD_decentre (dsc, src ,windowLengtht , 0. , dy , path_save) 
+        PhaseChange_QPD_decentre (dsc, src ,dsp_orig, windowLengtht , 0. , dy , path_save) 
