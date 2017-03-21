@@ -137,7 +137,40 @@ module intersections =
                     //[{ normal = normalt2 ; point = z2real; ray = ray2 ; material=cylinder.material; t=t2;Nsamples=nsamples}]
                 else [||]
             Array.append inter1 inter2
+
+   let intersect_cyl_with_hole(ray:Ray, cyl_hole:cylinder_with_hole) =
+     // Perform the intersection between a ray and acylinder with a hole. 
+     // The method is:
+     //    - intersect with the cylider
+     //    - Check if the hit is in the hole
+     let check_distance(dst:float,inter:Intersection, mx_dst:float) =
+        if dst < mx_dst then (false, inter)
+        else (true,inter)
+
+     let int_cyl =
+         cylinder(cyl_hole.Radius,cyl_hole.Zmax,cyl_hole.Origin,cyl_hole.Normal,cyl_hole.MaterialName)
+         |> fun cyl -> intersect_cyl(ray,cyl)
     
+     match Array.isEmpty int_cyl with
+     | false ->
+         int_cyl
+         |> Array.map(fun x -> (((x.point-cyl_hole.Line_origin)><cyl_hole.Line_axis), x) )   //vector from Line Origin to the hiting vector
+         //|> fun x -> (x, intersection_cyl)
+         |> Array.map(fun x -> check_distance((fst x).Module(), snd x, cyl_hole.Radius_hole))
+         //|> Array.filter(fun x -> fst x)   // useless filter, all will be filter at the end
+         |> Array.map( fun z ->
+                                match (fst z) with
+                                | true ->  // check if the hole is on the side of the point that defines the Line
+                                           let y = snd z
+                                           let dot_prod = ((y.point-cyl_hole.Line_origin)*cyl_hole.Line_axis)
+                                           check_distance( dot_prod, y, (((y.point-cyl_hole.Origin)*cyl_hole.Line_axis) ) )
+                                                
+                                | false -> (z)  // already is false
+                  )
+         |> Array.filter(fun x -> fst x) |> Array.map(fun x -> snd x)
+     | true -> [||]
+
+
    //type intermediateIntersection = {normal:UnitVector; point:Point;ray:Ray;MatName:string;t:float<m> }  // To use the intersect sphere
    let intersect_sphere_simp(ray:Ray,centre:Point,rad:float<m>, material:string) =
     // Intersction of a ray with a sphere comming from a cylinder

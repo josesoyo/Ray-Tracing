@@ -51,26 +51,28 @@ let cy2 = cylinder(0.01<m>,0.05<m>,Point(0.0106971445,0.05 ,0.),UnitVector(1.,0.
 let cy3 = cylinder(0.01<m>,(0.05+2.*0.0106971445)*1.<m>,Point(-0.0106971445,0.05 ,0.),UnitVector(1.,0.,0.),"Material__27")   // for biconcave comparative
 let cy4 = cylinder(0.01<m>,(0.05-2.*0.0106971445)*1.<m>,Point(0.0106971445,0.05 ,0.),UnitVector(1.,0.,0.),"Material__27")    // for biconvex comparative
 let axis = UnitVector(1.,0.,0.) 
-let biCv =  biConvex(0.1<m>,0.1<m>,axis,0.05<m>,0.09<m>,Point(0.,0.0,0.),"Material__27",Sensor(),([||],[||]))     // biconvexlenx
-let biCc =  biConcave(0.1<m>,0.1<m>,axis,0.05<m>,0.09<m>,Point(0.,-0.0,0.),"Material__27",Sensor(),([||],[||]))     // biconcave
-let bim =   Meniscus(0.1<m>,0.1<m>,axis,0.05<m>,0.09<m>,Point(0.0,0.0,0.),"Material__27",Sensor(),([||],[||]))     // meniscus  sag1 =  0.0106971445
+let biCv =  biConvex(0.1<m>,0.1<m>,axis,0.05<m>,0.09<m>,Point(0.,0.0,0.),"Material__27",Sensor(),([||],[||]))                // biconvexlenx
+let biCc =  biConcave(0.1<m>,0.1<m>,axis,0.05<m>,0.09<m>,Point(0.,-0.0,0.),"Material__27",Sensor(),([||],[||]))              // biconcave
+let bim =   Meniscus(0.1<m>,0.1<m>,axis,0.05<m>,0.09<m>,Point(0.0,0.0,0.),"Material__27",Sensor(),([||],[||]))               // meniscus  sag1 =  0.0106971445
+let cyl_hole = cylinder_with_hole(cy, 0.004,Point(0.01,-0.0051 ,-0.5),UnitVector(0.,0.,1.))                                   //  Cylinder with a hole 
+
+
 let bx = box(Point(-0.01,-0.005,-0.02),Point(0.01,0.005,0.02),axis,UnitVector(1.,1.,1.),Point(0.,0.,0.),"Material__27",Sensor(),([||],[||]))
 // Create a Camera and the scene - Camera on 0,0,0 pointing to 1,0,0
-
 open BackwardRender.Camera
 open BackwardRender.BackTypes
 
-let Camera = {EyePoint = Point(-0.0,-0.0,-1.50); LookAt= Vector(0.,0.,1.0); Up=UnitVector(0.,1.,0.); // iris
+let Camera = {EyePoint = Point(-0.0,-0.0,-1.50); LookAt= Vector(0.,0.,1.50); Up=UnitVector(0.,1.,0.); // iris
                PixNumH=300;PixNumW=300;PixSize= 5e-4}
 
 let light0 = {origin= Point(0.,1.50,-1.5);intensity = 1.}    // light the system 
 let light1 = {origin= Point(-0.05,0.00,0.0);intensity =0.75}    // light the system
 
-let scene = {Camera=Camera;  Elements=[|Box(bx)|];Materials=nmat ; Plights=[|light0;light1|]}
+let scene = {Camera=Camera;  Elements       =[|Cylinder_With_Hole(cyl_hole)|];Materials=nmat ; Plights=[|light0;light1|]}
 //(Array.concat [[|Cylinder(cy2);Cylinder(cy)|];[|bim.[0];bim.[2]|] ]); Materials=nmat ; Plights=[|light0;light1|]} //[|Cylinder(cy);Cone(con);TruncatedCone(pcon)|]
 //match scene.Elements.[0] with Cone x -> x.Origin
 let render = Do_Casting (scene,1,true)
-let spath = "Box_.bmp" // save on the folder of BackWardRender
+let spath = "Hole_.bmp" // save on the folder of BackWardRender
 
 // save in a file just in case
 let separator = ";"

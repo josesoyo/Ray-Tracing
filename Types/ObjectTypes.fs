@@ -251,8 +251,25 @@ module ObjectTypes=
         new  (rad,zmax,orig,nrm,matname, nois) = 
             cylinder(rad,zmax,orig,nrm,matname, Sensor(),nois) 
 
+    type cylinder_with_hole(rad,zmax,orig,nrm, rad_hole:float, line_orig:Point,line_axis:UnitVector, matname, snrs, noise) =
+        // this type represents a cylinder with a hole, the method to do it will be performing a test of the radius between the hitting point and the line_axis
+        // it considers a single hole on the side that the line origin is found
+        inherit cylinder(rad,zmax,orig,nrm,matname, snrs, noise)   // use inheritance
+        
+        member this.Line_axis with get() = line_axis
+        member this.Line_origin with get() = line_orig
+        member this.Radius_hole with get() = rad_hole
 
-    
+        new (rad,zmax,orig,nrm, rad_hole:float, line_orig:Point,line_axis:UnitVector, matname, noise) =        // No sensor
+            cylinder_with_hole(rad,zmax,orig,nrm, rad_hole, line_orig,line_axis, matname, Sensor(), noise)
+        new (rad,zmax,orig,nrm, rad_hole:float, line_orig:Point,line_axis:UnitVector, matname, snrs) =         // No noise
+            cylinder_with_hole(rad,zmax,orig,nrm, rad_hole, line_orig,line_axis, matname, snrs,([| |],[||]) )
+        new (rad,zmax,orig,nrm, rad_hole:float, line_orig:Point,line_axis:UnitVector, matname, noise) =       // No sensor, No noise
+            cylinder_with_hole(rad,zmax,orig,nrm, rad_hole, line_orig,line_axis, matname, Sensor(),([| |],[||]) )
+        new (cyl:cylinder,rad_hole:float, line_orig:Point,line_axis:UnitVector) =
+            cylinder_with_hole(cyl.Radius,cyl.Zmax,cyl.Origin,cyl.Normal,rad_hole , line_orig ,line_axis,cyl.MaterialName,cyl.Sensor,cyl.Noise)
+
+
     type disc(c:Point, rad:float, nrm:UnitVector,matname:string, snrs:Sensor, noise:noise) = 
         // Disk type 
         // Simple, just a need for the centre, radius and normal
@@ -485,6 +502,7 @@ module ObjectTypes=
     // Option type to add all the different structure types into a single object type
     | Mesh of elementMesh
     | Cylinder of cylinder
+    | Cylinder_With_Hole of cylinder_with_hole
     | SurfaceLens of SphSurfaceLens
     | Disc of disc
     | Annular_Disc of annular_disc
@@ -492,4 +510,3 @@ module ObjectTypes=
     | Box of box
     | Cone of cone
     | TruncatedCone of truncatedCone
-

@@ -18,6 +18,10 @@ module ObjectSelection =
                            match inter with 
                            |[||] -> None 
                            |_ -> Some(inter|> Array.minBy(fun x -> x.t))
+        | Cylinder_With_Hole x ->    let inter = intersect_cyl_with_hole(ray,x) |> Array.filter(fun x -> x.t > 1e-10<m>) 
+                                     match inter with 
+                                     |[||] -> None 
+                                     |_ -> Some(inter|> Array.minBy(fun x -> x.t))
 
         | SurfaceLens x -> let inter = intersect_SphSurfaceLens(ray,x) |> Array.filter(fun x -> x.t > 1e-10<m>)
                            match inter with 
