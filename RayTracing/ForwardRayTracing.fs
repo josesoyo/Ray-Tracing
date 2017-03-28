@@ -39,6 +39,7 @@ let UpdateSensorPhase(intersection:Intersection,obj:Object):Unit =
                            intersection.ray.PhaseModulation |> Array.map(fun x -> float x)) // I need the intersection
     match obj with
     | Cylinder x ->     x.Sensor.AddData(sc) //lock x.Sensor (fun () -> x.Sensor.AddData(sc))
+    | Cylinder_With_Hole x -> x.Sensor.AddData(sc) 
     | SurfaceLens x->   x.Sensor.AddData(sc) //lock x.Sensor (fun () -> x.Sensor.AddData(sc))
     | Disc x->          x.Sensor.AddData(sc) //lock x.Sensor (fun () -> x.Sensor.AddData(sc))
     | Annular_Disc x -> x.Disc.Sensor.AddData(sc) //lock x.Disc.Sensor (fun () -> x.Disc.Sensor.AddData(sc))
@@ -57,6 +58,7 @@ let UpdateSensorSelectionPhase(intersection:Intersection, objs:Object[],objID:in
 let IsItSensor(objs:Object[], id:int):bool*bool =
     match objs.[id] with
     | Cylinder x ->     (x.Sensor.Exists, x.Sensor.Terminate) // says if it is a sensor or not and if it terminates
+    | Cylinder_With_Hole x ->(x.Sensor.Exists, x.Sensor.Terminate) // says if it is a sensor or not and if it terminates
     | SurfaceLens x ->  (x.Sensor.Exists, x.Sensor.Terminate) // says if it is a sensor or not and if it terminates
     | Disc x ->         (x.Sensor.Exists, x.Sensor.Terminate)
     | Annular_Disc x -> (x.Disc.Sensor.Exists, x.Disc.Sensor.Terminate)
@@ -69,6 +71,7 @@ let IsItSensor(objs:Object[], id:int):bool*bool =
 let getNoise(objs:Object[], id:int) =
     match objs.[id] with
     | Cylinder x ->     x.Noise
+    | Cylinder_With_Hole x -> x.Noise
     | SurfaceLens x ->  x.Noise
     | Disc x ->         x.Noise
     | Annular_Disc x -> x.Disc.Noise
@@ -81,6 +84,9 @@ let getNoise(objs:Object[], id:int) =
 
 // Main Function - initial ray must be computed before
 // This function only traces one ray, so it reques a superfunction to trace all the rays and probably do the parallel stuff
+let min_FracOfRay = 1e-8
+printfn "The minimum fraction of a ray traced is: %f" min_FracOfRay
+
 let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.IDictionary<string,Material>,level:int) = // MaxRays:int
     if level >= 1000 then
         // This will prevent stackOverFlow error in case there's a strange loop on reflection.
@@ -119,7 +125,7 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
 
             // 2nd - Shading
             // filter the rays that have been dispersed more times that the maximum allowable
-            let rays:Ray[] = ShadingForward( fst intersect, material,noise) |> Array.filter(fun x -> (x.NumBounces <= x.MaxDispersions && x.FracOfRay > 1e-09))
+            let rays:Ray[] = ShadingForward( fst intersect, material,noise) |> Array.filter(fun x -> (x.NumBounces <= x.MaxDispersions && x.FracOfRay > min_FracOfRay))
             // check that the number of dispersive reflections is not more than the expected
             match Array.isEmpty rays with
             | false ->
@@ -138,7 +144,7 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
             // 1st - Shading
 
             // filter the rays that have been dispersed more times that the maximum allowable
-            let rays:Ray[] = ShadingForward( fst intersect, material,noise) |> Array.filter(fun x -> (x.NumBounces <= x.MaxDispersions && x.FracOfRay > 1e-09))
+            let rays:Ray[] = ShadingForward( fst intersect, material,noise) |> Array.filter(fun x -> (x.NumBounces <= x.MaxDispersions && x.FracOfRay > min_FracOfRay))
 
             match Array.isEmpty rays with
             | false ->
