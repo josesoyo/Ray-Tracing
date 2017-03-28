@@ -135,6 +135,8 @@ let mout = [|{MatName= "Mirror"; R=1.; T=0.;
                     n=(1.45003,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-36};
                 {MatName= "Suprasil3001_0bar_ETM_R"; R=0.999999; T=0.000001;                               //     S
                     n=(1.45003,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-36};
+                {MatName= "Suprasil3001_0bar_ETM_R_"; R=0.0; T=0.000001;   // to avoid some problems and simplify  
+                    n=(1.45003,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-36};
                 {MatName= "Herasil_0bar";  R=0.04; T=0.96;                             //    
                     n=(1.45012,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-36};
                 {MatName= "Herasil_0bar_SemiREFLECT";  R=0.5; T=0.5;                             //    
@@ -160,4 +162,4 @@ let steel_high_angles2 = steel_high_angles  |> Array.map(fun x ->{x with LambPPM
 
 
 let mat = dict ( (Array.concat [mout; steel_low_angles2; steel_high_angles2])|> Array.map(fun x -> (x.MatName,x)))
-printfn "Be careful with the definition of the materials\n\tSpecially for the Baffle materials, the info is not completed\n\n\tSilicon Carbide\n\tDiamon-Like Carbon\n\tAbsorbent Glass\n\tNo oxidized steel"
+//printfn "Be careful with the definition of the materials\n\tSpecially for the Baffle materials, the info is not completed\n\n\tSilicon Carbide\n\tDiamon-Like Carbon\n\tAbsorbent Glass\n\tNo oxidized steel"
