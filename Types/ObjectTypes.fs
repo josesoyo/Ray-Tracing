@@ -87,7 +87,7 @@ module ObjectTypes=
                             Convex:bool; // Convex = convergent (normal sphere) 
                           } // Name because will be the surface of a lens
     *)
-    type SphSurfaceLens(centreofSPH, roc:float<m>, diam:float<m>,axs:UnitVector, conv:bool,matname:string, snrs:Sensor, noise:noise) =
+    type SphSurfaceLens(centreofSPH:Point, roc:float<m>, diam:float<m>,axs:UnitVector, conv:bool,matname:string, snrs:Sensor, noise:noise) =
         // Define default values
         let sensor = snrs
         let mutable SphereCentre= centreofSPH// Point(0.,0.,0.)
@@ -102,6 +102,12 @@ module ObjectTypes=
         let mutable Materialname = matname
 
         member this.SphCentre with get() = SphereCentre and set(sc) = SphereCentre <- sc
+        member this.Origin    
+            // return the point of the surface lens leaning on the axis 
+            with get() = 
+                let moov = ((float radius)*axis).ToPoint()
+                SphereCentre.MoveAndCreateNew(moov)
+                
         member this.RadiusOfCurvature  
             with get() = radius 
             and set(r) =
