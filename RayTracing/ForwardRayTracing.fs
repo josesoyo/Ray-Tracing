@@ -36,7 +36,7 @@ let UpdateSensorPhase(intersection:Intersection,obj:Object):Unit =
     let sc = SensorContent(intersection.point,intersection.ray.uvec,
                            intersection.ray.FracOfRay, 
                            ((intersection.ray.OpticalPathTravelled/(match intersection.ray.Wavelenght with WaveLength x -> x))*6.28318530718)%6.28318530718,  // 2*PI
-                           intersection.ray.PhaseModulation |> Array.map(fun x -> float x)) // I need the intersection
+                           intersection.ray.PhaseModulation) // |> Array.map(fun x -> float x)) // I need the intersection
     match obj with
     | Cylinder x ->     x.Sensor.AddData(sc) //lock x.Sensor (fun () -> x.Sensor.AddData(sc))
     | Cylinder_With_Hole x -> x.Sensor.AddData(sc) 
