@@ -23,6 +23,13 @@ module types =
     // This is to translate the vibration of the object into phase change on the ray.
     type noise = ((float*Vector*float)[]*float[])                        // Here it refers to the fact that ((frequency, Amplitude,phase)[], t_sampling)
     // byte is a number in the range [0,255], I use this because I expect I won't work on higher frequencies
+
+    // Create the typres required to perform tracking of the 
+    type route_ray = {Direction:UnitVector;       // Direction in which the ray is reflected/transmitted/dispersed
+                      GoingToID:int;              // Id of the object that hits later. This serves to find where it hits and perform the noise analysis
+                      Origin_From:Point;        // I need to know the first point
+                      Destination:Point   // Destination, shouldn't be complettelly necessary, but will help tp check that all has been correctly
+                      } 
     type Ray = {
                 Wavelenght:Wavelength;
                 from: Point; uvec: UnitVector;            // From and direction
@@ -33,9 +40,9 @@ module types =
                 mutable bounces: float list;              // Num of bounces + the positions (Just in case for the future)
                 NumOfParticlesCreated: int;               // Num of photos -> To split in a Lambertian surface, etc...
                 // NumOfParticlesCreated are the number of particles that are created after each dispersion (splitting)
-                FracOfRay:float;                     // Fraction of the initial beam that is being traced           
+                FracOfRay:float;                          // Fraction of the initial beam that is being traced           
                 IndexOfRefraction:float
-
+                Memory: route_ray[]                       // data to compute the route that the photon follows.              
                 // Careful, NoiseAdd it's for frequency domain and PhaseModulation for time domain
                 // NoiseAdd:float[]     - Not required now
                 PhaseModulation: float[]

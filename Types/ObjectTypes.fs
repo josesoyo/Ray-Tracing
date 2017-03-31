@@ -8,18 +8,20 @@ module ObjectTypes=
     open Types.types
     open System
     // Sensor type
-    type SensorContent(pos,dir,fr,ph,ns) =
+    type SensorContent(pos,dir,fr,ph,ns, rout) =
 
         let position:Point = pos
         let direction:UnitVector = dir
         let fracOfRay:float = fr
         let phase:float = ph
         let noise:float[] =  ns   // obtained from the spectral density :'a[] (byte*float)
+        let route:route_ray[] = rout
         member this.Position with get() = position
         member this.Direction with get() = direction
         member this.FracOfRay with get () = fracOfRay
         member this.Phase with get() = phase
         member this.Noise with get() = noise
+        member this.Route with get() = route
 
     type Sensor(exs:bool, term:bool) =
         // Sensor type, it will be added to all the objects.    -> Probably: Sensor Option

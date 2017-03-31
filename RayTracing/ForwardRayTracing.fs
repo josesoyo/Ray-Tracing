@@ -104,6 +104,18 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
         else 
             rei 
             |> Array.minBy(fun x -> (fst x).t) 
+            |> fun x -> 
+                
+                let inter_sect = fst x 
+                                 |> fun hit -> hit.ray  // define the ray
+                                 |> fun hit_ray ->  let new_memory = {Direction=hit_ray.uvec ; GoingToID= snd x ;  // memory to add
+                                                                      Origin_From=hit_ray.from ; Destination= (fst x).point }
+                                                    {hit_ray with Memory = Array.append hit_ray.Memory [| new_memory |] }  // update the ray
+                                 |> fun new_ray -> {(fst x) with ray = new_ray  }   // Update the new ray on the intersection
+                (inter_sect, snd x)
+
+
+
           
     match snd intersect with
     | x when x >= 0 ->
