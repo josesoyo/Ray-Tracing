@@ -141,6 +141,48 @@ let RayProbabilityes(material:System.Collections.Generic.IDictionary<string,Mate
 
 // Functions
 let ShadingForward(intersection:Intersection,material:System.Collections.Generic.IDictionary<string,Material>, noise:noise):(Ray[]) =
+    // NO NOISE
+    // Create the shading of the ray tracing. This Function must be modified many times
+    let cos_inc_direct = intersection.normal*intersection.ray.uvec   // I set the cosinus considering that the ray direction is on the direction of the intersection
+    match intersection.ray.FracOfRay with
+    // just in case!
+    | n when n <= 0. -> 
+        //[||]  // not possible - Delete or failwith
+        failwithf "Not possible to have a fraction of a ray lower than zero\nThe current ray is:\n%+A" intersection.ray
+    | _ ->
+        // Many particles case. The option that is going to be chosed must be explained
+        let pt, pr , pd = RayProbabilityes(material, intersection, cos_inc_direct)
+        let nt, nr , nd =
+            let fpart = (intersection.ray.FracOfRay)  // float of the fraction of original ray
+            (*
+            if (1.-pt - pr - pd) < 1e-10 then // No absortion: I don't trust they match perfectly *)
+                // No absortion
+            ((fpart*pt),(fpart*pr), pd*fpart )
+
+        let tout = match nt with
+                   | nt when nt > 0. -> 
+
+                        let index_of_refraction = fst material.[intersection.MatName].n
+                        [|transmission(intersection, index_of_refraction, nt,cos_inc_direct) |]   // no modulation when transmitted!!!!
+                                       //|> fun x ->  [|{x with PhaseModulation = PhaseModulation(x, intersection,noise) }|]
+                   | _ -> [||]
+
+        let rout = match nr with
+                   | nr when nr > 0. ->
+                                [|reflection(intersection,nr, cos_inc_direct) |]
+                                //|> fun x -> [|{x with PhaseModulation = PhaseModulation(x, intersection,noise) }|]
+                   | _ -> [||]
+
+        let dout = match nd with
+                   | nd when nd > 0. -> dispersion(intersection,nd, cos_inc_direct) 
+                                       //|> Array.map( fun x -> {x with PhaseModulation =PhaseModulation(x, intersection,noise) })// to modify, dispersion
+                   | _ -> [||]
+          
+        Array.concat [|tout; rout ;dout|] // concatenate the options
+   
+
+// Functions
+let ShadingForward_Noise(intersection:Intersection,material:System.Collections.Generic.IDictionary<string,Material>, noise:noise):(Ray[]) =
     // Create the shading of the ray tracing. This Function must be modified many times
     let cos_inc_direct = intersection.normal*intersection.ray.uvec   // I set the cosinus considering that the ray direction is on the direction of the intersection
     match intersection.ray.FracOfRay with
