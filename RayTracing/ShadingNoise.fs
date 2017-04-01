@@ -21,7 +21,7 @@ let SingleFreqNoiseAdd(ray:Ray,inter:Intersection,ns:noise) =
     // adds the noise considering the direction of the ray and the normal
     // but the mean value
     // it's a kind of isotropic
-    let diff = (inter.normal-ray.uvec)
+    let diff = (inter.ray.uvec-ray.uvec)
     let norm = sqrt(diff*diff)
     let freq, nois, _ = (fst ns).[0]
     printfn "SingleFreqNoiseAdd Badly defined"

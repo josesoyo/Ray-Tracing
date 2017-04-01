@@ -37,7 +37,7 @@ module types =
                 OpticalPathTravelled: float<m>;           // Optical Path Length Modified after every step with the IOR
                 NumBounces:float; //byte;
                 MaxDispersions: float;//byte;             // Maximum bounces on dispersive media that can be done
-                mutable bounces: float list;              // Num of bounces + the positions (Just in case for the future)
+                //mutable bounces: float list;              // Num of bounces + the positions (Just in case for the future)
                 NumOfParticlesCreated: int;               // Num of photos -> To split in a Lambertian surface, etc...
                 // NumOfParticlesCreated are the number of particles that are created after each dispersion (splitting)
                 FracOfRay:float;                          // Fraction of the initial beam that is being traced           

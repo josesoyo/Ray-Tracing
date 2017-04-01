@@ -183,7 +183,7 @@ let ShadingForward(intersection:Intersection,material:System.Collections.Generic
 
 // Functions
 let ShadingForward_Noise(intersection:Intersection,material:System.Collections.Generic.IDictionary<string,Material>, noise:noise):(Ray[]) =
-    // Create the shading of the ray tracing. This Function must be modified many times
+    // Create the shading of the ray tracing. function saved in case I need it in the future
     let cos_inc_direct = intersection.normal*intersection.ray.uvec   // I set the cosinus considering that the ray direction is on the direction of the intersection
     match intersection.ray.FracOfRay with
     // just in case!

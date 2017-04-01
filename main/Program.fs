@@ -1,23 +1,104 @@
-﻿
+﻿// do the ray tracing and etc
+//  Comments:
+//      - 
 
-open materials
-// libraries referenced
+// just open the libraries to define the objects
+//#r @"../Types/bin/Debug/Types.dll"
+//#r @"../RayTracing/bin/Debug/RayTracing.dll"
+//#r @"../BackwardRender/bin/Debug/BackwardRender.dll"
 open Types.Algebra
 open Types.ObjectTypes
+open TypesStruct
 open Types.types
-open RayTracing.intersections
-open SaveSensorInfo  // @RayTracing solution
 open Microsoft.FSharp.Data.UnitSystems.SI.UnitSymbols
-open ForwardRayTracing
-open SaveSensorInfo
 open Random
-open System.IO
-//open MathNet.Numerics.IntegralTransforms
-open System.Numerics
+open ForwardRayTracing
 open PostProcess.Noise
-open periodogram
+open System.IO
+open System
+//#load "../scripts_examples/mat_lib.fsx"
+open materials
 
-let NewRay (pos:Point) (normal:UnitVector) (sigma:float) (rMax:float) (nOfParticles:int) wavelength=
+ 
+//#load "Mounts.fsx"
+open mounts
+//#load "SNEB.fsx"
+open SNEB
+
+let ParticlesPerRay = 10
+
+// stray light from MMT2
+//      point, direction = SNEB_MMT_M2p, SNEB_MMT_M2d
+let RayFromSource (source:Source) (nOfParticlesDispersed:int) = //(maxInputPower:float)=    // SingleFreqNoiseAdd(ray:Ray,inter:Intersection,ns:noise)
+    // generate random rays following:
+    //      - gausian distribution for the profile 
+    //      - Lambertian for the direction (Check it)
+    //  waist: diameter
+    //  if the surface is spherical, then modify the origin and normal based on the sph equation 
+    //          if RoC > 0. the lens is convex, RoC < 0. is concave, otherwise (RoC=0) is not defined
+    //  The normal is always the direction in which the rays are generated
+    //
+    //  maxInputPower = defines the normalization of the energy to say which value is equal to 1
+    let pos = source.Position
+    let normal = source.Direction
+    let sigma = source.Radius_beam*2.
+    let rMax = source.Diameter/2.
+    let power = source.Power      // in Watts
+    // See with the radius of curvature if it is an spherical lens or not
+    let RoC = match source.IsSphere with
+              | IsSphere x -> x
+              | Other x -> infinity
+    //printfn "The ROC is: %+A" RoC
+    let rotpoint = Matrix.RotateVector(UnitVector(0.,0.,1.),normal)
+    let rec rfPos() =  // position function on local coordinates
+        let orig = match RoC with
+                   | x when x = infinity -> Samp2DGauss(sigma,0.) |> fun x -> Point(x.[0],x.[1],0.)
+                   | x when x <> infinity && x > 0. ->  
+                       // Case the surface is spherical
+                       let p0 = Samp2DGauss(sigma,0.) |> fun x -> Point(x.[0],x.[1],0.)
+                       let z0 = -sqrt(RoC*RoC-p0.X*p0.X-p0.Y*p0.Y)
+                       Point(p0.X,p0.Y,z0)
+                   | x when x <> infinity && x <= 0. ->  
+                       // Case the surface is spherical and concave
+                       let p0 = Samp2DGauss(sigma,0.) |> fun x -> Point(x.[0],x.[1],0.)
+                       let z0 = sqrt(RoC*RoC-p0.X*p0.X-p0.Y*p0.Y)
+                       Point(p0.X,p0.Y,z0)
+        if (orig.X*orig.X+orig.Y*orig.Y) > rMax*rMax then rfPos()
+        else
+            orig
+
+    let rPos = rfPos()   // Careful, it's on LOCAL COORDINATES!
+    let rvect = match rPos.Z with
+                | 0. ->
+                    // flat surface
+                    UnitVector (SampUnitHemisphereToCart()) // direction on coordinates (0., 0., 1.)
+                    |> fun x -> rotpoint.RotateVector(x)
+                | _  ->
+                    let mat2 =  Matrix.RotateVector(normal, (rPos-Point(0.,0.,-RoC)).ToUnitVector() )
+                    UnitVector (SampUnitHemisphereToCart())// direction
+                    |> fun x ->  mat2.RotateVector(x)      // rotate to the lens point normal
+                    |> fun x -> rotpoint.RotateVector(x)   // rotate to flat surface
+
+    let phase_meters =((source.Phase)/360.*1.064e-6+(rPos.X*rPos.X+rPos.Y*rPos.Y)/(2.*source.RadiusOfCurvature))*1.<m>       // phase of the initial ray in meters: centre + displacement from the centre
+    {
+         Wavelenght = WaveLength(1.064e-6<m>);
+         from =  (rotpoint.RotatePoint(rPos)|> fun px -> px.MoveAndCreateNew(pos)) ;  uvec = rvect;
+         MaxLength = infi;
+         OpticalPathTravelled = phase_meters;
+         NumBounces = 1.//0uy;   It starts at the first dispersion!
+         Memory = [||];
+         MaxDispersions = 3.//3uy;
+         NumOfParticlesCreated = nOfParticlesDispersed;
+         FracOfRay = sqrt(power) //maxInputPower;    // 1mW is the unity
+         IndexOfRefraction = 1.
+         PhaseModulation = [||]
+    }
+   
+let NewRay (pos:Point) (normal:UnitVector) (sigma:float) (rMax:float) (nOfParticlesDispersed:int)=
+    // generate random rays following:
+    //      - gausian distribution for the profile 
+    //      - Lambertian for the direction (Check it)
+    //      - The phase of the initial beam is not included
     let rotpoint = Matrix.RotateVector(UnitVector(0.,0.,1.),normal)
     let rec rfPos() =  // position function
         let orig = Samp2DGauss(sigma,0.) |> fun x -> Point(x.[0],x.[1],0.)
@@ -26,294 +107,279 @@ let NewRay (pos:Point) (normal:UnitVector) (sigma:float) (rMax:float) (nOfPartic
             let rp = rotpoint.RotatePoint(orig)
             rp |> fun px -> px.MoveAndCreateNew(pos) 
     let rPos = rfPos()
-    let rvect = // direction
-        let theta = inv_sqr()
-        let phi = 2.*PI*rnd.NextDouble()
-        let stheta = sin(theta)
-        UnitVector(cos(phi)*stheta, sin(phi)*stheta, cos(theta))
-        |> fun x -> rotpoint.RotateVector(x)
+    let rvect = UnitVector (SampUnitHemisphereToCart())// direction
+               |> fun x -> rotpoint.RotateVector(x)
     {
-         Wavelenght = wavelength;
+         Wavelenght = WaveLength(1.064e-6<m>);
          from = rPos; uvec = rvect;
          MaxLength = infi;
          OpticalPathTravelled = 0.<m>;
-         NumBounces = 0.; bounces = [];
-         MaxDispersions = 3.;
-         NumOfParticles = nOfParticles;
+         NumBounces = 1.//0uy;      It starts at the first dispersion!
+         Memory = [||];
+         MaxDispersions = 3.//3uy;
+         NumOfParticlesCreated = nOfParticlesDispersed;
+         FracOfRay = 1.;
          IndexOfRefraction = 1.
          PhaseModulation = [||]
     }
 
-let ps0 = Point(0.,0.,0.)
-let dir0 = UnitVector(1.,0.,0.)
-// Function to generate the rays
-
-
-
-
-//#time
-
-let all (i:int) (path_init:string) rayfunc nRays rTube lTube rMirror rBaffle noise_tube noise_baffle=
-
-    printfn "Starting iteration numer %i" i
-    let tube = cylinder(rTube,lTube,Point(0.,0.,0.),UnitVector(1.,0.,0.),"ANG_Steel", Sensor(), noise_tube)
-
-    // define the mirrors
-    let m1 = disc(Point(0.,0.,0.), float rMirror, UnitVector(1.,0.,0.),"Mirror", true ) 
-    let m2 = disc(Point(float lTube,0.,0.), float rMirror, UnitVector(-1.,0.,0.),"Mirror",true)
-    //let objs = [|Cylinder(tube); Disc(m1);Disc(m2)|] m2.Centre baffle_end.Disc.Centre
-    // Case I want to control all the rays:
-    //let m11 = disc(Point(-1e-10,0.,0.), (float Rtube)+0.001, UnitVector(1.,0.,0.),"Mirror", true) 
-    //let m22 = disc(Point((float Ltube)+1e-10,0.,0.), (float Rtube)+0.001, UnitVector(-1.,0.,0.),"Mirror", true)
-    let baffle_end = annular_disc(Point((float lTube)-0.01,0.,0.),rBaffle,0.4,UnitVector(1.,0.,0.),"Baffle_SiC",Sensor(),noise_baffle)  // I choose the material is Silicon Carbide, not perfectly defined
-    let baffle_start = annular_disc(Point(0.01,0.,0.),rBaffle,0.4,UnitVector(1.,0.,0.),"Baffle_SiC",Sensor(),noise_baffle)  // Baffle_SiCI choose the material is Silicon Carbide, not perfectly defined
-    // i add a small imperfection on the baffle consisting on a mirror surface with a radius of 4cm (0.3 - 0.34 m)
-    //let baffle_imperfection = annular_disc(Point(0.01,0.,0.),0.35,0.4,UnitVector(1.,0.,0.),"Mirror_Half",Sensor(),znoise)  // I choose the material is Silicon Carbide, not perfectly defined
-    //let baffle_imperfection2 = annular_disc(Point((float Ltube)-0.0101,0.,0.),0.3,0.34,UnitVector(1.,0.,0.),"Mirror_Half",Sensor(),znoise)  // I choose the material is Silicon Carbide, not perfectly defined
-
-    let objs = [|Cylinder(tube); Disc(m1);Disc(m2);//Disc(m11);Disc(m22);
-                Annular_Disc(baffle_end);Annular_Disc(baffle_start);
-                //Annular_Disc(baffle_imperfection);
-                //Annular_Disc(baffle_imperfection2)
-                |]
-
-    [|1..nRays|] |> Array.Parallel.iter(fun x -> ForwardRay(rayfunc(),objs,mat,0) ) // ok, look like works
-    //let i = 0
-    //printfn "the iteration %d has ratios of:\nm2:%f\tm1:%f" i (float m2.Sensor.SavedData.Length /float m22.Sensor.SavedData.Length) (float  m1.Sensor.SavedData.Length/float m11.Sensor.SavedData.Length)
-    printfn "the iteration %d has produced:\nm2:%d\tm1:%d\tBaffle:%d" i (m2.Sensor.SavedData.Count) (m1.Sensor.SavedData.Count) baffle_end.Disc.Sensor.SavedData.Count
-    (*
-    m2.Sensor.SavedData//.Length
-    |> Array.iteri( fun i x ->
-                     if Array.isEmpty x.Noise then printfn "not empty num%d" i
-                     ignore i
-                  )
-    *)
-    let filtered_m2 = 
-        let ndisc = disc(Point(float lTube,0.,0.), float rMirror, UnitVector(-1.,0.,0.),"Mirror", true)
-        // filter the data that doesn't contains noise
-        m2.Sensor.SavedData.ToArray() 
-        |> Array.filter(fun x -> (Array.isEmpty x.Noise) |> not)   // filter rays that arrived directly
-        |> Array.iter(fun x -> ndisc.Sensor.AddData(x))             // add the new data 
-        // return the new disc/mirror
-        ndisc
-    let particlesPerRay = rayfunc().NumOfParticles
-    let nparti = (nRays*particlesPerRay-m2.Sensor.SavedData.Count + filtered_m2.Sensor.SavedData.Count)  // number of real particles that interacted with the system
-
-    //let phnoise = NoiseInterferometerArm_WELCH m1 tube mat (ray()) 8e5 nparti 750     // old
-    let periodogramLength = 4000
-    let phnoise_m1 = 
-        match m1 with
-        | x when  x.Sensor.SavedData.Count<>0 -> 
-            SumPhaseNoise_WELCH m1 tube mat (rayfunc()) periodogramLength                    //  returns (1/n)Sum(b(theta)*n(f))
-        | _ -> [||],[|1..periodogramLength/2|] |> Array.map(fun _ -> 0.)
-    let phnoise_m2 = 
-        match filtered_m2 with
-        | x when  x.Sensor.SavedData.Count<>0 -> 
-             //NoiseInterferometerArm_WELCH filtered_m2 tube mat (ray()) 8e5 nparti 400 
-             SumPhaseNoise_WELCH filtered_m2 tube mat (rayfunc()) periodogramLength                   //  returns (1/n)Sum(b(theta)*n(f))
-        | _ -> [||],[|1..periodogramLength/2|] |> Array.map(fun _ -> 0.)
-     
-    //  
-    (*
-    // Baffle
-    let Baffle_Render = 
-        match baffle_end.Disc.Sensor.SavedData.Length with
-        | 0 -> '1' |> ignore
-        | _ ->
-            let ra = baffle_end.Disc.Radius
-            let vox = 
-                {Pmin = Point(-ra,-ra,0.); Pmax = Point(ra,ra,0.)}
-            let matrix_out = CreateImage_Points_from_disk(baffle_end.Disc.Sensor.SavedData,vox,baffle_end.Disc.Normal,baffle_end.Disc.Centre,ra,200,200)
-            let baffle_path = Path.Combine(path_init,string(i)+"_Baffle.png")
-            SensorToImage(matrix_out,baffle_path,200,200)
-    *)
-    //
-    //  inv_sqrt() test
-    //  
-    (*
-    let samples=
-        [|0..10000000|]
-        |> Array.map( fun _ -> string(inv_sqr()) )
-    *)
-    //let i = 2
-    //let path_init = Path.Combine( __SOURCE_DIRECTORY__, "data/")
-    let Print_ScatteringASD_Plus_b_theta_Mirror1 = 
-        let path_save = Path.Combine( path_init,string(i)+"_mod_m1_nup.txt")
-        let path_savef = Path.Combine( path_init,string(i)+"_modf_m1_nup.txt")
-        printfn "the first path is %+A" path_save
-        printfn "the second path is %+A" path_savef
-        File.WriteAllLines( path_savef, fst phnoise_m1 |> Array.map(fun x -> string(x)) )
-        File.WriteAllLines( path_save, snd phnoise_m1 |> Array.map(fun x -> string(x)) )
-
-    let Print_ScatteringASD_Plus_b_theta_Mirror2 = 
-        let path_save_2 = Path.Combine( path_init,string(i)+"_mod_m2.txt")
-        let path_savef_2 = Path.Combine( path_init,string(i)+"_modf_m2.txt")
-        File.WriteAllLines( path_savef_2, fst phnoise_m2 |> Array.map(fun x -> string(x)) )
-        File.WriteAllLines( path_save_2, snd phnoise_m2 |> Array.map(fun x -> string(x)) )
-
-        let path_npart = Path.Combine( path_init,string(i)+"_particles.txt")
-        File.WriteAllLines( path_npart,  [|string(nparti)|] )
-    printfn "Iteration number %d has been finished" i
-
-//let iters = 1
-let readPSDs (iters:int) (path_init:string) wavelength fRmirror fLtube =
-    // Read the files 
-    let readLines filePath = System.IO.File.ReadLines(filePath)
-
-    let readOne (i:int):(float[]*float[])*(float[]*float[])*float =
-        let path_save = Path.Combine( path_init,string(i)+"_mod_m1_nup.txt")
-        let path_savef = Path.Combine( path_init,string(i)+"_modf_m1_nup.txt")
-        let path_save_2 = Path.Combine( path_init,string(i)+"_mod_m2.txt")
-        let path_savef_2 = Path.Combine( path_init,string(i)+"_modf_m2.txt")
-        
-        // read frequencies
-        let freq1 = readLines path_savef |> Seq.toArray |> Array.map(fun x -> float x)
-        let freq2 = readLines path_savef_2 |> Seq.toArray |> Array.map(fun x -> float x)
-
-        // read the ASD
-        let asd1 = readLines path_save |> Seq.toArray |> Array.map(fun x -> float x)
-        let asd2 = readLines path_save_2 |> Seq.toArray |> Array.map(fun x -> float x)
-        let npath = Path.Combine( path_init,string(i)+"_particles.txt")
-        let npart = readLines npath |> Seq.toArray |> Array.map(fun x -> float x)           // always will be length1
-        (freq1,asd1),(freq2,asd2), npart.[0]
-
-    match iters with
-    | x when x > 1 ->
-        let mutable ( f1,  a1), ( f2,  a2), npart0  = readOne 1
-        printfn "the number of particles are: %f" npart0
-        let freqs = 
-            match f1.Length, f2.Length with
-            | x , _ when x <> 0 -> f1
-            | _ , y when y <> 0 -> f2
-            | _ -> f1 // very bad if this happens
-        [|2..iters|] 
-        |> Array.iter(fun x -> 
-                                let (_,aa1),(_,aa2),npart = readOne x
-                                printfn "the iteration name is: %d" x
-                                match f1.Length with
-                                | 0 -> ignore 0
-                                | _ ->     
-                                    [|0..freqs.Length-1|] 
-                                    |> Array.iter(fun ynd -> a1.[ynd] <- (a1.[ynd]+aa1.[ynd])  )
-                                match f1.Length with
-                                | 0 -> ignore 0
-                                | _ ->
-                                    [|0..freqs.Length-1|] 
-                                    |> Array.iter(fun y -> a2.[y] <- (a2.[y]+aa2.[y])  )
-                                npart0 <- npart0+npart         // sum the particles to obtain the total number of particles
-                      )
-        
-        //let wavelen =  (match ray().Wavelenght with WaveLength x -> float x)
-        let OutTheSquareRoot = (wavelength*wavelength*mat.["Mirror"].LambPPM)/(sqrt(2.**5.)*PI*PI*(fLtube)*(fRmirror))
-
-        printfn "the FINAL number of particles are: %f" npart0
-        // ( f1,  a1), ( f2,  a2)
-        ( freqs,  a1|> Array.map(fun x -> OutTheSquareRoot*sqrt(x/npart0)) ),       ( freqs,  a2|> Array.map(fun x -> OutTheSquareRoot*sqrt(x/npart0)) )
-                                        
-    | _ -> 
-       printfn "It was already done since it's a single run!\nBut only a part!"
-       let ( f1,  a1), ( f2,  a2), npart0  = readOne 1
-
-       //let wavelen =  (match ray().Wavelenght with WaveLength x -> float x)
-       let OutTheSquareRoot = (wavelength*wavelength*mat.["Mirror"].LambPPM)/(sqrt(2.**5.)*PI*PI*(fLtube)*(fRmirror))
-       // mult = 1e-6*1.064e-6*1.064e-6/((2**2.5)*np.pi*np.pi*3e3*0.175)
-       
-       ( f1,  a1|> Array.map(fun x -> OutTheSquareRoot*sqrt(x/npart0)) ),       ( f2,  a2|> Array.map(fun x -> OutTheSquareRoot*sqrt(x/npart0)) )
 
 [<EntryPoint>]
 let main args =
-    // args should be: [|Nrays; particlesPerRay; nRepeat |]
-    let Rtube, Ltube = 0.6<m>, 3e3<m>
-    let Rmirror = 0.175<m>
-    let Rbaffle = 0.176 //<m>
-    let wavelength = WaveLength(1.064e-6<m>)
-    let BeamWaist = 0.028<m>
-    let nRepeat =  int args.[2] //30
-    let Nrays = int args.[0] //2000
-    let particlesPerRay = int args.[1] //25
-
-    // Define the cylinder
-    let t , Amplitude,Amplitude2 = [|(0.)..(1./20000.)..3.0|], Vector(0.,0.,0.075e-6) ,Vector(0.,0.075e-6,0.)  // Temporal series for the phase scan
-    let Amplitude_big,Amplitude_big2 =  Vector(0.,0.,8.e-6), Vector(0.,8.e-6,0.)
-    let noise = ([|(10.,Amplitude,0.);(10.,Amplitude2,(PI/7.))|] , t)    // (f,) 
-    let noise_upconversion = ([|(5.,Amplitude_big,0.);(5.,Amplitude_big2,(PI/6.))|], t)
-    let amplitude_z = Vector(1.0e-6,0.,0.)
-    let znoise = ([|(100.,amplitude_z,0.)|], t)
-    //
-    // select if I want to use the upconverted or the not upconverted version
-    let noise_select = noise_upconversion  
-    //
-    //
-    printfn "The number of particles is %i" Nrays
-    printfn "the rays generated per each particle can be up to: %i" Nrays
-    printfn "ane the bucle will be repeated up to %i times" nRepeat
-    printfn "If it hasn't been created, please create a directory called:\n\tdata"
-    let path_base = Path.Combine( __SOURCE_DIRECTORY__, "data/")
-    printfn "the source directory is %+A" __SOURCE_DIRECTORY__
-    let ray () = NewRay ps0 dir0 (float(BeamWaist)) (float(Rbaffle)) particlesPerRay wavelength
+    // the source num will nbe an input of the programm
+    let source_Num = int(args.[0])
+    //printfn "I have chosen that the ray is terminated at a fraction of 1E-09 because:\nI work with field and the first dispersion is not counted"
+    //printfn "the number of surfaces that produce difuse light are %d" (sources.Length)
+    //let source_Num = (Console.Read() )
+    printfn "The dispersing surface is: %d, called %s" source_Num sources.[source_Num].Label
+    let Nrays = 100000 //00
+    printfn "The number of rays chosen are: %d" Nrays
+    let ray() =RayFromSource sources.[source_Num] ParticlesPerRay //sources.[0].Power
+    //#time
     
-    //let path_init, i = path_base, 1
-    //
-    //      Run the many ray simulations
-    //
-    printfn "Starting the Ray Tracing"
-    //let all (i:int) (path_init:string) rayfunc nRays Rtube Ltube Rmirror Rbaffle noise_tube noise_baffle=
-    let simplifiedTracing numIter = all numIter path_base (ray) Nrays (Rtube) (Ltube) (Rmirror) (float Rbaffle) noise_select znoise
-    let UseAsinc = false
-    match UseAsinc with
-    | false ->
-        [1..nRepeat] |> List.iter(fun x -> simplifiedTracing x)
-    | true ->
-        let asyncasting itrs = 
-            async {return itrs |> List.iter(fun it -> simplifiedTracing it)}
-        let numAsync = 10
-        let slist = [1..numAsync] |> List.map(fun x -> [x..numAsync..(nRepeat-numAsync+x)])
-        
-        slist
-        |> List.collect(fun x -> [asyncasting x])
-        |> Async.Parallel |> Async.RunSynchronously
-        |> ignore
+                        //----------------------------//
+                        //                            //
+                        //        Ray Trace           //    
+                        //                            //
+                        //----------------------------//
+    // DC part
+    [|1..Nrays|] |> Array.iter(fun x ->  if x%5000 = 0 then printfn "ray number %d" x   // check that the simulation is progressing  if x%20 = 0 then
+                                         ForwardRay(ray(),elem,mat,0) )   // ok, look like works
 
-    printfn "It finished!"
-    //
+    //                                                                       //
+    //                                                                       //
+    //                                                                       //
+    // open the sensors to ray trace the data they have  and compute the noise
+    let aaaaaahhhhhhhhh =
+         match SNEB_PD1.[4] with Disc x -> x.Sensor.SavedData |>
+                                           Seq.map(fun content -> let ns = ForwardRay_noise(elem,mat,content.Route,[||])  
+                                                                  SensorContent(content.Position,content.Direction,content.FracOfRay,content.Phase,ns,content.Route)
+                                                                  // return the sensor content with the noise computed.
+                                                     
+                                                       )                               
+    //                                                                       //
+    //                                                                       //
+    //                                                                       //
 
-    //
+                        //----------------------------//
+                        //                            //
+                        //       See output           //    This is always true
+                        //                            //
+                        //----------------------------//
+
+
+    let out_pd1 = match SNEB_PD1.[4] with Disc x -> x.Sensor.SavedData.ToArray() | _ -> failwith " Error on the type" 
+    let out_pd2 = match SNEB_PD2.[4] with Disc x -> x.Sensor.SavedData.ToArray() | _ -> failwith " Error on the type" 
+
+    let out_cam1 = match SNEB_CAM1.[4] with Disc x -> x.Sensor.SavedData.ToArray() | _ -> failwith " Error on the type" 
+    let out_cam2 =match  SNEB_CAM2.[4] with Disc x -> x.Sensor.SavedData.ToArray()| _ -> failwith " Error on the type" 
+
+    let out_4d2 = match SNEB_4Q2.[4] with Disc x -> x.Sensor.SavedData.ToArray() | _ -> failwith " Error on the type"  //.[2].FracOfRay
+    let out_4d1 = match SNEB_4Q1.[4] with Disc x -> x.Sensor.SavedData.ToArray() | _ -> failwith " Error on the type" //.[0].FracOfRay
+
+                        //----------------------------//
+                        //                            //
+                        //  Write and Read to a File  //    No modulation up to now
+                        //                            //
+                        //----------------------------//
+    
+
+    let writeSensorInfo (filePath:string) (data:seq<SensorContent>) =
+        // Write the info into a file - Original function on '45degMirrorNoise.fsx'
+        let sw = new StreamWriter(filePath)
+        sw.WriteLine("Info about the file is on the first line, data after 3rd file, the number of rays of the simulation were: "+string(Nrays))
+        sw.WriteLine("Fraction  PosX  PosY  PosZ  VecX  VecY  VecZ  Phase")
+        data |> Seq.iter(fun i -> sw.WriteLine(string(i.FracOfRay)+" "+string(i.Position.X)+" "+ string(i.Position.Y)+ " "+string(i.Position.Z)+ " "+string(i.Direction.X)+" "+ string(i.Direction.Y)+ " "+string(i.Direction.Z)+" "+string(i.Phase)))
+        sw.Close()
+
+    let readLines (filePath:string) = seq {
+        use sr = new StreamReader (filePath)
+        while not sr.EndOfStream do
+            yield sr.ReadLine ()
+        sr.Close()
+                }
+    let readSensorInfo (filePath:string) =
+        // read the file and transform it into numerical    -  - Original function on '45degMirrorNoise.fsx'
+        let infoRead = readLines filePath
+        (infoRead) |> Seq.map(fun x -> x.Split(' ') ) 
+        |> Seq.skip 2 //fun x -> x.[2..x.Length-1]                             // The two first lines are the headers  
+        |> Seq.map(fun x -> x|> Seq.map(fun y -> float(y)))               // Transform the strings into floats [line].[value]
+  
+
+    let sensors = [|out_pd1; out_pd2; out_cam1; out_cam2; out_4d1 ; out_4d2|]   // info on each sensor
+    let SensorNameList = [|"PD1";"PD2"; "cam1";"cam2"; "4Q1"; "4Q2"; "ETM" ;"ETM_in"|]          // names of the sensors                                            
+    let SourceName = "main/outSensor/"+sources.[source_Num].Label                                     // this is the folder and the source, the SOURCE Will be added in the future automatically!!
+    let dirs = SensorNameList                                        // Path for each sensor
+               |> Array.map(fun x -> SourceName+  "__"+x+".dat" ) 
+               //|> Seq.map (fun x -> Path.Combine(__SOURCE_DIRECTORY__, x) )
+    //dirs |> Array.iter(fun x -> (printfn "%s\n" x))
+    // Save the data on files, 1 for each source
+    //(sensors, dirs) ||> Seq.iter2(fun x y -> writeSensorInfo y x)
+
+    // read test
+    //readSensorInfo ((Seq.toArray  dirs).[0])
+
+
+    //----------------------//
+    //                      //
+    //    Write Locally     //    No modulation up to now
+    //                      //
+    //-------- -------------//
+
+    let PointW2L (p:Point) (origPosToVect:Vector) (rotMat:Matrix) =
+        // transform a position from global coordinates to local coordinates
+        let pn = p+(-1.)*origPosToVect
+        rotMat.RotatePoint(pn)
+    
+    let VectorW2L (v:UnitVector) =
+        // Transform a vector from local coordinates to global coordinates    
+        Matrix.RotateVector(v,UnitVector(0.,0.,1.))      
+
+    let pd1 = match SNEB_PD1.[4] with Disc x -> x | _ -> failwith " Error on the type" 
+    let pd2 = match SNEB_PD2.[4] with Disc x -> x | _ -> failwith " Error on the type" 
+
+    let cam1 = match SNEB_CAM1.[4] with Disc x -> x  | _ -> failwith " Error on the type" 
+    let cam2 =match  SNEB_CAM2.[4] with Disc x -> x  | _ -> failwith " Error on the type" 
+ 
+    let Q4d2 = match SNEB_4Q2.[4] with Disc x -> x | _ -> failwith " Error on the type"  
+    let Q4d1 = match SNEB_4Q1.[4] with Disc x -> x | _ -> failwith " Error on the type" 
+
+    // create an equivalent disc for the curved surface of the ETM
+    let ETM_in_disc = disc(ETM_in.Origin,(float ETM_in.ClearAperture)/2.,ETM_in.Axis,ETM_in.MaterialName,ETM_in.Sensor,ETM_in.Noise)
+
+    //let s_centres = [| pd1.Centre; pd2.Centre; cam1.Centre; cam2.Centre; Q4d1.Centre; Q4d2.Centre|]                  // centre of each sensor
+    let s_dirs= [| pd1.Normal; pd2.Normal; cam1.Normal; cam2.Normal; Q4d1.Normal; Q4d2.Normal; ETM.Normal;ETM_in_disc.Normal|]          // direction of each sensor
+    let s_rot = s_dirs |> Array.map(fun x -> Matrix.RotateVector(x, UnitVector(0.,0.,1.)) )                          // rotation matrix for each sensor
+
+
+
+    // Transform sensor data in world coordintates into local coordinates
+
+    let out_pd1_l = out_pd1 |> Array.map(fun x ->SensorContent( (PointW2L x.Position (pd1.Centre.ToVector()) s_rot.[0]),
+                                                              VectorW2L(pd1.Normal).RotateVector(x.Direction),
+                                                              x.FracOfRay,
+                                                              x.Phase,x.Noise )   )
+
+    let out_pd2_l = out_pd2 |> Array.map(fun x ->SensorContent( (PointW2L x.Position (pd2.Centre.ToVector()) s_rot.[1]),
+                                                              VectorW2L(pd2.Normal).RotateVector(x.Direction),
+                                                              x.FracOfRay,
+                                                              x.Phase,x.Noise )   )
+
+    let out_cam1_l = out_cam1 |> Array.map(fun x ->SensorContent( (PointW2L x.Position (cam1.Centre.ToVector()) s_rot.[2]),
+                                                              VectorW2L(cam1.Normal).RotateVector(x.Direction),
+                                                              x.FracOfRay,
+                                                              x.Phase,x.Noise )   )
+
+    let out_cam2_l = out_cam2 |> Array.map(fun x ->SensorContent( (PointW2L x.Position (cam2.Centre.ToVector()) s_rot.[3]),
+                                                              VectorW2L(cam2.Normal).RotateVector(x.Direction),
+                                                              x.FracOfRay,
+                                                              x.Phase,x.Noise )   )
+
+    let out_4d1_l = out_4d1 |> Array.map(fun x ->SensorContent( (PointW2L x.Position (Q4d1.Centre.ToVector()) s_rot.[4]),
+                                                              VectorW2L(Q4d1.Normal).RotateVector(x.Direction),
+                                                              x.FracOfRay,
+                                                              x.Phase,x.Noise )   )
+    let out_4d2_l = out_4d2 |> Array.map(fun x ->SensorContent( (PointW2L x.Position (Q4d2.Centre.ToVector()) s_rot.[5]),
+                                                              VectorW2L(Q4d2.Normal).RotateVector(x.Direction),
+                                                              x.FracOfRay,
+                                                              x.Phase,x.Noise )   )
+
+
+    let ETM_l = ETM.Sensor.SavedData.ToArray() |> Array.map(fun x ->SensorContent( (PointW2L x.Position (ETM.Centre.ToVector()) s_rot.[6]),
+                                                                                    VectorW2L(ETM.Normal).RotateVector(x.Direction),
+                                                                                    x.FracOfRay,
+                                                                                    x.Phase,x.Noise )   )
+    let ETM_l_2 = ETM_in_disc.Sensor.SavedData.ToArray() |> Array.map(fun x ->SensorContent( (PointW2L x.Position (ETM.Centre.ToVector()) s_rot.[7]),
+                                                                                              VectorW2L(ETM.Normal).RotateVector(x.Direction),
+                                                                                              x.FracOfRay,
+                                                                                              x.Phase,x.Noise )   )
+                                                        
+    let sensors_local = [|out_pd1_l; out_pd2_l; out_cam1_l; out_cam2_l; out_4d1_l ; out_4d2_l; ETM_l;ETM_l_2|]   // info on each sensor
+    // Save the data on files, 1 for each source - Now locally
+    (sensors_local, dirs) ||> Seq.iter2(fun x y -> writeSensorInfo y x)
+
+    let field_ray_init = sqrt(sources.[source_Num].Power) 
+    printfn "The total percent of received ligth from the dispersed is:"
+    printfn "Fraction on pd1:            %f " ((out_pd1 |> Array.sumBy(fun x -> x.FracOfRay))*100./(float Nrays*field_ray_init))
+    printfn "Fraction on pd2:            %f " ((out_pd2 |> Array.sumBy(fun x -> x.FracOfRay))*100./(field_ray_init*float Nrays))
+    printfn "Fraction on cam1            %f" ((out_cam1 |> Array.sumBy(fun x -> x.FracOfRay))*100./(field_ray_init*float Nrays))
+    printfn "Fraction on cam2            %f" ((out_cam2 |> Array.sumBy(fun x -> x.FracOfRay))*100./(field_ray_init*float Nrays))
+    printfn "Fraction on quadrant1       %f" ((out_4d1 |> Array.sumBy(fun x -> x.FracOfRay))*100./(field_ray_init*float Nrays))
+    printfn "Fraction on quadrant2       %f" ((out_4d2 |> Array.sumBy(fun x -> x.FracOfRay))*100./(field_ray_init*float Nrays))
+    printfn "Fraction arriving to ETM is %f" ((ETM_l |> Array.sumBy(fun x -> x.FracOfRay))*100./(field_ray_init*float Nrays))
+    printfn "Fraction arriving to ETM_in is %f" ((ETM_l_2 |> Array.sumBy(fun x -> x.FracOfRay))*100./(field_ray_init*float Nrays))
+
+
+    
+                        //----------------------------//
+                        //                            //
+                        //     Fourier analysis       //    This is always true
+                        //                            //
+                        //----------------------------//
+     
+    let SensorNameList2 = [|"asd_PD1";"asd_PD2"; "asd_cam1";"asd_cam2"; "asd_4Q1"; "asd_4Q2"; "asd_ETM"; "asd_ETM_in" |]          // names of the sensors                                            
+    let SourceName = "main/outSensor_asd/"+sources.[source_Num].Label                                     // this is the folder and the source, the SOURCE Will be added in the future automatically!!
+    let dirs2 = SensorNameList2                                        // Path for each sensor
+                |> Seq.map(fun x -> SourceName+  "__"+x+".dat" )  |> Seq.toArray
+                //|> Seq.map (fun x -> Path.Combine(__SOURCE_DIRECTORY__, x) )
+  
+   
+    //PhaseChange(pd1,)   sources.[source_Num]
+    let windowsLength = 200
+    printfn "do pd2"
+    PhaseChange(pd2,SNEB_PD2_Source, sources.[source_Num].Dispersion,Nrays, windowsLength,    dirs2.[1])
+    printfn "do pcam2"
+    PhaseChange(cam2,SNEB_CAM2_Source, sources.[source_Num].Dispersion,Nrays, windowsLength,  dirs2.[3] )
+    printfn "do Q4d1"
+    PhaseChange_QPD(Q4d1,SNEB_4Q1_Source,sources.[source_Num].Dispersion,Nrays, windowsLength,dirs2.[4] )
+    // End mirror
+    printfn "do ETM"
+    PhaseChange(ETM,ETM_Source, sources.[source_Num].Dispersion, Nrays, windowsLength,dirs2.[6] )
+    printfn "do ETM_in"
+    PhaseChange(ETM_in_disc,ETM_in_Source, sources.[source_Num].Dispersion, Nrays,windowsLength,dirs2.[7] )
+    // cameras whose power is 0
+    printfn "do pd1"
+    Phase_NoiseAlone(pd1, sources.[source_Num].Dispersion, Nrays, windowsLength,dirs2.[0])
+    printfn "do cam1"
+    Phase_NoiseAlone(cam1,sources.[source_Num].Dispersion, Nrays, windowsLength,dirs2.[2])
+    printfn "do Q4d2"
+    PhaseChange_NoPow_QPD(Q4d2, sources.[source_Num].Dispersion,Nrays, windowsLength,dirs2.[5])
+ 
+
+
+    // Decentering, I will choose on X 0.1, 0.2 and 0.3
+    printfn "do start decentre Q4d1"
+    PhaseChange_QPD_decentreX(Q4d1,SNEB_4Q1_Source,sources.[source_Num].Dispersion,Nrays, windowsLength,0.1, dirs2.[4] )
+    PhaseChange_QPD_decentreX(Q4d1,SNEB_4Q1_Source,sources.[source_Num].Dispersion,Nrays, windowsLength,0.2, dirs2.[4] )
+    PhaseChange_QPD_decentreX(Q4d1,SNEB_4Q1_Source,sources.[source_Num].Dispersion,Nrays, windowsLength,0.3, dirs2.[4] )
+
+    printfn "do decentre Q4d2"
+    PhaseChange_NoPow_QPD_decentreX(Q4d2, sources.[source_Num].Dispersion,Nrays, windowsLength, 0.1, dirs2.[5])
+    PhaseChange_NoPow_QPD_decentreX(Q4d2, sources.[source_Num].Dispersion,Nrays, windowsLength, 0.2, dirs2.[5])
+    PhaseChange_NoPow_QPD_decentreX(Q4d2, sources.[source_Num].Dispersion,Nrays, windowsLength, 0.3, dirs2.[5])
+
+
+    printfn "The simulation has finished\n Remember that ETM_in should be multiplied by sqrt(epsilon_T_in) since the light is coupled inside the cavity" //, push a key to close the SW"
+    //let ign0re = Console.Read() 
+    0
 
     (*
-    // How to read
-    let i = 1
-    let path_init = Path.Combine( __SOURCE_DIRECTORY__, "data/")
-    let path_save = Path.Combine( path_init,string(i)+"_mod_m1_nup.txt")
 
+    //
+    // Tests with the output
+    //
+    open SaveSensorInfo
+    let out_4d2_disc = match SNEB_4Q2.[4] with Disc x -> x
+    let disc_rad= out_4d2_disc.Radius
+    //out_4d2_disc.Normal
+    let disc_box = {Pmin=Point(-disc_rad,-disc_rad, 0.); Pmax=Point(disc_rad+1e-15,disc_rad+1e-15,0.)}
+    CreateImage_Points_from_disk_amplitude(out_4d2,ray_sneb_mmt_m2().Wavelenght,out_4d2_disc.Normal,out_4d2_disc.Centre,disc_rad,2,2)
+
+
+    Types.ObjectTypes+SensorContent {Direction = Types.Algebra+UnitVector;
+                                       Noise = [||];
+                                       NumRays = 1;
+                                       Phase = 3.098351236;
+                                       Position = Types.Algebra+Point;}
+    > 
     *)
-
-    
-    let m1, m2 = readPSDs nRepeat path_base (match wavelength with WaveLength x -> float x) (float Rmirror) (float Ltube)
-
-    let save_freq =
-        // save the frequency of the mirror oscillations -> are the same, but just in case
-        match (fst m1) = (fst m2) with
-        | true -> 
-            let path_savef = Path.Combine(path_base, "frequencies.txt")
-            printfn "this"
-            File.WriteAllLines( path_savef, fst m1|> Array.map(fun x -> string(x)) )
-        
-        | false ->
-            let path_savef1 = Path.Combine(path_base, "frequencies_m1.txt")
-            printfn "this not"
-            if fst m1 |> Array.isEmpty |> not then
-                File.WriteAllLines( path_savef1, fst m1|> Array.map(fun x -> string(x)) )
-            let path_savef2 = Path.Combine(path_base, "frequencies_m2.txt")
-            if fst m2 |> Array.isEmpty |> not then
-                File.WriteAllLines( path_savef2, fst m2|> Array.map(fun x -> string(x)) )
-
-    if snd m1 |> Array.isEmpty |> not then
-        let path_save1 = Path.Combine(path_base, "ASD_withBaffle_m1.txt")
-        File.WriteAllLines(path_save1, snd m1 |> Array.map(fun x -> string(x)))
-
-    if snd m2 |> Array.isEmpty |> not then
-        let path_save2 = Path.Combine(path_base, "ASD_withBaffle_m2.txt")
-        File.WriteAllLines(path_save2, snd m2 |> Array.map(fun x -> string(x)))
-    
-    // end the EntryPoint
-    0

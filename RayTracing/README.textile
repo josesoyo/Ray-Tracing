@@ -2,3 +2,9 @@
 
 This library is compsed with all the fundamental tools to do ray tracing. 
 Shading has been developed to analyze the phase modulation that is produced on a ray impinging an oscillating surface.
+
+
+To improve the efficiency of the system, the tracing system has been divided into two parts, each one with a funciton:
+- ShadingForward
+- ShadingForward_Noise
+The first one includes the ray tracing in DC, so there is no noise, but now the ray saves which one is the path that it's following, so once the DC tracing finishes it allows to trace for a second time, but now only following the path of the rays that arrives to the sensor in a deterministic way. This methods saves a lot of time since the most expesive part to compute is the noise that now will be only computed when the ray arrives to the sensor.
