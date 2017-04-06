@@ -198,18 +198,19 @@ let rec ForwardRay_noise (objs:Object[],material:System.Collections.Generic.IDic
         let origin = route.[0]
         let destination = route.[1]
         let ray_from = {default_ray with from = origin.Origin_From; uvec = origin.Direction; PhaseModulation= old_modulation}
-        let ray_to ={default_ray with from = destination.Origin_From; uvec = destination.Direction}
+        let ray_to ={default_ray with from = destination.Origin_From; uvec = destination.Direction; PhaseModulation= old_modulation}
         let dotproduct = ray_from.uvec*ray_to.uvec
         match dotproduct with
         | y when y > 0. ->
-            // if the product is bigger than 0, then the ray was transmitted
-            let noise = getNoise(objs,origin.GoingToID)
+            // if the product is bigger than 0, then the ray was transmitted -> No noise
+            ForwardRay_noise(objs,material,route.[1..route.Length-1], old_modulation)
         
-            let new_modulation = PhaseModulation(ray_to,default_intersection,noise) 
-            ForwardRay_noise(objs,material,route.[1..route.Length-1], new_modulation)
         | y when y < 0. ->
             // if the product is smaller than zero, the ray was reflected or dispersed
-            ForwardRay_noise(objs,material,route.[1..route.Length-1], old_modulation)
+            let noise = getNoise(objs,origin.GoingToID)
+            let new_modulation = PhaseModulation(ray_to,{default_intersection with ray=ray_from},noise) 
+            ForwardRay_noise(objs,material,route.[1..route.Length-1], new_modulation)
+
         | y when y = 0. -> 
             printfn "WTH!? cosinus equal to zero??"
             ForwardRay_noise(objs,material,route.[1..route.Length-1], old_modulation)
