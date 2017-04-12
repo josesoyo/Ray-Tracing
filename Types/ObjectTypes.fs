@@ -29,13 +29,13 @@ module ObjectTypes=
         // If exists, will check if it is a termination on the ray (End Sensor), or the ray continues, but saves the value
         let exists = exs     // says if it's a sensor or not
         let terminate = term
-        let data = 
+        let mutable data =   // I had to do it mutable :(
             match exs with
             | true -> ResizeArray<SensorContent>(100)
             | false -> ResizeArray<SensorContent>()
         member this.Exists with get() = exists
         member this.Terminate with get() = terminate
-        member this.SavedData with get() = data
+        member this.SavedData with get() = data and set(ddt) = data <- ddt
 
         member this.AddData(sc) =
             //lock data ( fun () -> data.Add(sc))//data <- Array.append data [|sc|]
@@ -107,7 +107,7 @@ module ObjectTypes=
         member this.Origin    
             // return the point of the surface lens leaning on the axis 
             with get() = 
-                let moov = ((float radius)*axis).ToPoint()
+                let moov = (abs(float radius)*axis).ToPoint()
                 SphereCentre.MoveAndCreateNew(moov)
                 
         member this.RadiusOfCurvature  
