@@ -16,6 +16,7 @@ open ForwardRayTracing
 open PostProcess.Noise
 open System.IO
 open System
+
 //#load "../scripts_examples/mat_lib.fsx"
 open materials
 
@@ -26,6 +27,29 @@ open mounts
 open SNEB
 
 let ParticlesPerRay = 10
+
+
+let PointW2L (p:Point) (origPosToVect:Vector) (rotMat:Matrix) =
+    // transform a position from global coordinates to local coordinates
+    let pn = p+(-1.)*origPosToVect
+    rotMat.RotatePoint(pn)
+  
+let PointL2W (p:Point) (worldOrigigntoVect:Vector) (rotMat:Matrix) =
+    // transform a position from global coordinates to local coordinates
+    let pn = rotMat.RotatePoint(p)
+    pn+(1.)*worldOrigigntoVect
+    
+   
+let Point_remove_z_component (p:Point, origPosToVect:Vector, rotMat_To_Local:Matrix, rotMat_To_World:Matrix) = 
+    // When I want to transform from a spherical surface to a disc I have the problem that the Z0 <> 0 and it produces problems on PostProcess
+    // with that function I solve that problem
+    let nwPoint = PointW2L p origPosToVect rotMat_To_Local
+    let nwPint_z0 = Point(nwPoint.X,nwPoint.Y,0.)
+    PointL2W nwPint_z0 origPosToVect rotMat_To_World
+let VectorW2L (v:UnitVector) =
+    // Transform a vector from local coordinates to global coordinates    
+    Matrix.RotateVector(v,UnitVector(0.,0.,1.))      
+
 
 // stray light from MMT2
 //      point, direction = SNEB_MMT_M2p, SNEB_MMT_M2d
@@ -125,14 +149,14 @@ let NewRay (pos:Point) (normal:UnitVector) (sigma:float) (rMax:float) (nOfPartic
 
 
 [<EntryPoint>]
-let main args =
+let main args = 
     // the source num will nbe an input of the programm
-    let source_Num = int(args.[0])
+    let source_Num =  int(args.[0])  // 2
     //printfn "I have chosen that the ray is terminated at a fraction of 1E-09 because:\nI work with field and the first dispersion is not counted"
     //printfn "the number of surfaces that produce difuse light are %d" (sources.Length)
     //let source_Num = (Console.Read() )
     printfn "The dispersing surface is: %d, called %s" source_Num sources.[source_Num].Label
-    let Nrays = 100000 //00
+    let Nrays = 100000 //0
     printfn "The number of rays chosen are: %d" Nrays
     let ray() =RayFromSource sources.[source_Num] ParticlesPerRay //sources.[0].Power
     //#time
@@ -150,13 +174,94 @@ let main args =
     //                                                                       //
     //                                                                       //
     // open the sensors to ray trace the data they have  and compute the noise
-    let aaaaaahhhhhhhhh =
-         match SNEB_PD1.[4] with Disc x -> x.Sensor.SavedData |>
-                                           Seq.map(fun content -> let ns = ForwardRay_noise(elem,mat,content.Route,[||])  
-                                                                  SensorContent(content.Position,content.Direction,content.FracOfRay,content.Phase,ns,content.Route)
-                                                                  // return the sensor content with the noise computed.
-                                                     
-                                                       )                               
+    //let nelem = ETM.Sensor.SavedData  // to have the values of the components of the bench
+
+    let out_etm =
+          ETM.Sensor.SavedData.ToArray() |>
+          Array.map(fun content -> let ns = ForwardRay_noise(elem,mat,content.Route,[||])  
+                                   SensorContent(content.Position,content.Direction,content.FracOfRay,content.Phase,ns,content.Route)
+                                   // return the sensor content with the noise computed.
+                      )
+                      |> fun xx -> let new_res_arr = ResizeArray<SensorContent>(xx.Length) 
+                                   xx |> Array.iter(fun yy -> new_res_arr.Add(yy))
+                                   new_res_arr              
+    // create an equivalent disc for the curved surface of the ETM
+    let eeeeeeee= ETM_in
+    let ETM_in_disc = disc(ETM_in.Origin,(float ETM_in.ClearAperture)/2.,ETM_in.Axis,ETM_in.MaterialName,ETM_in.Sensor,ETM_in.Noise)
+   
+    // to transform the z0 to 0 on local coordinates for ETM_in:
+    let w2l = Matrix.RotateVector(ETM_in.Axis,UnitVector(0.,0.,1.))
+    let l2w = Matrix.RotateVector(UnitVector(0.,0.,1.),ETM_in.Axis)
+    let orig_vec = ETM_in.Origin.ToVector()
+    let out_etm_in =
+          ETM_in_disc.Sensor.SavedData.ToArray() |>
+          Array.map(fun content -> let ns = ForwardRay_noise(elem,mat,content.Route,[||])  
+                                   let new_point_noZ0 = Point_remove_z_component(content.Position,orig_vec,w2l,l2w)   // delete z0 component on local coordinatesx
+                                   SensorContent(new_point_noZ0 ,content.Direction,content.FracOfRay,content.Phase,ns,content.Route)
+                                   // return the sensor content with the noise computed.
+                      )                               
+                      |> fun xx -> let new_res_arr = ResizeArray<SensorContent>(xx.Length) 
+                                   xx |> Array.iter(fun yy -> new_res_arr.Add(yy))
+                                   new_res_arr              
+    let out_pd1 =
+          match SNEB_PD1.[4] with Disc x -> x.Sensor.SavedData.ToArray() |>
+                                            Array.map(fun content -> let ns = ForwardRay_noise(elem,mat,content.Route,[||])  
+                                                                     SensorContent(content.Position,content.Direction,content.FracOfRay,content.Phase,ns,content.Route)
+                                                                     // return the sensor content with the noise computed.
+                                                        )  
+                                            |> fun xx -> let new_res_arr = ResizeArray<SensorContent>(xx.Length) 
+                                                         xx |> Array.iter(fun yy -> new_res_arr.Add(yy))
+                                                         new_res_arr              
+
+    let out_pd2 =
+          match SNEB_PD2.[4] with Disc x -> x.Sensor.SavedData.ToArray() |>
+                                            Array.map(fun content -> let ns = ForwardRay_noise(elem,mat,content.Route,[||])  
+                                                                     SensorContent(content.Position,content.Direction,content.FracOfRay,content.Phase,ns,content.Route)
+                                                                    // return the sensor content with the noise computed.
+                                                        )                               
+                                            |> fun xx -> let new_res_arr = ResizeArray<SensorContent>(xx.Length) 
+                                                         xx |> Array.iter(fun yy -> new_res_arr.Add(yy))
+                                                         new_res_arr              
+
+    let out_cam1 =
+          match SNEB_CAM1.[4] with Disc x -> x.Sensor.SavedData.ToArray() |>
+                                             Array.map(fun content -> let ns = ForwardRay_noise(elem,mat,content.Route,[||])  
+                                                                      SensorContent(content.Position,content.Direction,content.FracOfRay,content.Phase,ns,content.Route)
+                                                                     // return the sensor content with the noise computed.
+                                                        )                               
+                                            |> fun xx -> let new_res_arr = ResizeArray<SensorContent>(xx.Length) 
+                                                         xx |> Array.iter(fun yy -> new_res_arr.Add(yy))
+                                                         new_res_arr              
+    let out_cam2 =
+          match SNEB_CAM2.[4] with Disc x -> x.Sensor.SavedData.ToArray() |>
+                                             Array.map(fun content -> let ns = ForwardRay_noise(elem,mat,content.Route,[||])  
+                                                                      SensorContent(content.Position,content.Direction,content.FracOfRay,content.Phase,ns,content.Route)
+                                                                    // return the sensor content with the noise computed.
+                                                        )                               
+                                            |> fun xx -> let new_res_arr = ResizeArray<SensorContent>(xx.Length) 
+                                                         xx |> Array.iter(fun yy -> new_res_arr.Add(yy))
+                                                         new_res_arr              
+    let out_4d2 =
+          match SNEB_4Q2.[4] with Disc x -> x.Sensor.SavedData.ToArray() |>
+                                            Array.map(fun content -> let ns = ForwardRay_noise(elem,mat,content.Route,[||])  
+                                                                     SensorContent(content.Position,content.Direction,content.FracOfRay,content.Phase,ns,content.Route)
+                                                                    // return the sensor content with the noise computed.
+                                                        )                               
+                                            |> fun xx -> let new_res_arr = ResizeArray<SensorContent>(xx.Length) 
+                                                         xx |> Array.iter(fun yy -> new_res_arr.Add(yy))
+                                                         new_res_arr              
+    let out_4d1 =
+          match SNEB_4Q1.[4] with Disc x -> x.Sensor.SavedData.ToArray() |>
+                                            Array.map(fun content -> let ns = ForwardRay_noise(elem,mat,content.Route,[||])  
+                                                                     SensorContent(content.Position,content.Direction,content.FracOfRay,content.Phase,ns,content.Route)
+                                                                    // return the sensor content with the noise computed.
+                                                        )                               
+                                            |> fun xx -> let new_res_arr = ResizeArray<SensorContent>(xx.Length) 
+                                                         xx |> Array.iter(fun yy -> new_res_arr.Add(yy))
+                                                         new_res_arr              
+            
+              
+    //(sneb_etm_sensor , match SNEB_PD1.[4] with Disc x -> x.Sensor.SavedData)  ||> Seq.map2(fun a b -> a.Noise=b.Noise)                                             
     //                                                                       //
     //                                                                       //
     //                                                                       //
@@ -168,14 +273,17 @@ let main args =
                         //----------------------------//
 
 
-    let out_pd1 = match SNEB_PD1.[4] with Disc x -> x.Sensor.SavedData.ToArray() | _ -> failwith " Error on the type" 
-    let out_pd2 = match SNEB_PD2.[4] with Disc x -> x.Sensor.SavedData.ToArray() | _ -> failwith " Error on the type" 
+    //let out_pd1_ = match SNEB_PD1.[4] with Disc x -> x.Sensor.SavedData.ToArray() | _ -> failwith " Error on the type" 
+    //let out_pd2 = match SNEB_PD2.[4] with Disc x -> x.Sensor.SavedData.ToArray() | _ -> failwith " Error on the type" 
+    //(out_pd1_,out_pd1) ||> Array.map2(fun un tw -> un.Noise=tw.Noise) |> Array.filter(fun x -> x) 
+    //|> fun x -> if x.Length=out_pd1.Length then printfn "yah" elif x.Length>1 then printfn "uh" else printfn "bad"
 
-    let out_cam1 = match SNEB_CAM1.[4] with Disc x -> x.Sensor.SavedData.ToArray() | _ -> failwith " Error on the type" 
-    let out_cam2 =match  SNEB_CAM2.[4] with Disc x -> x.Sensor.SavedData.ToArray()| _ -> failwith " Error on the type" 
 
-    let out_4d2 = match SNEB_4Q2.[4] with Disc x -> x.Sensor.SavedData.ToArray() | _ -> failwith " Error on the type"  //.[2].FracOfRay
-    let out_4d1 = match SNEB_4Q1.[4] with Disc x -> x.Sensor.SavedData.ToArray() | _ -> failwith " Error on the type" //.[0].FracOfRay
+    //let out_cam1 = match SNEB_CAM1.[4] with Disc x -> x.Sensor.SavedData.ToArray() | _ -> failwith " Error on the type" 
+    //let out_cam2 =match  SNEB_CAM2.[4] with Disc x -> x.Sensor.SavedData.ToArray()| _ -> failwith " Error on the type" 
+
+    //let out_4d2 = match SNEB_4Q2.[4] with Disc x -> x.Sensor.SavedData.ToArray() | _ -> failwith " Error on the type"  //.[2].FracOfRay
+    //let out_4d1 = match SNEB_4Q1.[4] with Disc x -> x.Sensor.SavedData.ToArray() | _ -> failwith " Error on the type" //.[0].FracOfRay
 
                         //----------------------------//
                         //                            //
@@ -211,7 +319,7 @@ let main args =
     let SourceName = "main/outSensor/"+sources.[source_Num].Label                                     // this is the folder and the source, the SOURCE Will be added in the future automatically!!
     let dirs = SensorNameList                                        // Path for each sensor
                |> Array.map(fun x -> SourceName+  "__"+x+".dat" ) 
-               //|> Seq.map (fun x -> Path.Combine(__SOURCE_DIRECTORY__, x) )
+               //|> Array.map (fun x -> Path.Combine(__SOURCE_DIRECTORY__, x) )
     //dirs |> Array.iter(fun x -> (printfn "%s\n" x))
     // Save the data on files, 1 for each source
     //(sensors, dirs) ||> Seq.iter2(fun x y -> writeSensorInfo y x)
@@ -222,92 +330,109 @@ let main args =
 
     //----------------------//
     //                      //
-    //    Write Locally     //    No modulation up to now
+    //    Write Locally     //    add the modulation on the elements
     //                      //
     //-------- -------------//
 
-    let PointW2L (p:Point) (origPosToVect:Vector) (rotMat:Matrix) =
-        // transform a position from global coordinates to local coordinates
-        let pn = p+(-1.)*origPosToVect
-        rotMat.RotatePoint(pn)
-    
-    let VectorW2L (v:UnitVector) =
-        // Transform a vector from local coordinates to global coordinates    
-        Matrix.RotateVector(v,UnitVector(0.,0.,1.))      
+    let pd1 = 
+        let dd =
+            match SNEB_PD1.[4] with Disc x -> x | _ -> failwith " Error on the type" 
+        dd.Sensor.SavedData <- out_pd1
+        dd
+    let pd2 =
+        let dd =
+             match SNEB_PD2.[4] with Disc x -> x | _ -> failwith " Error on the type" 
+        dd.Sensor.SavedData <- out_pd2
+        dd
 
-    let pd1 = match SNEB_PD1.[4] with Disc x -> x | _ -> failwith " Error on the type" 
-    let pd2 = match SNEB_PD2.[4] with Disc x -> x | _ -> failwith " Error on the type" 
-
-    let cam1 = match SNEB_CAM1.[4] with Disc x -> x  | _ -> failwith " Error on the type" 
-    let cam2 =match  SNEB_CAM2.[4] with Disc x -> x  | _ -> failwith " Error on the type" 
+    let cam1 = 
+        let dd =   
+            match SNEB_CAM1.[4] with Disc x -> x  | _ -> failwith " Error on the type" 
+        dd.Sensor.SavedData <- out_cam1
+        dd
+    let cam2 =
+        let dd =      
+            match  SNEB_CAM2.[4] with Disc x -> x  | _ -> failwith " Error on the type" 
+        dd.Sensor.SavedData <- out_cam2
+        dd
  
-    let Q4d2 = match SNEB_4Q2.[4] with Disc x -> x | _ -> failwith " Error on the type"  
-    let Q4d1 = match SNEB_4Q1.[4] with Disc x -> x | _ -> failwith " Error on the type" 
+    let Q4d2 = 
+        let dd =   
+            match SNEB_4Q2.[4] with Disc x -> x | _ -> failwith " Error on the type"  
+        dd.Sensor.SavedData <- out_4d2
+        dd
+    let Q4d1 = 
+        let dd =   
+            match SNEB_4Q1.[4] with Disc x -> x | _ -> failwith " Error on the type" 
+        dd.Sensor.SavedData <- out_4d1
+        dd
+    ETM.Sensor.SavedData <- out_etm        // also add the noise for the mirror sensors
+    ETM_in_disc.Sensor.SavedData <- out_etm_in
 
-    // create an equivalent disc for the curved surface of the ETM
-    let ETM_in_disc = disc(ETM_in.Origin,(float ETM_in.ClearAperture)/2.,ETM_in.Axis,ETM_in.MaterialName,ETM_in.Sensor,ETM_in.Noise)
-
+    
     //let s_centres = [| pd1.Centre; pd2.Centre; cam1.Centre; cam2.Centre; Q4d1.Centre; Q4d2.Centre|]                  // centre of each sensor
     let s_dirs= [| pd1.Normal; pd2.Normal; cam1.Normal; cam2.Normal; Q4d1.Normal; Q4d2.Normal; ETM.Normal;ETM_in_disc.Normal|]          // direction of each sensor
     let s_rot = s_dirs |> Array.map(fun x -> Matrix.RotateVector(x, UnitVector(0.,0.,1.)) )                          // rotation matrix for each sensor
 
 
-
+    
     // Transform sensor data in world coordintates into local coordinates
 
-    let out_pd1_l = out_pd1 |> Array.map(fun x ->SensorContent( (PointW2L x.Position (pd1.Centre.ToVector()) s_rot.[0]),
+    let out_pd1_l = out_pd1 |> Seq.map(fun x ->SensorContent( (PointW2L x.Position (pd1.Centre.ToVector()) s_rot.[0]),
                                                               VectorW2L(pd1.Normal).RotateVector(x.Direction),
                                                               x.FracOfRay,
-                                                              x.Phase,x.Noise )   )
+                                                              x.Phase,x.Noise,x.Route )   )
 
-    let out_pd2_l = out_pd2 |> Array.map(fun x ->SensorContent( (PointW2L x.Position (pd2.Centre.ToVector()) s_rot.[1]),
+    let out_pd2_l = out_pd2 |> Seq.map(fun x ->SensorContent( (PointW2L x.Position (pd2.Centre.ToVector()) s_rot.[1]),
                                                               VectorW2L(pd2.Normal).RotateVector(x.Direction),
                                                               x.FracOfRay,
-                                                              x.Phase,x.Noise )   )
+                                                              x.Phase,x.Noise,x.Route )   )
 
-    let out_cam1_l = out_cam1 |> Array.map(fun x ->SensorContent( (PointW2L x.Position (cam1.Centre.ToVector()) s_rot.[2]),
+    let out_cam1_l = out_cam1 |> Seq.map(fun x ->SensorContent( (PointW2L x.Position (cam1.Centre.ToVector()) s_rot.[2]),
                                                               VectorW2L(cam1.Normal).RotateVector(x.Direction),
                                                               x.FracOfRay,
-                                                              x.Phase,x.Noise )   )
+                                                              x.Phase,x.Noise,x.Route )   )
 
-    let out_cam2_l = out_cam2 |> Array.map(fun x ->SensorContent( (PointW2L x.Position (cam2.Centre.ToVector()) s_rot.[3]),
+    let out_cam2_l = out_cam2 |> Seq.map(fun x ->SensorContent( (PointW2L x.Position (cam2.Centre.ToVector()) s_rot.[3]),
                                                               VectorW2L(cam2.Normal).RotateVector(x.Direction),
                                                               x.FracOfRay,
-                                                              x.Phase,x.Noise )   )
+                                                              x.Phase,x.Noise ,x.Route)   )
 
-    let out_4d1_l = out_4d1 |> Array.map(fun x ->SensorContent( (PointW2L x.Position (Q4d1.Centre.ToVector()) s_rot.[4]),
+    let out_4d1_l = out_4d1 |> Seq.map(fun x ->SensorContent( (PointW2L x.Position (Q4d1.Centre.ToVector()) s_rot.[4]),
                                                               VectorW2L(Q4d1.Normal).RotateVector(x.Direction),
                                                               x.FracOfRay,
-                                                              x.Phase,x.Noise )   )
-    let out_4d2_l = out_4d2 |> Array.map(fun x ->SensorContent( (PointW2L x.Position (Q4d2.Centre.ToVector()) s_rot.[5]),
+                                                              x.Phase,x.Noise, x.Route )   )
+    let out_4d2_l = out_4d2 |> Seq.map(fun x ->SensorContent( (PointW2L x.Position (Q4d2.Centre.ToVector()) s_rot.[5]),
                                                               VectorW2L(Q4d2.Normal).RotateVector(x.Direction),
                                                               x.FracOfRay,
-                                                              x.Phase,x.Noise )   )
+                                                              x.Phase,x.Noise, x.Route )   )
 
 
-    let ETM_l = ETM.Sensor.SavedData.ToArray() |> Array.map(fun x ->SensorContent( (PointW2L x.Position (ETM.Centre.ToVector()) s_rot.[6]),
+    let ETM_l = out_etm |> Seq.map(fun x ->SensorContent( (PointW2L x.Position (ETM.Centre.ToVector()) s_rot.[6]),
                                                                                     VectorW2L(ETM.Normal).RotateVector(x.Direction),
                                                                                     x.FracOfRay,
-                                                                                    x.Phase,x.Noise )   )
-    let ETM_l_2 = ETM_in_disc.Sensor.SavedData.ToArray() |> Array.map(fun x ->SensorContent( (PointW2L x.Position (ETM.Centre.ToVector()) s_rot.[7]),
+                                                                                    x.Phase,x.Noise, x.Route )   )
+    let ETM_l_2 = out_etm_in |> Seq.map(fun x ->SensorContent( (PointW2L x.Position (ETM.Centre.ToVector()) s_rot.[7]),
                                                                                               VectorW2L(ETM.Normal).RotateVector(x.Direction),
                                                                                               x.FracOfRay,
-                                                                                              x.Phase,x.Noise )   )
-                                                        
+                                                                                              x.Phase,x.Noise, x.Route )   )
     let sensors_local = [|out_pd1_l; out_pd2_l; out_cam1_l; out_cam2_l; out_4d1_l ; out_4d2_l; ETM_l;ETM_l_2|]   // info on each sensor
     // Save the data on files, 1 for each source - Now locally
     (sensors_local, dirs) ||> Seq.iter2(fun x y -> writeSensorInfo y x)
-
+                                                     
+    //
+    //   Print the % of photons arriving
+    //
     let field_ray_init = sqrt(sources.[source_Num].Power) 
     printfn "The total percent of received ligth from the dispersed is:"
-    printfn "Fraction on pd1:            %f " ((out_pd1 |> Array.sumBy(fun x -> x.FracOfRay))*100./(float Nrays*field_ray_init))
-    printfn "Fraction on pd2:            %f " ((out_pd2 |> Array.sumBy(fun x -> x.FracOfRay))*100./(field_ray_init*float Nrays))
-    printfn "Fraction on cam1            %f" ((out_cam1 |> Array.sumBy(fun x -> x.FracOfRay))*100./(field_ray_init*float Nrays))
-    printfn "Fraction on cam2            %f" ((out_cam2 |> Array.sumBy(fun x -> x.FracOfRay))*100./(field_ray_init*float Nrays))
-    printfn "Fraction on quadrant1       %f" ((out_4d1 |> Array.sumBy(fun x -> x.FracOfRay))*100./(field_ray_init*float Nrays))
-    printfn "Fraction on quadrant2       %f" ((out_4d2 |> Array.sumBy(fun x -> x.FracOfRay))*100./(field_ray_init*float Nrays))
-    printfn "Fraction arriving to ETM is %f" ((ETM_l |> Array.sumBy(fun x -> x.FracOfRay))*100./(field_ray_init*float Nrays))
-    printfn "Fraction arriving to ETM_in is %f" ((ETM_l_2 |> Array.sumBy(fun x -> x.FracOfRay))*100./(field_ray_init*float Nrays))
+    printfn "Fraction on pd1:            %f " ((out_pd1 |> Seq.sumBy(fun x -> x.FracOfRay))*100./(float Nrays*field_ray_init))
+    printfn "Fraction on pd2:            %f " ((out_pd2 |> Seq.sumBy(fun x -> x.FracOfRay))*100./(field_ray_init*float Nrays))
+    printfn "Fraction on cam1            %f" ((out_cam1 |> Seq.sumBy(fun x -> x.FracOfRay))*100./(field_ray_init*float Nrays))
+    printfn "Fraction on cam2            %f" ((out_cam2 |> Seq.sumBy(fun x -> x.FracOfRay))*100./(field_ray_init*float Nrays))
+    printfn "Fraction on quadrant1       %f" ((out_4d1 |> Seq.sumBy(fun x -> x.FracOfRay))*100./(field_ray_init*float Nrays))
+    printfn "Fraction on quadrant2       %f" ((out_4d2 |> Seq.sumBy(fun x -> x.FracOfRay))*100./(field_ray_init*float Nrays))
+    printfn "Fraction arriving to ETM is %f" ((ETM_l |> Seq.sumBy(fun x -> x.FracOfRay))*100./(field_ray_init*float Nrays))
+    printfn "Fraction arriving to ETM_in is %f" ((ETM_l_2 |> Seq.sumBy(fun x -> x.FracOfRay))*100./(field_ray_init*float Nrays))
 
 
     
@@ -318,10 +443,10 @@ let main args =
                         //----------------------------//
      
     let SensorNameList2 = [|"asd_PD1";"asd_PD2"; "asd_cam1";"asd_cam2"; "asd_4Q1"; "asd_4Q2"; "asd_ETM"; "asd_ETM_in" |]          // names of the sensors                                            
-    let SourceName = "main/outSensor_asd/"+sources.[source_Num].Label                                     // this is the folder and the source, the SOURCE Will be added in the future automatically!!
+    let SourceName_asd = "main/outSensor_asd/"+sources.[source_Num].Label                                     // this is the folder and the source, the SOURCE Will be added in the future automatically!!
     let dirs2 = SensorNameList2                                        // Path for each sensor
-                |> Seq.map(fun x -> SourceName+  "__"+x+".dat" )  |> Seq.toArray
-                //|> Seq.map (fun x -> Path.Combine(__SOURCE_DIRECTORY__, x) )
+                |> Array.map(fun x -> SourceName_asd+  "__"+x+".dat" ) // |> Seq.toArray
+                //|> Array.map (fun x -> Path.Combine(__SOURCE_DIRECTORY__, x) )
   
    
     //PhaseChange(pd1,)   sources.[source_Num]
@@ -345,7 +470,6 @@ let main args =
     printfn "do Q4d2"
     PhaseChange_NoPow_QPD(Q4d2, sources.[source_Num].Dispersion,Nrays, windowsLength,dirs2.[5])
  
-
 
     // Decentering, I will choose on X 0.1, 0.2 and 0.3
     printfn "do start decentre Q4d1"
