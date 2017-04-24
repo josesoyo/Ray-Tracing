@@ -186,7 +186,7 @@ let main args =
                                    xx |> Array.iter(fun yy -> new_res_arr.Add(yy))
                                    new_res_arr              
     // create an equivalent disc for the curved surface of the ETM
-    let eeeeeeee= ETM_in
+    
     let ETM_in_disc = disc(ETM_in.Origin,(float ETM_in.ClearAperture)/2.,ETM_in.Axis,ETM_in.MaterialName,ETM_in.Sensor,ETM_in.Noise)
    
     // to transform the z0 to 0 on local coordinates for ETM_in:

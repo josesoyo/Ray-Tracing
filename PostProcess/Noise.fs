@@ -212,14 +212,17 @@ module Noise =
                         )
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                let noiseSummed =
+                //let noiseSummed =
+                match allNoise |> Seq.isEmpty  with 
+                | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            // save the file
-            |> fun suum -> File.WriteAllLines( path_save, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) )    
+                    // save the file
+                    |> fun suum -> File.WriteAllLines( path_save, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) )    
+                | true -> () // [||]
+                //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
         // if there are no rays on the detector, do not save a file
-        | y when y<= 0 ->  'c' |> ignore// Array.zeroCreate<float> frequencies.Length                                   
+        | y when y<= 0 ->  () //'c' |> ignore// Array.zeroCreate<float> frequencies.Length                                   
 
 
 
@@ -252,12 +255,17 @@ module Noise =
                         )
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                let noiseSummed =
+                //let noiseSummed =
+                match allNoise |> Seq.isEmpty  with 
+                | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            |> fun suum -> File.WriteAllLines( path_save, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
-        | y when y<= 0 ->  'c' |> ignore // Array.zeroCreate<float> frequencies.Length                                   
+                    // save the file
+                    |> fun suum -> File.WriteAllLines( path_save, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) )    
+                | true -> () // [||]
+                //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
+        // if there are no rays on the detector, do not save a file
+        | y when y<= 0 ->  () //'c' |> ignore// Array.zeroCreate<float> frequencies.Length                                   
 
 
 
@@ -319,12 +327,16 @@ module Noise =
                         )
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                let noiseSummed =
+                //let noiseSummed =
+                match allNoise |> Seq.isEmpty  with 
+                | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            |> fun suum_UR -> File.WriteAllLines( ur, (frequencies, suum_UR) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
- 
+                    // save the file
+                    |> fun suum -> File.WriteAllLines( ur, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) )    
+                | true -> () // [||]
+                //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
+   
             //  UL  //
             snrs.SavedData                                                                                        // read the sensor info
             |> Seq.filter(fun p -> //  filter to create the upper left
@@ -344,11 +356,15 @@ module Noise =
                         )
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                let noiseSummed =
+                //let noiseSummed =
+                match allNoise |> Seq.isEmpty  with 
+                | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            |> fun suum_UL -> File.WriteAllLines( ul, (frequencies, suum_UL) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
+                    // save the file
+                    |> fun suum -> File.WriteAllLines( ul, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) )    
+                | true -> () // [||]
+                //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
         
             //                            //
             //  Lower side of the sensor  //
@@ -374,11 +390,15 @@ module Noise =
                         )
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                let noiseSummed =
+                //let noiseSummed =
+                match allNoise |> Seq.isEmpty  with 
+                | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            |> fun suum_DR -> File.WriteAllLines( dr, (frequencies, suum_DR) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
+                    // save the file
+                    |> fun suum -> File.WriteAllLines( dr, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) )    
+                | true -> () // [||]
+                //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
 
             //  DL  //                                                                  
             snrs.SavedData                                                                                        // read the sensor info
@@ -400,13 +420,16 @@ module Noise =
                         )
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                let noiseSummed =
+                //let noiseSummed =
+                match allNoise |> Seq.isEmpty  with 
+                | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            |> fun suum_DL -> File.WriteAllLines( dl, (frequencies, suum_DL) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
-        // if there are no photons impinging the sensor, then do not create files
-        | y when y<= 0 ->   'c' |> ignore //Array.zeroCreate<float> frequencies.Length                                   
+                    // save the file
+                    |> fun suum -> File.WriteAllLines( dl, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) )    
+                | true -> () // [||]
+                //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
+        | y when y<= 0 ->   () //'c' |> ignore //Array.zeroCreate<float> frequencies.Length                                   
 
         
 
@@ -466,11 +489,15 @@ module Noise =
                         )
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                let noiseSummed =
+                //let noiseSummed =
+                match allNoise |> Seq.isEmpty  with 
+                | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            |> fun suum_UR -> File.WriteAllLines( ur, (frequencies, suum_UR) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
+                    // save the file
+                    |> fun suum -> File.WriteAllLines( ur, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) )    
+                | true -> () // [||]
+                //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
  
             //  UL  //
             snrs.SavedData                                                                                        // read the sensor info
@@ -491,11 +518,15 @@ module Noise =
                         )
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                let noiseSummed =
+                //let noiseSummed =
+                match allNoise |> Seq.isEmpty  with 
+                | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            |> fun suum_UL -> File.WriteAllLines( ul, (frequencies, suum_UL) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
+                    // save the file
+                    |> fun suum -> File.WriteAllLines( ul, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) )    
+                | true -> () // [||]
+                //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
         
             //                            //
             //  Lower side of the sensor  //
@@ -521,11 +552,15 @@ module Noise =
                         )
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                let noiseSummed =
+                //let noiseSummed =
+                match allNoise |> Seq.isEmpty  with 
+                | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            |> fun suum_DR -> File.WriteAllLines( dr, (frequencies, suum_DR) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
+                    // save the file
+                    |> fun suum -> File.WriteAllLines( dr, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) )    
+                | true -> () // [||]
+                //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
 
             //  DL  //                                                                  
             snrs.SavedData                                                                                        // read the sensor info
@@ -547,13 +582,18 @@ module Noise =
                         )
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                let noiseSummed =
+                //let noiseSummed =
+                match allNoise |> Seq.isEmpty  with 
+                | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            |> fun suum_DL -> File.WriteAllLines( dl, (frequencies, suum_DL) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
+                    // save the file
+                    |> fun suum -> File.WriteAllLines( dl, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) )    
+                | true -> () // [||]
+                //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
+
         // if there are no photons impinging the sensor, then do not create files
-        | y when y<= 0 ->   'c' |> ignore //Array.zeroCreate<float> frequencies.Length                                   
+        | y when y<= 0 ->  () // 'c' |> ignore //Array.zeroCreate<float> frequencies.Length                                   
 
     let PhaseChange_QPD_decentreX (dsc:disc , src:Source , dsp_orig:float, nRays:int, windowLengtht:int , dx:float , path_save:string) = 
         // same as before, but scan only on X axis
@@ -633,11 +673,15 @@ module Noise =
                         )
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                let noiseSummed =
+                //let noiseSummed =
+                match allNoise |> Seq.isEmpty  with 
+                | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            |> fun suum_UR -> File.WriteAllLines( ur, (frequencies, suum_UR) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
+                    // save the file
+                    |> fun suum -> File.WriteAllLines( ur, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) )    
+                | true -> () // [||]
+                //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
  
             //  UL  //
             snrs.SavedData                                                                                        // read the sensor info
@@ -658,11 +702,15 @@ module Noise =
                         )
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                let noiseSummed =
+                //let noiseSummed =
+                match allNoise |> Seq.isEmpty  with 
+                | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            |> fun suum_UL -> File.WriteAllLines( ul, (frequencies, suum_UL) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
+                    // save the file
+                    |> fun suum -> File.WriteAllLines( ul, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) )    
+                | true -> () // [||]
+                //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
         
             //                            //
             //  Lower side of the sensor  //
@@ -688,11 +736,15 @@ module Noise =
                         )
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                let noiseSummed =
+                //let noiseSummed =
+                match allNoise |> Seq.isEmpty  with 
+                | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            |> fun suum_DR -> File.WriteAllLines( dr, (frequencies, suum_DR) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
+                    // save the file
+                    |> fun suum -> File.WriteAllLines( dr, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) )    
+                | true -> () // [||]
+                //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
 
             //  DL  //                                                                  
             snrs.SavedData                                                                                        // read the sensor info
@@ -714,13 +766,17 @@ module Noise =
                         )
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                let noiseSummed =
+                //let noiseSummed =
+                match allNoise |> Seq.isEmpty  with 
+                | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            |> fun suum_DL -> File.WriteAllLines( dl, (frequencies, suum_DL) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
+                    // save the file
+                    |> fun suum -> File.WriteAllLines( dl, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) )    
+                | true -> () // [||]
+                //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
         // if there are no photons impinging the sensor, then do not create files
-        | y when y<= 0 ->   'c' |> ignore //Array.zeroCreate<float> frequencies.Length                                   
+        | y when y<= 0 ->  () //  'c' |> ignore //Array.zeroCreate<float> frequencies.Length                                   
 
         
 
@@ -781,11 +837,15 @@ module Noise =
                         )
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                let noiseSummed =
+                //let noiseSummed =
+                match allNoise |> Seq.isEmpty  with 
+                | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            |> fun suum_UR -> File.WriteAllLines( ur, (frequencies, suum_UR) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
+                    // save the file
+                    |> fun suum -> File.WriteAllLines( ur, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) )    
+                | true -> () // [||]
+                //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
  
             //  UL  //
             snrs.SavedData                                                                                        // read the sensor info
@@ -806,11 +866,15 @@ module Noise =
                         )
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                let noiseSummed =
+                //let noiseSummed =
+                match allNoise |> Seq.isEmpty  with 
+                | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            |> fun suum_UL -> File.WriteAllLines( ul, (frequencies, suum_UL) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
+                    // save the file
+                    |> fun suum -> File.WriteAllLines( ul, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) )    
+                | true -> () // [||]
+                //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
         
             //                            //
             //  Lower side of the sensor  //
@@ -836,11 +900,15 @@ module Noise =
                         )
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                let noiseSummed =
+                //let noiseSummed =
+                match allNoise |> Seq.isEmpty  with 
+                | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            |> fun suum_DR -> File.WriteAllLines( dr, (frequencies, suum_DR) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
+                    // save the file
+                    |> fun suum -> File.WriteAllLines( dr, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) )    
+                | true -> () // [||]
+                //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
 
             //  DL  //                                                                  
             snrs.SavedData                                                                                        // read the sensor info
@@ -862,13 +930,17 @@ module Noise =
                         )
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
-                let noiseSummed =
+                //let noiseSummed =
+                match allNoise |> Seq.isEmpty  with 
+                | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
-                noiseSummed          //return the sum of all the phase noise (no frequency defined here)
-            |> fun suum_DL -> File.WriteAllLines( dl, (frequencies, suum_DL) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) ) 
+                    // save the file
+                    |> fun suum -> File.WriteAllLines( dl, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) )    
+                | true -> () // [||]
+                //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
         // if there are no photons impinging the sensor, then do not create files
-        | y when y<= 0 ->   'c' |> ignore //Array.zeroCreate<float> frequencies.Length                                   
+        | y when y<= 0 ->  () // 'c' |> ignore //Array.zeroCreate<float> frequencies.Length                                   
 
     let PhaseChange_NoPow_QPD_decentreX (dsc:disc , dsp_orig:float, nRays:int, windowLengtht:int , dx:float , path_save:string) = 
         // same as before, but scan only on X axis
