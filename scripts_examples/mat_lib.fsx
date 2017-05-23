@@ -133,15 +133,9 @@ let mout = [|{MatName= "Mirror"; R=1.; T=0.;
                     n=(1.45003,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-36};
                 {MatName= "Suprasil3001_0bar_T"; R=0.; T=1.0;                               //     S
                     n=(1.45003,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-36};
-<<<<<<< HEAD
-                {MatName= "Suprasil3001_0bar_ETM_R"; R=0.999999; T=0.000004;                               //     S
+                {MatName= "Suprasil3001_0bar_ETM_R"; R=0.999996; T=0.000004;                               //     S
                     n=(1.45003,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-36};
                 {MatName= "Suprasil3001_0bar_ETM_R_"; R=0.0; T=0.000004;   // to avoid some problems and simplify  
-=======
-                {MatName= "Suprasil3001_0bar_ETM_R"; R=0.999999; T=0.000001;                               //     S
-                    n=(1.45003,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-36};
-                {MatName= "Suprasil3001_0bar_ETM_R_"; R=0.0; T=0.000001;   // to avoid some problems and simplify  
->>>>>>> e61406c59f1faf2b60cdf6cec0c96759d89c9f55
                     n=(1.45003,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-36};
                 {MatName= "Herasil_0bar";  R=0.04; T=0.96;                             //    
                     n=(1.45012,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-36};
