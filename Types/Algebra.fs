@@ -26,6 +26,11 @@ module Algebra =
 
     open Microsoft.FSharp.Data.UnitSystems.SI.UnitSymbols
 
+    // triplets--
+    let fst3 (a, _, _) = a
+    let snd3 (_, b, _) = b
+    let thd3 (_, _, c) = c
+    // ----------
 
     let infi:float<m> = (infinity |> LanguagePrimitives.FloatWithMeasure)     //inifinity with unit of measure
 
