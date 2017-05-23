@@ -191,7 +191,7 @@ let default_intersection = {normal=UnitVector(1.,0.,0.);
                             ray=default_ray;
                             t=0.<m>; MatName=""}
 let rec ForwardRay_noise (objs:Object[],material:System.Collections.Generic.IDictionary<string,Material>, route:route_ray[], old_modulation:float[]) = // MaxRays:int
-    // this function will compute the path of the ray from the source to the Sensor and add the noise
+    // this function will compute the path of the ray from the source to the Sensor and add the noise.
     match route.Length with 
     | x when x >= 2 -> 
         //  not yet at sensor
