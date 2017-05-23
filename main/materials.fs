@@ -133,7 +133,7 @@ let mout = [|{MatName= "Mirror"; R=1.; T=0.;
                     n=(1.45003,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-36};
                 {MatName= "Suprasil3001_0bar_T"; R=0.; T=1.0;                               //     S
                     n=(1.45003,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-36};
-                {MatName= "Suprasil3001_0bar_ETM_R"; R=0.999999; T=0.000004;                               //     S
+                {MatName= "Suprasil3001_0bar_ETM_R"; R=0.999996; T=0.000004;                               //     S
                     n=(1.45003,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-36};
                 {MatName= "Suprasil3001_0bar_ETM_R_"; R=0.0; T=0.000004;   // to avoid some problems and simplify  
                     n=(1.45003,WaveLength(1.06e-6 |> LanguagePrimitives.FloatWithMeasure<m>));LambPPM= 0.e-36};
