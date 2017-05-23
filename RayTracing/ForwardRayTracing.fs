@@ -11,7 +11,6 @@ open Types.types
 open RayTracing.ObjectSelection     // All about RayTracing
 open Microsoft.FSharp.Data.UnitSystems.SI.UnitSymbols
 open ShadingForward
-open ShadingNoise
 (*
 
                 Case the ray carries just noise is not considered now
@@ -37,8 +36,7 @@ let UpdateSensorPhase(intersection:Intersection,obj:Object):Unit =
     let sc = SensorContent(intersection.point,intersection.ray.uvec,
                            intersection.ray.FracOfRay, 
                            ((intersection.ray.OpticalPathTravelled/(match intersection.ray.Wavelenght with WaveLength x -> x))*6.28318530718)%6.28318530718,  // 2*PI
-                           intersection.ray.PhaseModulation, //|> Array.map(fun x -> float x),
-                           intersection.ray.Memory) // I need the intersection
+                           intersection.ray.PhaseModulation |> Array.map(fun x -> float x)) // I need the intersection
     match obj with
     | Cylinder x ->     x.Sensor.AddData(sc) //lock x.Sensor (fun () -> x.Sensor.AddData(sc))
     | Cylinder_With_Hole x -> x.Sensor.AddData(sc) 
@@ -93,7 +91,8 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
     if level >= 1000 then
         // This will prevent stackOverFlow error in case there's a strange loop on reflection.
         failwith "Stack level deeper than 10000"
- 
+    //if ray.FracOfRay < 1e-22 then
+   //     printfn "The fraction of the original ray is %e" ray.FracOfRay    
     // match intersection with Sensor or not Sensor and return Rays or end
     // intersecta
     let intersect:(Intersection*int) =  
@@ -105,18 +104,6 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
         else 
             rei 
             |> Array.minBy(fun x -> (fst x).t) 
-            |> fun x ->   // new part for noise efficient computation
-                
-                let inter_sect = fst x 
-                                 |> fun hit -> hit.ray  // define the ray
-                                 |> fun hit_ray ->  let new_memory = {Direction=hit_ray.uvec ; GoingToID= snd x ;  // memory to add
-                                                                      Origin_From=hit_ray.from ; Destination= (fst x).point }
-                                                    {hit_ray with Memory = Array.append hit_ray.Memory [| new_memory |] }  // update the ray
-                                 |> fun new_ray -> {(fst x) with ray = new_ray  }   // Update the new ray on the intersection
-                (inter_sect, snd x)
-
-
-
           
     match snd intersect with
     | x when x >= 0 ->
@@ -171,58 +158,6 @@ let rec ForwardRay (ray:Ray,objs:Object[],material:System.Collections.Generic.ID
             | true ->  () // end it's absorbed
 
     | _ -> ()  // no intersection, nothing happens
-
-let default_ray = { Wavelenght = WaveLength(1.064e-6<m>)
-                    from= Point(infinity,infinity,infinity);
-                    uvec = UnitVector(1.,0.,0.);
-                    MaxLength =infi;
-                    OpticalPathTravelled = 0.<m>;
-                    NumBounces= -1.;
-                    MaxDispersions = -1.;
-                    NumOfParticlesCreated = 0;
-                    FracOfRay = 1.;
-                    IndexOfRefraction = 1.;
-                    Memory = [||];
-                    PhaseModulation = [||]
-                    }
-// type Intersection = { normal:UnitVector; point:Point; ray:Ray;MatName:string;  t:float<m>}
-let default_intersection = {normal=UnitVector(1.,0.,0.); 
-                            point= Point(infinity, infinity,infinity); 
-                            ray=default_ray;
-                            t=0.<m>; MatName=""}
-let rec ForwardRay_noise (objs:Object[],material:System.Collections.Generic.IDictionary<string,Material>, route:route_ray[], old_modulation:float[]) = // MaxRays:int
-    // this function will compute the path of the ray from the source to the Sensor and add the noise
-    match route.Length with 
-    | x when x >= 2 -> 
-        //  not yet at sensor
-        let origin = route.[0]
-        let destination = route.[1]
-        let ray_from = {default_ray with from = origin.Origin_From; uvec = origin.Direction; PhaseModulation= old_modulation}
-        let ray_to ={default_ray with from = destination.Origin_From; uvec = destination.Direction; PhaseModulation= old_modulation}
-        let dotproduct = ray_from.uvec*ray_to.uvec
-        match dotproduct with
-        | y when y > 0. ->
-            // if the product is bigger than 0, then the ray was transmitted -> No noise
-            ForwardRay_noise(objs,material,route.[1..route.Length-1], old_modulation)
-        
-        | y when y < 0. ->
-            // if the product is smaller than zero, the ray was reflected or dispersed
-            let noise = getNoise(objs,origin.GoingToID)
-            let new_modulation = PhaseModulation(ray_to,{default_intersection with ray=ray_from},noise) 
-            ForwardRay_noise(objs,material,route.[1..route.Length-1], new_modulation)
-
-        | y when y = 0. -> 
-            printfn "WTH!? cosinus equal to zero??"
-            ForwardRay_noise(objs,material,route.[1..route.Length-1], old_modulation)
-        | _ -> failwith "Really happened? It shouldn't happen!"
-            
-    | x when x = 1 ->
-        // then there is only the sensor missing
-        old_modulation
-        
-
-    | _ ->   failwith "the number of 'route' cannot be lower of 1"
-   
 
 
 let RayTraceAll(rays:Ray[],objs,material) =
