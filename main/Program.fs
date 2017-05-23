@@ -50,6 +50,21 @@ let VectorW2L (v:UnitVector) =
     // Transform a vector from local coordinates to global coordinates    
     Matrix.RotateVector(v,UnitVector(0.,0.,1.))      
 
+let hist_counts_obj (obj_id:(string * int * int) []) (elem_length:int) (snrs_data:Collections.Generic.List<SensorContent>) =
+    // Count the number of rays that hit every object in all the space
+    let count_elem = Array.zeroCreate<int> elem_length
+    // add the number of rays hitting to count_elem
+    //Collections.Generic.List<SensorContent>
+    snrs_data |> Seq.iter(fun ry -> ry.Route |> Array.iter(fun hit -> count_elem.[hit.GoingToID]<-count_elem.[hit.GoingToID]+1))
+    
+    let count_obj =   // Array to create the histogram with the number of hits per object in the scene
+        //let zer = Array.zeroCreate<int> obj_id.Length
+        (obj_id) |> Array.map(fun id -> (fst3 id, 0))
+    // Add counts on elements to objects
+    obj_id |> Array.iteri(fun i objID ->  for j in (snd3 objID)..(thd3 objID) do count_obj.[i]<- (fst(count_obj.[i]),(snd(count_obj.[i])+count_elem.[j])))
+    count_obj
+
+let count_obj snrs_data = hist_counts_obj obj_ids elem.Length snrs_data
 
 // stray light from MMT2
 //      point, direction = SNEB_MMT_M2p, SNEB_MMT_M2d
@@ -156,7 +171,7 @@ let main args =
     //printfn "the number of surfaces that produce difuse light are %d" (sources.Length)
     //let source_Num = (Console.Read() )
     printfn "The dispersing surface is: %d, called %s" source_Num sources.[source_Num].Label
-    let Nrays = 100000 //0
+    let Nrays = 50000 //0
     printfn "The number of rays chosen are: %d" Nrays
     let ray() =RayFromSource sources.[source_Num] ParticlesPerRay //sources.[0].Power
     //#time
@@ -186,6 +201,7 @@ let main args =
                                    xx |> Array.iter(fun yy -> new_res_arr.Add(yy))
                                    new_res_arr              
     // create an equivalent disc for the curved surface of the ETM
+    let etm_hist = count_obj out_etm
     
     let ETM_in_disc = disc(ETM_in.Origin,(float ETM_in.ClearAperture)/2.,ETM_in.Axis,ETM_in.MaterialName,ETM_in.Sensor,ETM_in.Noise)
    
@@ -203,6 +219,8 @@ let main args =
                       |> fun xx -> let new_res_arr = ResizeArray<SensorContent>(xx.Length) 
                                    xx |> Array.iter(fun yy -> new_res_arr.Add(yy))
                                    new_res_arr              
+    let etm_in_hist = count_obj out_etm_in
+    
     let out_pd1 =
           match SNEB_PD1.[4] with Disc x -> x.Sensor.SavedData.ToArray() |>
                                             Array.map(fun content -> let ns = ForwardRay_noise(elem,mat,content.Route,[||])  
@@ -212,6 +230,7 @@ let main args =
                                             |> fun xx -> let new_res_arr = ResizeArray<SensorContent>(xx.Length) 
                                                          xx |> Array.iter(fun yy -> new_res_arr.Add(yy))
                                                          new_res_arr              
+    let pd1_in_hist = count_obj out_pd1
 
     let out_pd2 =
           match SNEB_PD2.[4] with Disc x -> x.Sensor.SavedData.ToArray() |>
@@ -223,6 +242,7 @@ let main args =
                                                          xx |> Array.iter(fun yy -> new_res_arr.Add(yy))
                                                          new_res_arr              
 
+    let pd2_in_hist = count_obj out_pd2 
     let out_cam1 =
           match SNEB_CAM1.[4] with Disc x -> x.Sensor.SavedData.ToArray() |>
                                              Array.map(fun content -> let ns = ForwardRay_noise(elem,mat,content.Route,[||])  
@@ -232,6 +252,7 @@ let main args =
                                             |> fun xx -> let new_res_arr = ResizeArray<SensorContent>(xx.Length) 
                                                          xx |> Array.iter(fun yy -> new_res_arr.Add(yy))
                                                          new_res_arr              
+    let cam1_in_hist = count_obj out_cam1
     let out_cam2 =
           match SNEB_CAM2.[4] with Disc x -> x.Sensor.SavedData.ToArray() |>
                                              Array.map(fun content -> let ns = ForwardRay_noise(elem,mat,content.Route,[||])  
@@ -241,6 +262,7 @@ let main args =
                                             |> fun xx -> let new_res_arr = ResizeArray<SensorContent>(xx.Length) 
                                                          xx |> Array.iter(fun yy -> new_res_arr.Add(yy))
                                                          new_res_arr              
+    let cam2_in_hist = count_obj out_cam2
     let out_4d2 =
           match SNEB_4Q2.[4] with Disc x -> x.Sensor.SavedData.ToArray() |>
                                             Array.map(fun content -> let ns = ForwardRay_noise(elem,mat,content.Route,[||])  
@@ -250,6 +272,7 @@ let main args =
                                             |> fun xx -> let new_res_arr = ResizeArray<SensorContent>(xx.Length) 
                                                          xx |> Array.iter(fun yy -> new_res_arr.Add(yy))
                                                          new_res_arr              
+    let Q4d2_in_hist = count_obj out_4d2
     let out_4d1 =
           match SNEB_4Q1.[4] with Disc x -> x.Sensor.SavedData.ToArray() |>
                                             Array.map(fun content -> let ns = ForwardRay_noise(elem,mat,content.Route,[||])  
@@ -259,8 +282,8 @@ let main args =
                                             |> fun xx -> let new_res_arr = ResizeArray<SensorContent>(xx.Length) 
                                                          xx |> Array.iter(fun yy -> new_res_arr.Add(yy))
                                                          new_res_arr              
+    let Q4d1_in_hist = count_obj out_4d1
             
-              
     //(sneb_etm_sensor , match SNEB_PD1.[4] with Disc x -> x.Sensor.SavedData)  ||> Seq.map2(fun a b -> a.Noise=b.Noise)                                             
     //                                                                       //
     //                                                                       //
@@ -293,12 +316,23 @@ let main args =
     
 
     let writeSensorInfo (filePath:string) (data:seq<SensorContent>) =
-        // Write the info into a file - Original function on '45degMirrorNoise.fsx'
-        let sw = new StreamWriter(filePath)
-        sw.WriteLine("Info about the file is on the first line, data after 3rd file, the number of rays of the simulation were: "+string(Nrays))
-        sw.WriteLine("Fraction  PosX  PosY  PosZ  VecX  VecY  VecZ  Phase")
-        data |> Seq.iter(fun i -> sw.WriteLine(string(i.FracOfRay)+" "+string(i.Position.X)+" "+ string(i.Position.Y)+ " "+string(i.Position.Z)+ " "+string(i.Direction.X)+" "+ string(i.Direction.Y)+ " "+string(i.Direction.Z)+" "+string(i.Phase)))
-        sw.Close()
+        // Write the info into a file - Original function was on '45degMirrorNoise.fsx'
+        if Seq.isEmpty data then ()  // do not create the file if it's empty!
+        else
+            let sw = new StreamWriter(filePath)
+            sw.WriteLine("Info about the file is on the first line, data after 3rd file, the number of rays of the simulation were: "+string(Nrays))
+            sw.WriteLine("Fraction  PosX  PosY  PosZ  VecX  VecY  VecZ  Phase")
+            data |> Seq.iter(fun i -> sw.WriteLine(string(i.FracOfRay)+" "+string(i.Position.X)+" "+ string(i.Position.Y)+ " "+string(i.Position.Z)+ " "+string(i.Direction.X)+" "+ string(i.Direction.Y)+ " "+string(i.Direction.Z)+" "+string(i.Phase)))
+            sw.Close()
+    let writeSensorCount (filePath:string) (data:(string*int)[]) =
+        // Write the info into a file - Original function was on '45degMirrorNoise.fsx'
+        if Seq.isEmpty data then ()  // do not create the file if it's empty!
+        else
+            let sw = new StreamWriter(filePath)
+            sw.WriteLine("Info about the file is on the first line, data after 3rd file, the number of rays of the simulation were: "+string(Nrays))
+            sw.WriteLine("SensorName counts")
+            data |> Seq.iter(fun i -> sw.WriteLine((fst i)+" "+string(snd(i))))
+            sw.Close()
 
     let readLines (filePath:string) = seq {
         use sr = new StreamReader (filePath)
@@ -318,7 +352,12 @@ let main args =
     let SensorNameList = [|"PD1";"PD2"; "cam1";"cam2"; "4Q1"; "4Q2"; "ETM" ;"ETM_in"|]          // names of the sensors                                            
     let SourceName = "main/outSensor/"+sources.[source_Num].Label                                     // this is the folder and the source, the SOURCE Will be added in the future automatically!!
     let dirs = SensorNameList                                        // Path for each sensor
-               |> Array.map(fun x -> SourceName+  "__"+x+".dat" ) 
+               |> Array.map(fun x -> SourceName+  "__"+x+".dat" )     
+    
+    let dirs_count = 
+                     let SourceName_count = "main/outSensor/count_"+sources.[source_Num].Label    // this is the folder and the source, the SOURCE Will be added in the future automatically!!
+                     SensorNameList                                        // Path for each sensor
+                     |> Array.map(fun x -> SourceName_count+  "__"+x+".dat" ) 
                //|> Array.map (fun x -> Path.Combine(__SOURCE_DIRECTORY__, x) )
     //dirs |> Array.iter(fun x -> (printfn "%s\n" x))
     // Save the data on files, 1 for each source
@@ -417,8 +456,11 @@ let main args =
                                                                                               x.FracOfRay,
                                                                                               x.Phase,x.Noise, x.Route )   )
     let sensors_local = [|out_pd1_l; out_pd2_l; out_cam1_l; out_cam2_l; out_4d1_l ; out_4d2_l; ETM_l;ETM_l_2|]   // info on each sensor
+    let counts_sensors = [|  pd1_in_hist; pd2_in_hist; cam1_in_hist; cam2_in_hist; Q4d1_in_hist;     Q4d2_in_hist;  etm_hist; etm_in_hist|]   // info on each sensor
     // Save the data on files, 1 for each source - Now locally
     (sensors_local, dirs) ||> Seq.iter2(fun x y -> writeSensorInfo y x)
+    (counts_sensors, dirs_count) ||> Seq.iter2(fun x y -> writeSensorCount y x)
+    
                                                      
     //
     //   Print the % of photons arriving
@@ -450,40 +492,75 @@ let main args =
   
    
     //PhaseChange(pd1,)   sources.[source_Num]
-    let windowsLength = 200
-    printfn "do pd2"
-    PhaseChange(pd2,SNEB_PD2_Source, sources.[source_Num].Dispersion,Nrays, windowsLength,    dirs2.[1])
-    printfn "do pcam2"
-    PhaseChange(cam2,SNEB_CAM2_Source, sources.[source_Num].Dispersion,Nrays, windowsLength,  dirs2.[3] )
-    printfn "do Q4d1"
-    PhaseChange_QPD(Q4d1,SNEB_4Q1_Source,sources.[source_Num].Dispersion,Nrays, windowsLength,dirs2.[4] )
-    // End mirror
-    printfn "do ETM"
-    PhaseChange(ETM,ETM_Source, sources.[source_Num].Dispersion, Nrays, windowsLength,dirs2.[6] )
-    printfn "do ETM_in"
-    PhaseChange(ETM_in_disc,ETM_in_Source, sources.[source_Num].Dispersion, Nrays,windowsLength,dirs2.[7] )
-    // cameras whose power is 0
-    printfn "do pd1"
-    Phase_NoiseAlone(pd1, sources.[source_Num].Dispersion, Nrays, windowsLength,dirs2.[0])
-    printfn "do cam1"
-    Phase_NoiseAlone(cam1,sources.[source_Num].Dispersion, Nrays, windowsLength,dirs2.[2])
-    printfn "do Q4d2"
-    PhaseChange_NoPow_QPD(Q4d2, sources.[source_Num].Dispersion,Nrays, windowsLength,dirs2.[5])
+    let windowsLength = 250
+    //[|1..3|] |>
+    //  I perform all the fourier analysis in parallel because sometimes the fact that the parallel 
+    //  loop must await to all the components to finish can stop the code if we arrive to a situation 
+    //  with lots of rays to compute.
+    [|1..14|] |>    
+    Array.Parallel.iter(fun x ->
+        if x = 1 then
+            printfn "do pd2"
+            PhaseChange(pd2,SNEB_PD2_Source, sources.[source_Num].Dispersion,Nrays, windowsLength,    dirs2.[1])
+        if x = 2 then
+            printfn "do pcam2"
+            PhaseChange(cam2,SNEB_CAM2_Source, sources.[source_Num].Dispersion,Nrays, windowsLength,  dirs2.[3] )
+        if x = 3 then
+            printfn "do Q4d1"
+            PhaseChange_QPD(Q4d1,SNEB_4Q1_Source,sources.[source_Num].Dispersion,Nrays, windowsLength,dirs2.[4] )
+        //    )
+
+        // End mirror
+        //[|4..8|] 
+        //|> Array.Parallel.iter(fun x -> 
+        if x=4 then 
+            printfn "do ETM"
+            PhaseChange(ETM,ETM_Source, sources.[source_Num].Dispersion, Nrays, windowsLength,dirs2.[6] )
+        if x=5 then 
+            printfn "do ETM_in"
+            PhaseChange(ETM_in_disc,ETM_in_Source, sources.[source_Num].Dispersion, Nrays,windowsLength,dirs2.[7] )
+        if x=6 then 
+            printfn "do pd1"
+            Phase_NoiseAlone(pd1, sources.[source_Num].Dispersion, Nrays, windowsLength,dirs2.[0])
+        if x=7 then      // cameras whose power is 0
+            printfn "do cam1"
+            Phase_NoiseAlone(cam1,sources.[source_Num].Dispersion, Nrays, windowsLength,dirs2.[2])
+        if x=8 then
+            printfn "do Q4d2"
+            PhaseChange_NoPow_QPD(Q4d2, sources.[source_Num].Dispersion,Nrays, windowsLength,dirs2.[5])
+        //)    
  
+        //[|9..14|] |>
+        //Array.Parallel.iter(fun x ->*)
+        if x=9 then
+            printfn "do start decentre Q4d1"
+            PhaseChange_QPD_decentreX(Q4d1,SNEB_4Q1_Source,sources.[source_Num].Dispersion,Nrays, windowsLength,0.1, dirs2.[4] )
+        if x=10 then
+            PhaseChange_QPD_decentreX(Q4d1,SNEB_4Q1_Source,sources.[source_Num].Dispersion,Nrays, windowsLength,0.2, dirs2.[4] )
+            
+        if x=11 then
+            PhaseChange_QPD_decentreX(Q4d1,SNEB_4Q1_Source,sources.[source_Num].Dispersion,Nrays, windowsLength,0.3, dirs2.[4] )
 
+        if x=12 then
+            printfn "do decentre Q4d2"
+            PhaseChange_NoPow_QPD_decentreX(Q4d2, sources.[source_Num].Dispersion,Nrays, windowsLength, 0.1, dirs2.[5])
+        if x=13 then
+            PhaseChange_NoPow_QPD_decentreX(Q4d2, sources.[source_Num].Dispersion,Nrays, windowsLength, 0.2, dirs2.[5])
+        if x=14 then
+            PhaseChange_NoPow_QPD_decentreX(Q4d2, sources.[source_Num].Dispersion,Nrays, windowsLength, 0.3, dirs2.[5])
+        
+        )
     // Decentering, I will choose on X 0.1, 0.2 and 0.3
-    printfn "do start decentre Q4d1"
-    PhaseChange_QPD_decentreX(Q4d1,SNEB_4Q1_Source,sources.[source_Num].Dispersion,Nrays, windowsLength,0.1, dirs2.[4] )
-    PhaseChange_QPD_decentreX(Q4d1,SNEB_4Q1_Source,sources.[source_Num].Dispersion,Nrays, windowsLength,0.2, dirs2.[4] )
-    PhaseChange_QPD_decentreX(Q4d1,SNEB_4Q1_Source,sources.[source_Num].Dispersion,Nrays, windowsLength,0.3, dirs2.[4] )
+    
+    
 
-    printfn "do decentre Q4d2"
-    PhaseChange_NoPow_QPD_decentreX(Q4d2, sources.[source_Num].Dispersion,Nrays, windowsLength, 0.1, dirs2.[5])
-    PhaseChange_NoPow_QPD_decentreX(Q4d2, sources.[source_Num].Dispersion,Nrays, windowsLength, 0.2, dirs2.[5])
-    PhaseChange_NoPow_QPD_decentreX(Q4d2, sources.[source_Num].Dispersion,Nrays, windowsLength, 0.3, dirs2.[5])
+    
+    
+    
+    
 
 
-    printfn "The simulation has finished\n Remember that ETM_in should be multiplied by sqrt(epsilon_T_in) since the light is coupled inside the cavity" //, push a key to close the SW"
+    printfn "The simulation has finished\n Remember that ETM_in should be multiplied by sqrt(epsilon_TDisp_in) since the light is coupled inside the cavity\\But I need to find out the value" //, push a key to close the SW"
     //let ign0re = Console.Read() 
     0
 
