@@ -32,7 +32,7 @@ let sinMod t (difRay:Vector) (fA:(float*Vector*float)[]) =
     let duepi = 2.*PI
         
     Array.fold(fun acc x -> let freq, amplitude, phase = fA.[x]
-                            acc+sin(duepi*freq*t+phase)*abs(amplitude*difRay)) 0. [|0..fA.Length-1|] 
+                            acc+sin(duepi*freq*t+phase)*(amplitude*difRay)) 0. [|0..fA.Length-1|] 
         
 let PhaseModulation(shadedRay:Ray,inter:Intersection,ns:noise) =
     let freqAndAmplitude = (fst ns)  // [|freq, A, phase|]
