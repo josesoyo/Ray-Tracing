@@ -64,9 +64,10 @@ let PhaseModulation(shadedRay:Ray,inter:Intersection,ns:noise) =
             //||> Array.map2(fun old t -> old+(ww*SINMOD t)
             //               ) // Phase modulation
             // Parallel.For method, actyally is like using [|0..timeStamps.Len-1|] |> Array.Parallel.map(fun  -> (prevMod.[i]+(ww*SINMOD timeStamps.[i])))
-            Parallel.For(0, (prevMod.Length), fun i -> (prevMod.[i] <- prevMod.[i]+(ww*SINMOD timeStamps.[i])) ) |> ignore
+            //Parallel.For(0, (prevMod.Length), fun i -> (prevMod.[i] <- prevMod.[i]+(ww*SINMOD timeStamps.[i])) ) |> ignore
+            [|0..timeStamps.Length-1|] |> Array.Parallel.map(fun i -> (prevMod.[i]+(ww*SINMOD timeStamps.[i])))
             // return the output updated on the same array. 
-            prevMod
+            //prevMod
             // Might create problems if it wasn't because I am redefining the modulation on ShadingForward
 (**
 

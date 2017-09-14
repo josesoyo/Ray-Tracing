@@ -1,5 +1,5 @@
 ﻿module materials
-#r @"../Types/bin/Debug/Types.dll"
+#r @"../Types/bin/Release/Types.dll"
 open Types.types
 open Microsoft.FSharp.Data.UnitSystems.SI.UnitSymbols
 

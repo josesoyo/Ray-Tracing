@@ -199,7 +199,9 @@ let rec ForwardRay_noise (objs:Object[],material:System.Collections.Generic.IDic
         let destination = route.[1]
         let ray_from = {default_ray with from = origin.Origin_From; uvec = origin.Direction; PhaseModulation= old_modulation}
         let ray_to ={default_ray with from = destination.Origin_From; uvec = destination.Direction; PhaseModulation= old_modulation}
-        let dotproduct = ray_from.uvec*ray_to.uvec
+        let normal_stocazzo = GetNormalAtPoint(objs.[origin.GoingToID],destination.Origin_From)
+        let dotproduct1 = (normal_stocazzo*ray_from.uvec)//
+        let dotproduct = dotproduct1*(normal_stocazzo*ray_to.uvec)
         match dotproduct with
         | y when y > 0. ->
             // if the product is bigger than 0, then the ray was transmitted -> No noise

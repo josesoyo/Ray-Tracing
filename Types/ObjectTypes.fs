@@ -66,6 +66,9 @@ module ObjectTypes=
         member this.MaterialName with get() = matname// and set(mn) = matname <- mn
         member this.Sensor with get() = sensor
         member this.UpdateSensor(sc) = sensor.AddData(sc)
+        member this.GetNormalAtPoint(p:Point) =
+            // get the normal of the sphere at a certain point
+            (p-this.Centre).ToUnitVector()
         // new types
         new (centre,radius,matname) =
             //sphere (centre,radius,matname,Sensor(),[|0uy,0.|])    // method original for noise
@@ -128,6 +131,10 @@ module ObjectTypes=
         member this.Noise with get() = noise 
         member this.CosMin  with get() = cosMin //and set(cm) =  cosMin <- cm 
         member this.Axis  with get() = axis and set(uv) = axis <- uv
+        member this.GetNormalAtPoint(p:Point) =
+            // get the normal of the sphLens at a certain point
+            (p-this.SphCentre).ToUnitVector()
+
         //member this.Axis  with get() = axis and set(uv) = axis <-UnitVector uv
         member this.Convex with get() = convex and set(cb) = convex <- cb
         member this.MaterialName with get() = Materialname and set(mn) = Materialname <- mn
@@ -248,7 +255,10 @@ module ObjectTypes=
         member this.World2Obj with get() = WorldToObj
         member this.Sensor with get() = sensor
         member this.UpdateSensor(sc) = sensor.AddData(sc)
-
+        member this.GetNormalAtPoint(p:Point) =
+            // compute the normal at a certain point
+            let Local_point = (p-this.Origin).ToPoint() |> fun x -> this.World2Obj.RotatePoint(  x )
+            this.Obj2World.RotateVector(UnitVector(Local_point.X,Local_point.Y,0.))
         static member Zero =  cylinder(0.<m>,0.<m>,Point(0.,0.,0.),UnitVector(0.,0.,1.),"") 
         new  (rad,zmax,orig,nrm,matname) = 
             //cylinder(rad,zmax,orig,nrm,matname, Sensor(),[|(0uy,0.)|]) // method original for noise
@@ -393,6 +403,11 @@ module ObjectTypes=
         member this.Normal with get() = nrm
         member this.MaterialName with get() = matname
         member this.Noise with get() = noise
+        member this.GetNormalAtPoint(p:Point) =
+            // get the normal at a certain point
+            let n01 = UnitVector(p.X,p.Y,0.)
+            let hr = this.Height/this.Radius
+            UnitVector(n01.X*hr, n01.Y*hr,1./hr)
         
         // news with auto sensor and noise
         new (radius,height,origin, nrm, matname) =
@@ -484,6 +499,22 @@ module ObjectTypes=
             pmax.Y-pmin.Y
         member this.LengthZ() =
             pmax.Z-pmin.Z
+        member this.GetNormalAtPoint(p:Point)=
+               // from world coordinates to local coordinates
+               let newp = this.World2Obj.RotateVector((p - this.Origin))   
+               match newp with 
+               // x
+               | x when abs(x.X - this.Pmin.X) < 1e-10 ->  this.Obj2World .RotateVector(UnitVector(-1.,0.,0.))
+               | x when abs(x.X - this.Pmax.X) < 1e-10 ->  this.Obj2World.RotateVector(UnitVector(1.,0.,0.))
+               // y
+               | x when abs(x.Y - this.Pmin.Y)  < 1e-10-> this.Obj2World.RotateVector(UnitVector(0.,-1.,0.))
+               | x when abs(x.Y - this.Pmax.Y)  < 1e-10-> this.Obj2World.RotateVector(UnitVector(0.,1.,0.))
+               // z
+               | x when abs(x.Z - this.Pmin.Z) < 1e-10 -> this.Obj2World.RotateVector(UnitVector(0.,0.,-1.))
+               | x when abs(x.Z - this.Pmax.Z)  < 1e-10-> this.Obj2World.RotateVector(UnitVector(0.,0.,1.))
+               | _ -> 
+                    printfn "\n\nError on the match of the normal of the intersection of intersect_Box!!!!!\n\n"
+                    UnitVector(-1.,-1.,-1.)
 
         new (lbox:BBox, axis, up, origin, materialName) =
             box(lbox.Pmin, lbox.Pmax, axis, up, origin, materialName,Sensor(),([||],[||]))
@@ -520,3 +551,19 @@ module ObjectTypes=
     | Box of box
     | Cone of cone
     | TruncatedCone of truncatedCone
+
+
+
+    let GetNormalAtPoint(oo:Object, p:Point) =
+        // find the normal for each type of object
+        match oo with
+        | Cylinder x ->     x.GetNormalAtPoint(p)
+        | Cylinder_With_Hole x -> x.GetNormalAtPoint(p)
+        | SurfaceLens x->   x.GetNormalAtPoint(p)
+        | Disc x->          x.Normal
+        | Annular_Disc x -> x.Disc.Normal
+        | Sphere x->        x.GetNormalAtPoint(p)
+        | Cone x ->         x.GetNormalAtPoint(p)
+        | TruncatedCone x ->x.Cone.GetNormalAtPoint(p)
+        | Box x ->          x.GetNormalAtPoint(p)
+        
