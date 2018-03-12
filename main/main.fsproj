@@ -62,7 +62,8 @@
     <Compile Include="materials.fs" />
     <Compile Include="Mounts.fs" />
     <Compile Include="SNEB.fs" />
-    <Compile Include="Program.fs" />
+    <Compile Include="rw.fs" />
+    <Compile Include="Program_new.fs" />
     <None Include="App.config" />
     <None Include="main_old_test.fsx" />
     <Content Include="packages.config" />

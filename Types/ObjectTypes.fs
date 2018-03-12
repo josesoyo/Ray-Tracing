@@ -72,12 +72,12 @@ module ObjectTypes=
         // new types
         new (centre,radius,matname) =
             //sphere (centre,radius,matname,Sensor(),[|0uy,0.|])    // method original for noise
-            sphere (centre,radius,matname,Sensor(),([| |],[||]))
+            sphere (centre,radius,matname,Sensor(),Quiet)
         new (centre,radius,matname, noise) =
             sphere (centre,radius,matname, Sensor(), noise)
         new (centre,radius,matname, sensor) =
             //sphere (centre,radius,matname,sensor,[|0uy,0.|])     // method original for noise
-            sphere (centre,radius,matname,sensor,([| |],[||])) 
+            sphere (centre,radius,matname,sensor,Quiet) 
 
     type partSphere = {Sphere:sphere; 
                        zmin:float<m>; zmax:float<m>;
@@ -144,10 +144,10 @@ module ObjectTypes=
         new (centreofSPH, roc, diam,axs, conv,matname) =
             // Create the material NOT being sensor
             //SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, Sensor(),[|0uy,0.|])  // method original for noise
-            SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, Sensor(),([| |],[||])) 
+            SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, Sensor(),Quiet) 
         new (centreofSPH, roc, diam,axs, conv,matname,snsr) =
             //SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, snsr,[|0uy,0.|])  // method original for noise
-            SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, snsr,([| |],[||]))
+            SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, snsr,Quiet)
         new (centreofSPH, roc, diam,axs, conv,matname,nois) =
             SphSurfaceLens(centreofSPH, roc, diam,axs, conv,matname, Sensor(),nois) 
 
@@ -262,10 +262,10 @@ module ObjectTypes=
         static member Zero =  cylinder(0.<m>,0.<m>,Point(0.,0.,0.),UnitVector(0.,0.,1.),"") 
         new  (rad,zmax,orig,nrm,matname) = 
             //cylinder(rad,zmax,orig,nrm,matname, Sensor(),[|(0uy,0.)|]) // method original for noise
-            cylinder(rad,zmax,orig,nrm,matname, Sensor(),([| |],[||]))
+            cylinder(rad,zmax,orig,nrm,matname, Sensor(),Quiet)
         new  (rad,zmax,orig,nrm,matname, sen) = 
             //cylinder(rad,zmax,orig,nrm,matname, sen,[|(0uy,0.)|]) // method original for noise
-            cylinder(rad,zmax,orig,nrm,matname, sen,([| |],[||])) // method original for noise
+            cylinder(rad,zmax,orig,nrm,matname, sen,Quiet) // method original for noise
         new  (rad,zmax,orig,nrm,matname, nois) = 
             cylinder(rad,zmax,orig,nrm,matname, Sensor(),nois) 
 
@@ -281,9 +281,9 @@ module ObjectTypes=
         new (rad,zmax,orig,nrm, rad_hole:float, line_orig:Point,line_axis:UnitVector, matname, noise) =        // No sensor
             cylinder_with_hole(rad,zmax,orig,nrm, rad_hole, line_orig,line_axis, matname, Sensor(), noise)
         new (rad,zmax,orig,nrm, rad_hole:float, line_orig:Point,line_axis:UnitVector, matname, snrs) =         // No noise
-            cylinder_with_hole(rad,zmax,orig,nrm, rad_hole, line_orig,line_axis, matname, snrs,([| |],[||]) )
+            cylinder_with_hole(rad,zmax,orig,nrm, rad_hole, line_orig,line_axis, matname, snrs,Quiet )
         new (rad,zmax,orig,nrm, rad_hole:float, line_orig:Point,line_axis:UnitVector, matname, noise) =       // No sensor, No noise
-            cylinder_with_hole(rad,zmax,orig,nrm, rad_hole, line_orig,line_axis, matname, Sensor(),([| |],[||]) )
+            cylinder_with_hole(rad,zmax,orig,nrm, rad_hole, line_orig,line_axis, matname, Sensor(), Quiet )
         new (cyl:cylinder,rad_hole:float, line_orig:Point,line_axis:UnitVector) =
             cylinder_with_hole(cyl.Radius,cyl.Zmax,cyl.Origin,cyl.Normal,rad_hole , line_orig ,line_axis,cyl.MaterialName,cyl.Sensor,cyl.Noise)
 
@@ -305,7 +305,7 @@ module ObjectTypes=
 
         new(c,rad,nrm,matName) =
           //disc(c, rad, nrm,matName, Sensor(),[|(0uy,0.)|])    // method original for noise
-          disc(c, rad, nrm,matName, Sensor(),([| |],[||]))
+          disc(c, rad, nrm,matName, Sensor(),Quiet)
          
         
         new(c,rad,nrm,isEndSensor:bool) =
@@ -315,13 +315,13 @@ module ObjectTypes=
               printfn "There's an error on the definition of the disk\n cannot be and end withouth a defined material"
               Console.ReadKey() |> ignore  
           //disc(c, rad, nrm,"", snsr,[|(0uy,0.)|])     // method original for noise
-          disc(c, rad, nrm,"", snsr,([| |],[||]))
+          disc(c, rad, nrm,"", snsr,Quiet)
          
         new (c,rad,nrm,matname,isEndSensor:bool) =
           // End sensor = "no material"
           let snsr = Sensor(true,isEndSensor)
           //disc(c, rad, nrm,matname, snsr,[|(0uy,0.)|])    // method original for noise
-          disc(c, rad, nrm,matname, snsr,([| |],[||]))
+          disc(c, rad, nrm,matname, snsr,Quiet)
 
     
     type annular_disc(c:Point, minrad:float, maxrad:float, nrm:UnitVector,matname:string, snrs:Sensor, noise:noise) = 
@@ -335,7 +335,7 @@ module ObjectTypes=
 
         new(c, minrad,rad,nrm,matName) =
           //disc(c, rad, nrm,matName, Sensor(),[|(0uy,0.)|])    // method original for noise
-          annular_disc(c, minrad, rad, nrm,matName, Sensor(),([| |],[||]))
+          annular_disc(c, minrad, rad, nrm,matName, Sensor(),Quiet)
          
         
         new(c, minrad,rad,nrm,isEndSensor:bool) =
@@ -345,13 +345,13 @@ module ObjectTypes=
               printfn "There's an error on the definition of the disk\n cannot be and end withouth a defined material"
               Console.ReadKey() |> ignore  
           //disc(c, rad, nrm,"", snsr,[|(0uy,0.)|])     // method original for noise
-          annular_disc(c, minrad, rad, nrm,"", snsr,([| |],[||]))
+          annular_disc(c, minrad, rad, nrm,"", snsr,Quiet)
          
         new (c, minrad,rad,nrm,matname,isEndSensor:bool) =
           // End sensor = "no material"
           let snsr = Sensor(true,isEndSensor)
           //disc(c, rad, nrm,matname, snsr,[|(0uy,0.)|])    // method original for noise
-          annular_disc(c, minrad, rad, nrm,matname, snsr,([| |],[||]))
+          annular_disc(c, minrad, rad, nrm,matname, snsr,Quiet)
  
          
     type cone(radius:float<m>,height:float<m>,origin:Point, nrm:UnitVector, matname:string, sensor:Sensor, noise:noise) =
@@ -411,9 +411,9 @@ module ObjectTypes=
         
         // news with auto sensor and noise
         new (radius,height,origin, nrm, matname) =
-            cone(radius,height,origin, nrm, matname, Sensor(), ([| |],[||])) // 0uy, Vector(0.,0.,1.),0.
+            cone(radius,height,origin, nrm, matname, Sensor(), Quiet) // 0uy, Vector(0.,0.,1.),0.
         new (radius,height,origin, nrm, matname,sens) =
-            cone(radius,height,origin, nrm, matname, sens, ([||],[||]))
+            cone(radius,height,origin, nrm, matname, sens, Quiet)
         new (radius,height,origin, nrm, matname,nois) =
             cone(radius,height,origin, nrm, matname, Sensor(), nois)
 
@@ -423,9 +423,9 @@ module ObjectTypes=
         member this.MaxHeight with get() = maxHeight
         member this.Cone with get() = cn
         new (radius,height,maxHeight,origin, nrm, matname) =
-            truncatedCone(radius,height,maxHeight,origin, nrm, matname, Sensor(), ([||],[||]))
+            truncatedCone(radius,height,maxHeight,origin, nrm, matname, Sensor(), Quiet)
         new (radius,height,maxHeight,origin, nrm, matname,sens) =
-            truncatedCone(radius,height,maxHeight,origin, nrm, matname, sens, ([||],[||]))
+            truncatedCone(radius,height,maxHeight,origin, nrm, matname, sens, Quiet)
         new (radius,height,maxHeight,origin, nrm, matname,nois) =
             truncatedCone(radius,height,maxHeight,origin, nrm, matname, Sensor(), nois)
     
@@ -517,12 +517,12 @@ module ObjectTypes=
                     UnitVector(-1.,-1.,-1.)
 
         new (lbox:BBox, axis, up, origin, materialName) =
-            box(lbox.Pmin, lbox.Pmax, axis, up, origin, materialName,Sensor(),([||],[||]))
+            box(lbox.Pmin, lbox.Pmax, axis, up, origin, materialName,Sensor(),Quiet)
         new (lbox:BBox, axis, up, origin, materialName,snrs, nois) =
             box(lbox.Pmin, lbox.Pmax, axis, up, origin, materialName,snrs,nois)
         new (p0:Point, xLength:float,yLength:float,zLength:float, axis,up:UnitVector,origin, materialName) =
             let pmax = p0.MoveAndCreateNew(Point(xLength,yLength,zLength))
-            box(p0,pmax, axis,up, origin, materialName,Sensor(),([||],[||]))
+            box(p0,pmax, axis,up, origin, materialName,Sensor(),Quiet)
         new (p0:Point, xLength:float,yLength:float,zLength:float, axis,up:UnitVector,origin, materialName,nois) =
             let pmax = p0.MoveAndCreateNew(Point(xLength,yLength,zLength))
             box(p0,pmax, axis,up, origin, materialName,Sensor(),nois)
@@ -566,4 +566,19 @@ module ObjectTypes=
         | Cone x ->         x.GetNormalAtPoint(p)
         | TruncatedCone x ->x.Cone.GetNormalAtPoint(p)
         | Box x ->          x.GetNormalAtPoint(p)
+        
+
+
+    let ChangeNoise(oo:Object, nn:noise) =
+        // find the normal for each type of object
+        match oo with
+        | Cylinder x ->            Cylinder(cylinder(x.Radius,x.Zmax,x.Origin,x.Normal,x.MaterialName, x.Sensor, nn))
+        | Cylinder_With_Hole x -> Cylinder_With_Hole( cylinder_with_hole(x.Radius,x.Zmax, x.Origin, x.Normal, x.Radius_hole, x.Line_origin, x.Line_axis, x.MaterialName, x.Sensor, nn))
+        | SurfaceLens x->         SurfaceLens(SphSurfaceLens(x.SphCentre,x.RadiusOfCurvature, x.ClearAperture, x.Axis, x.Convex, x.MaterialName, x.Sensor, nn)  )
+        | Disc x->                Disc(disc(x.Centre, x.Radius, x.Normal, x.MatName, x.Sensor, nn))
+        | Annular_Disc x ->       Annular_Disc(annular_disc(x.Disc.Centre, x.MinRadius, x.Disc.Radius, x.Disc.Normal, x.Disc.MatName, x.Disc.Sensor, nn))
+        | Sphere x->              Sphere(sphere(x.Centre, x.Radius, x.MaterialName, x.Sensor, nn))
+        | Cone x ->               Cone(cone(x.Radius, x.Height, x.Origin, x.Normal, x.MaterialName, x.Sensor, nn))
+        | TruncatedCone x ->      TruncatedCone(truncatedCone(x.Cone.Radius, x.Cone.Height, x.MaxHeight,x.Cone.Origin, x.Cone.Normal, x.Cone.MaterialName, x.Cone.Sensor, nn))
+        | Box x ->                Box(box(x.Pmin, x.Pmax,x.Axis, x.Up, x.Origin, x.MaterialName, x.Sensor, nn))
         

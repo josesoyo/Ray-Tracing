@@ -16,7 +16,7 @@ open FSCL.Language
 open FSCL.Runtime
 //
 //
-let SingleFreqNoiseAdd(ray:Ray,inter:Intersection,ns:noise) =
+let SingleFreqNoiseAdd(ray:Ray,inter:Intersection, ns:((float*Vector*float)[]*float[])) =  // 
     // Spectral density  -> Noise
     // adds the noise considering the direction of the ray and the normal
     // but the mean value
@@ -27,27 +27,31 @@ let SingleFreqNoiseAdd(ray:Ray,inter:Intersection,ns:noise) =
     printfn "SingleFreqNoiseAdd Badly defined"
     (2.*PI/sqrt(3.)/(match ray.Wavelenght with WaveLength x ->float x))*norm//*nois // also was the freq
       
+let duepi = 2.*PI
 let sinMod t (difRay:Vector) (fA:(float*Vector*float)[]) =
     // function to compute the globlal modulation (sum of all)
-    let duepi = 2.*PI
+    //let duepi = 2.*PI
         
     Array.fold(fun acc x -> let freq, amplitude, phase = fA.[x]
                             acc+sin(duepi*freq*t+phase)*(amplitude*difRay)) 0. [|0..fA.Length-1|] 
         
-let PhaseModulation(shadedRay:Ray,inter:Intersection,ns:noise) =
-    let freqAndAmplitude = (fst ns)  // [|freq, A, phase|]
-    match (Array.isEmpty freqAndAmplitude) with
-    // it the object is not oscillating, there's nothing to compute
-    | true -> shadedRay.PhaseModulation
-    | false ->
+
+let PhaseModulation(shadedRay:Ray,inter:Intersection,nsa:noise) =
+    match nsa with 
+    | Quiet -> shadedRay.PhaseModulation
+    | Simulated ns ->  // here it is the old code for simulated data
+        let freqAndAmplitude = (fst ns)  // [|freq, A, phase|]
+        (*match (Array.isEmpty freqAndAmplitude) with
+        // it the object is not oscillating, there's nothing to compute  -> Added in None option
+        | true -> shadedRay.PhaseModulation
+        | false ->    *)
         // add phase modulation to a ray
         let ray = inter.ray
         let sraydir = shadedRay.uvec
         let difRay = sraydir - (ray.uvec)
         //let freq, amplitude = (fst ns).[0]
-        let timeStamps = snd ns
-        let duepi = 2.*PI
-
+        let timeStamps = snd ns 
+ 
         let SINMOD t = sinMod t difRay freqAndAmplitude
         let ww = (duepi/(match ray.Wavelenght with WaveLength x -> float x))
         match (Array.isEmpty shadedRay.PhaseModulation) with
@@ -55,7 +59,7 @@ let PhaseModulation(shadedRay:Ray,inter:Intersection,ns:noise) =
             // if it's empty, there isn't modulation   -> first interaction with an oscillating element
             timeStamps 
             |> Array.Parallel.map(fun t -> (ww*SINMOD t)
-                         ) // Phase modulation
+                            ) // Phase modulation
                                 
         | false ->
             // if it's not empty, then the modulation must be summed to the one that the ray already contains
@@ -69,6 +73,36 @@ let PhaseModulation(shadedRay:Ray,inter:Intersection,ns:noise) =
             // return the output updated on the same array. 
             //prevMod
             // Might create problems if it wasn't because I am redefining the modulation on ShadingForward
+
+    | RealData rdsp ->   // new code with the real data
+        //   If there is real data it will never be empty, by default empty noise is Simulated
+        let dir, _ ,disp = rdsp
+        let ray = inter.ray
+        let sraydir = shadedRay.uvec
+        let difRay = sraydir - (ray.uvec)
+        
+        //let freq, amplitude = (fst ns).[0]
+        //let timeStamps = snd ns 
+        //let duepi = 2.*PI
+        let ww = (duepi/(match ray.Wavelenght with WaveLength x -> float x))//*(dir*difRay)
+
+        match (Array.isEmpty shadedRay.PhaseModulation) with
+        | true ->
+            
+            [|0..disp.[0].Length-1|]         // number of measures
+            |> Array.Parallel.map(fun i -> 
+                ww*(Array.fold(fun acc j ->  let multipli = ((dir.[j])*difRay)
+                                             disp.[j].[i]*multipli) 0. [|0..disp.Length-1|] )
+                )
+        | false ->
+            let prevMod =  shadedRay.PhaseModulation
+
+            [|0..disp.[0].Length-1|]         // number of measures
+            |> Array.Parallel.map(fun i -> 
+                prevMod.[i]+ww*(Array.fold(fun acc j ->  //let nn = ww*disp.[j].[i]
+                                                         disp.[j].[i]*((dir.[j])*difRay)) 0. [|0..disp.Length-1|] )
+                )
+
 (**
 
 OpenCL case with FSCL

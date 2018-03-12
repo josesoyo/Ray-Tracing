@@ -13,7 +13,7 @@ let welch_method(data:float[],window:float[],overlap:int,fs:float) =
     let step = winlen-overlap               // step between 2 periodograms
     let k = 1+(data.Length-winlen)/step     // number of sections to compute the periodogram
     let kLf = float (k*winlen)
-    let U = (window |> Array.map(fun x -> x*x) |> Array.sum)/float(winlen)  // Square sum of the elements of the window
+    let U = (window |> Array.map(fun x -> x*x) |> Array.sum)//float(winlen)  // Square sum of the elements of the window
     let mutable istart, iend = 0 , winlen-1 
     let mutable ftrans = [|[||]|]
     //for i in [|1..k|] do

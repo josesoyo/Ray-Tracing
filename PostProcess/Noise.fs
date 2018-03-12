@@ -74,7 +74,7 @@ module Noise =
         // do the sum of the b*n2
         
         let sumProd = 
-            let tStamp = snd tube.Noise  |> Array.map(fun x -> float x)
+            let tStamp = extractTimeFromNoise tube.Noise  |> Array.map(fun x -> float x)
             mirror.Sensor.SavedData.ToArray()//.[0].Direction 
             |> Array.map(fun x -> 
                                     // the b(theta) and n(f)
@@ -104,7 +104,7 @@ module Noise =
         
         let sumProd = // frequencies*noise_PSD
             printfn "time is: %+A" tube.Noise
-            let tStamp = (snd tube.Noise) 
+            let tStamp = (extractTimeFromNoise tube.Noise) 
             
             mirror.Sensor.SavedData.ToArray() |> Array.filter(fun x -> x.Noise.Length <> 0) // filter the photons that arrive directly and don't contribute to the noise 
             |> Array.map(fun x -> 
@@ -190,7 +190,7 @@ module Noise =
         // compute the total phase change produced by the photons impinging on the detector
         //let dsc = match obj with Disc x -> x | _ -> failwith "the sensor should be a disc sensor"
         let snrs = dsc.Sensor
-        let timeStamps = snd dsc.Noise                                                                // the Noise works a: ((frequency, Amplitude,phase)[], t_sampling)
+        let timeStamps = extractTimeFromNoise dsc.Noise//snd dsc.Noise                                                                // the Noise works a: ((frequency, Amplitude,phase)[], t_sampling)
         let frequencies = (1./(timeStamps.[windowLengtht-1]-timeStamps.[0]), 0.5/(timeStamps.[1]-timeStamps.[0])) 
                           ||> fun freqMin freqMax -> [|(0.)..(freqMin)..freqMax|] //       define the frequencies 
         let sqr_disp0 = sqrt(dsp_orig)/float(nRays)                               // the Noise works a: ((frequency, Amplitude,phase)[], t_sampling)
@@ -232,7 +232,7 @@ module Noise =
         //let dsc = match obj with Disc x -> x | _ -> failwith "the sensor should be a disc sensor"
         let snrs = dsc.Sensor
         let inv_sqrt_power_at_surface = 1./sqrt(src.Power)
-        let timeStamps = snd dsc.Noise    
+        let timeStamps = extractTimeFromNoise dsc.Noise    
         let sqr_disp0 = sqrt(dsp_orig)/float(nRays)                                // the Noise works a: ((frequency, Amplitude,phase)[], t_sampling)
         //let windowLengtht = 
         // I need to iter the values of the sensor, multiply dotprod*noise(freq) and sum them
@@ -241,8 +241,8 @@ module Noise =
         //let suum =
         match (snrs.SavedData.Count) with
         | y when y>0 ->                                                                                     // read the sensor info 
-            snrs.SavedData
-            |> Seq.map( fun x ->
+            snrs.SavedData.ToArray()
+            |> Array.Parallel.map( fun x ->
                             let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                   // dot product, phase_gauss_meters
                             let _ , asd = 
                                 match x.Noise.Length with
@@ -256,10 +256,11 @@ module Noise =
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
                 //let noiseSummed =
-                match allNoise |> Seq.isEmpty  with 
+                match allNoise |> Array.isEmpty  with 
                 | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
-                    |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
+                    |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> ((eachPhotonNoise).[ind]*(eachPhotonNoise).[ind])) ))
+                    |> Array.map(fun x -> sqrt(x))
                     // save the file
                     |> fun suum -> File.WriteAllLines( path_save, (frequencies, suum) ||> Array.map2(fun y x -> string(y)+" "+ string(x)) )    
                 | true -> () // [||]
@@ -278,7 +279,7 @@ module Noise =
         //let dsc = match obj with Disc x -> x | _ -> failwith "the sensor should be a disc sensor"
         let inv_sqrt_power_at_surface = 1./sqrt(src.Power)
         let snrs = dsc.Sensor
-        let timeStamps = snd dsc.Noise                                               // the Noise works a: ((frequency, Amplitude,phase)[], t_sampling)
+        let timeStamps = extractTimeFromNoise dsc.Noise                                               // the Noise works a: ((frequency, Amplitude,phase)[], t_sampling)
         let sqr_disp0 = sqrt(dsp_orig)/float(nRays)
         //let windowLengtht = 
         // I need to iter the values of the sensor, multiply dotprod*noise(freq) and sum them
@@ -309,13 +310,13 @@ module Noise =
             //                            //
                                                                                           // read the sensor info 
             //  UR  //
-            snrs.SavedData                                                                                        // read the sensor info
-            |> Seq.filter(fun p -> //  filter to create the upper left
+            snrs.SavedData.ToArray()                                                                                        // read the sensor info
+            |> Array.filter(fun p -> //  filter to create the upper left
                                     let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
                                     if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
                                     (p_local.X > 0. && p_local.Y > 0.)
                             )                                             
-            |> Seq.map( fun x ->
+            |> Array.map( fun x ->
                             let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                        // dot product, phase_gauss_meters
                             let _ , asd = 
                                 match x.Noise.Length with
@@ -328,7 +329,7 @@ module Noise =
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
                 //let noiseSummed =
-                match allNoise |> Seq.isEmpty  with 
+                match allNoise |> Array.isEmpty  with 
                 | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
@@ -338,13 +339,13 @@ module Noise =
                 //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
    
             //  UL  //
-            snrs.SavedData                                                                                        // read the sensor info
-            |> Seq.filter(fun p -> //  filter to create the upper left
+            snrs.SavedData.ToArray()                                                                                        // read the sensor info
+            |> Array.filter(fun p -> //  filter to create the upper left
                                     let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
                                     if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
                                     (p_local.X <= 0. && p_local.Y > 0.)
                             )                                             
-            |> Seq.map( fun x ->
+            |> Array.map( fun x ->
                             let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                        // dot product, phase_gauss_meters
                             let _ , asd = 
                                 match x.Noise.Length with
@@ -357,7 +358,7 @@ module Noise =
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
                 //let noiseSummed =
-                match allNoise |> Seq.isEmpty  with 
+                match allNoise |> Array.isEmpty  with 
                 | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
@@ -372,13 +373,13 @@ module Noise =
             
 
             //  DR  //                                    
-            snrs.SavedData                                                    // read the sensor info
-            |> Seq.filter(fun p -> //  filter to create the upper left
+            snrs.SavedData.ToArray()                                                    // read the sensor info
+            |> Array.filter(fun p -> //  filter to create the upper left
                                     let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
                                     if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
                                     (p_local.X > 0. && p_local.Y <= 0.)
                             )                                             
-            |> Seq.map( fun x ->
+            |> Array.map( fun x ->
                             let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                        // dot product, phase_gauss_meters
                             let _ , asd = 
                                 match x.Noise.Length with
@@ -391,7 +392,7 @@ module Noise =
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
                 //let noiseSummed =
-                match allNoise |> Seq.isEmpty  with 
+                match allNoise |> Array.isEmpty  with 
                 | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
@@ -401,13 +402,13 @@ module Noise =
                 //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
 
             //  DL  //                                                                  
-            snrs.SavedData                                                                                        // read the sensor info
-            |> Seq.filter(fun p -> //  filter to create the upper left
+            snrs.SavedData.ToArray()                                                                                        // read the sensor info
+            |> Array.filter(fun p -> //  filter to create the upper left
                                     let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
                                     if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
                                     (p_local.X <= 0. && p_local.Y <= 0.)
                             )                                             
-            |> Seq.map( fun x ->
+            |> Array.map( fun x ->
                             let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                        // dot product, phase_gauss_meters
                             let _ , asd = 
                                 match x.Noise.Length with
@@ -421,7 +422,7 @@ module Noise =
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
                 //let noiseSummed =
-                match allNoise |> Seq.isEmpty  with 
+                match allNoise |> Array.isEmpty  with 
                 | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
@@ -439,7 +440,7 @@ module Noise =
         //let dsc = match obj with Disc x -> x | _ -> failwith "the sensor should be a disc sensor"
         let inv_sqrt_power_at_surface = 1./sqrt(src.Power)
         let snrs = dsc.Sensor
-        let timeStamps = snd dsc.Noise                                                                // the Noise works a: ((frequency, Amplitude,phase)[], t_sampling)
+        let timeStamps = extractTimeFromNoise dsc.Noise                                                                // the Noise works a: ((frequency, Amplitude,phase)[], t_sampling)
         let sqr_disp0 = sqrt(dsp_orig)/float(nRays)
 
         //let windowLengtht = 
@@ -471,13 +472,13 @@ module Noise =
             //                            //
                                                                                           // read the sensor info 
             //  UR  //
-            snrs.SavedData                                                                                        // read the sensor info
-            |> Seq.filter(fun p -> //  filter to create the upper left
+            snrs.SavedData.ToArray()                                                                                        // read the sensor info
+            |> Array.filter(fun p -> //  filter to create the upper left
                                     let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
                                     if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
                                     (p_local.X > dx && p_local.Y > dy)
                             )                                             
-            |> Seq.map( fun x ->
+            |> Array.map( fun x ->
                             let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                        // dot product, phase_gauss_meters
                             let _ , asd = 
                                 match x.Noise.Length with
@@ -490,7 +491,7 @@ module Noise =
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
                 //let noiseSummed =
-                match allNoise |> Seq.isEmpty  with 
+                match allNoise |> Array.isEmpty  with 
                 | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
@@ -500,13 +501,13 @@ module Noise =
                 //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
  
             //  UL  //
-            snrs.SavedData                                                                                        // read the sensor info
-            |> Seq.filter(fun p -> //  filter to create the upper left
+            snrs.SavedData.ToArray()                                                                                        // read the sensor info
+            |> Array.filter(fun p -> //  filter to create the upper left
                                     let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
                                     if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
                                     (p_local.X <= dx && p_local.Y > dy)
                             )                                             
-            |> Seq.map( fun x ->
+            |> Array.map( fun x ->
                             let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                        // dot product, phase_gauss_meters
                             let _ , asd = 
                                 match x.Noise.Length with
@@ -519,7 +520,7 @@ module Noise =
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
                 //let noiseSummed =
-                match allNoise |> Seq.isEmpty  with 
+                match allNoise |> Array.isEmpty  with 
                 | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
@@ -534,13 +535,13 @@ module Noise =
             
 
             //  DR  //                                    
-            snrs.SavedData                                                    // read the sensor info
-            |> Seq.filter(fun p -> //  filter to create the upper left
+            snrs.SavedData.ToArray()                                                    // read the sensor info
+            |> Array.filter(fun p -> //  filter to create the upper left
                                     let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
                                     if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
                                     (p_local.X > dx && p_local.Y <= dy)
                             )                                             
-            |> Seq.map( fun x ->
+            |> Array.map( fun x ->
                             let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                        // dot product, phase_gauss_meters
                             let _ , asd = 
                                 match x.Noise.Length with
@@ -553,7 +554,7 @@ module Noise =
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
                 //let noiseSummed =
-                match allNoise |> Seq.isEmpty  with 
+                match allNoise |> Array.isEmpty  with 
                 | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
@@ -563,13 +564,13 @@ module Noise =
                 //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
 
             //  DL  //                                                                  
-            snrs.SavedData                                                                                        // read the sensor info
-            |> Seq.filter(fun p -> //  filter to create the upper left
+            snrs.SavedData.ToArray()                                                                                        // read the sensor info
+            |> Array.filter(fun p -> //  filter to create the upper left
                                     let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
                                     if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
                                     (p_local.X <= dx && p_local.Y <= dy)
                             )                                             
-            |> Seq.map( fun x ->
+            |> Array.map( fun x ->
                             let dotprod,ph_gauss_met = Gauss_Plane_Wave_Product(x,dsc,src)                        // dot product, phase_gauss_meters
                             let _ , asd = 
                                 match x.Noise.Length with
@@ -583,7 +584,7 @@ module Noise =
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
                 //let noiseSummed =
-                match allNoise |> Seq.isEmpty  with 
+                match allNoise |> Array.isEmpty  with 
                 | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
@@ -624,7 +625,7 @@ module Noise =
         //let dsc = match obj with Disc x -> x | _ -> failwith "the sensor should be a disc sensor"
 
         let snrs = dsc.Sensor
-        let timeStamps = snd dsc.Noise                                               // the Noise works a: ((frequency, Amplitude,phase)[], t_sampling)
+        let timeStamps = extractTimeFromNoise dsc.Noise                                               // the Noise works a: ((frequency, Amplitude,phase)[], t_sampling)
         let sqr_disp0 = sqrt(dsp_orig)/float(nRays)
         //let windowLengtht = 
         // I need to iter the values of the sensor, multiply dotprod*noise(freq) and sum them
@@ -655,13 +656,13 @@ module Noise =
             //                            //
                                                                                           // read the sensor info 
             //  UR  //
-            snrs.SavedData                                                                                        // read the sensor info
-            |> Seq.filter(fun p -> //  filter to create the upper left
+            snrs.SavedData.ToArray()                                                                                        // read the sensor info
+            |> Array.filter(fun p -> //  filter to create the upper left
                                     let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
                                     if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
                                     (p_local.X > 0. && p_local.Y > 0.)
                             )                                             
-            |> Seq.map( fun x ->
+            |> Array.map( fun x ->
 
                             let _ , asd = 
                                 match x.Noise.Length with
@@ -674,7 +675,7 @@ module Noise =
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
                 //let noiseSummed =
-                match allNoise |> Seq.isEmpty  with 
+                match allNoise |> Array.isEmpty  with 
                 | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
@@ -684,13 +685,13 @@ module Noise =
                 //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
  
             //  UL  //
-            snrs.SavedData                                                                                        // read the sensor info
-            |> Seq.filter(fun p -> //  filter to create the upper left
+            snrs.SavedData.ToArray()                                                                                        // read the sensor info
+            |> Array.filter(fun p -> //  filter to create the upper left
                                     let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
                                     if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
                                     (p_local.X <= 0. && p_local.Y > 0.)
                             )                                             
-            |> Seq.map( fun x ->
+            |> Array.map( fun x ->
 
                             let _ , asd = 
                                 match x.Noise.Length with
@@ -703,7 +704,7 @@ module Noise =
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
                 //let noiseSummed =
-                match allNoise |> Seq.isEmpty  with 
+                match allNoise |> Array.isEmpty  with 
                 | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
@@ -718,13 +719,13 @@ module Noise =
             
 
             //  DR  //                                    
-            snrs.SavedData                                                    // read the sensor info
-            |> Seq.filter(fun p -> //  filter to create the upper left
+            snrs.SavedData.ToArray()                                                    // read the sensor info
+            |> Array.filter(fun p -> //  filter to create the upper left
                                     let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
                                     if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
                                     (p_local.X > 0. && p_local.Y <= 0.)
                             )                                             
-            |> Seq.map( fun x ->
+            |> Array.map( fun x ->
 
                             let _ , asd = 
                                 match x.Noise.Length with
@@ -737,7 +738,7 @@ module Noise =
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
                 //let noiseSummed =
-                match allNoise |> Seq.isEmpty  with 
+                match allNoise |> Array.isEmpty  with 
                 | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
@@ -747,13 +748,13 @@ module Noise =
                 //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
 
             //  DL  //                                                                  
-            snrs.SavedData                                                                                        // read the sensor info
-            |> Seq.filter(fun p -> //  filter to create the upper left
+            snrs.SavedData.ToArray()                                                                                        // read the sensor info
+            |> Array.filter(fun p -> //  filter to create the upper left
                                     let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
                                     if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
                                     (p_local.X <= 0. && p_local.Y <= 0.)
                             )                                             
-            |> Seq.map( fun x ->
+            |> Array.map( fun x ->
 
                             let _ , asd = 
                                 match x.Noise.Length with
@@ -767,7 +768,7 @@ module Noise =
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
                 //let noiseSummed =
-                match allNoise |> Seq.isEmpty  with 
+                match allNoise |> Array.isEmpty  with 
                 | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
@@ -786,7 +787,7 @@ module Noise =
         //let dsc = match obj with Disc x -> x | _ -> failwith "the sensor should be a disc sensor"
 
         let snrs = dsc.Sensor
-        let timeStamps = snd dsc.Noise                                                                // the Noise works a: ((frequency, Amplitude,phase)[], t_sampling)
+        let timeStamps = extractTimeFromNoise dsc.Noise                                                                // the Noise works a: ((frequency, Amplitude,phase)[], t_sampling)
         let sqr_disp0 = sqrt(dsp_orig)/float(nRays)
 
         //let windowLengtht = 
@@ -819,13 +820,13 @@ module Noise =
             //                            //
                                                                                           // read the sensor info 
             //  UR  //
-            snrs.SavedData                                                                                        // read the sensor info
-            |> Seq.filter(fun p -> //  filter to create the upper left
+            snrs.SavedData.ToArray()                                                                                        // read the sensor info
+            |> Array.filter(fun p -> //  filter to create the upper left
                                     let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
                                     if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
                                     (p_local.X > dx && p_local.Y > dy)
                             )                                             
-            |> Seq.map( fun x ->
+            |> Array.map( fun x ->
 
                             let _ , asd = 
                                 match x.Noise.Length with
@@ -838,7 +839,7 @@ module Noise =
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
                 //let noiseSummed =
-                match allNoise |> Seq.isEmpty  with 
+                match allNoise |> Array.isEmpty  with 
                 | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
@@ -848,13 +849,13 @@ module Noise =
                 //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
  
             //  UL  //
-            snrs.SavedData                                                                                        // read the sensor info
-            |> Seq.filter(fun p -> //  filter to create the upper left
+            snrs.SavedData.ToArray()                                                                                        // read the sensor info
+            |> Array.filter(fun p -> //  filter to create the upper left
                                     let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
                                     if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
                                     (p_local.X <= dx && p_local.Y > dy)
                             )                                             
-            |> Seq.map( fun x ->
+            |> Array.map( fun x ->
 
                             let _ , asd = 
                                 match x.Noise.Length with
@@ -867,7 +868,7 @@ module Noise =
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
                 //let noiseSummed =
-                match allNoise |> Seq.isEmpty  with 
+                match allNoise |> Array.isEmpty  with 
                 | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
@@ -882,13 +883,13 @@ module Noise =
             
 
             //  DR  //                                    
-            snrs.SavedData                                                    // read the sensor info
-            |> Seq.filter(fun p -> //  filter to create the upper left
+            snrs.SavedData.ToArray()                                                    // read the sensor info
+            |> Array.filter(fun p -> //  filter to create the upper left
                                     let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
                                     if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
                                     (p_local.X > dx && p_local.Y <= dy)
                             )                                             
-            |> Seq.map( fun x ->
+            |> Array.map( fun x ->
 
                             let _ , asd = 
                                 match x.Noise.Length with
@@ -901,7 +902,7 @@ module Noise =
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
                 //let noiseSummed =
-                match allNoise |> Seq.isEmpty  with 
+                match allNoise |> Array.isEmpty  with 
                 | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))
@@ -911,13 +912,13 @@ module Noise =
                 //noiseSummed          //return the sum of all the phase noise (no frequency defined here)
 
             //  DL  //                                                                  
-            snrs.SavedData                                                                                        // read the sensor info
-            |> Seq.filter(fun p -> //  filter to create the upper left
+            snrs.SavedData.ToArray()                                                                                        // read the sensor info
+            |> Array.filter(fun p -> //  filter to create the upper left
                                     let p_local = transmat.RotatePoint((p.Position-s_orig).ToPoint())              // hitting point in local coordinates
                                     if abs(p_local.Z) > 1e-10 then failwith "Zvalue is wrong on PhaseChange_QPD"
                                     (p_local.X <= dx && p_local.Y <= dy)
                             )                                             
-            |> Seq.map( fun x ->
+            |> Array.map( fun x ->
 
                             let _ , asd = 
                                 match x.Noise.Length with
@@ -931,7 +932,7 @@ module Noise =
                           
             |> fun allNoise ->       // Sum the components of each time [| [|1;2|] ; [|0;1|] |] -> [| 1; 3 |]
                 //let noiseSummed =
-                match allNoise |> Seq.isEmpty  with 
+                match allNoise |> Array.isEmpty  with 
                 | false ->
                     [|0..((allNoise) |> Seq.head).Length-1|] 
                     |> Array.map(fun ind -> (allNoise |> Seq.sumBy(fun eachPhotonNoise -> (eachPhotonNoise).[ind]) ))

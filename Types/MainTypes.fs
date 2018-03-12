@@ -21,7 +21,20 @@ module types =
 
     // Second method to noise
     // This is to translate the vibration of the object into phase change on the ray.
-    type noise = ((float*Vector*float)[]*float[])                        // Here it refers to the fact that ((frequency, Amplitude,phase)[], t_sampling)
+    // If there is no noise it will be defined as 
+    type noise = 
+    | Simulated of ((float*Vector*float)[]*float[])                        // Here it refers to the fact that ((frequency, Amplitude,phase)[], t_sampling)
+    | RealData of (UnitVector[]*float[]*float[][])                             // Direction X time X movement 
+    | Quiet //now requires more implementation, but should be better...
+
+    let extractTimeFromNoise (ns:noise) =
+        match ns with
+        | Simulated (_,y) -> y
+        | RealData (_,y,_) -> y
+    let extractDisplacementFromNoise (ns:noise) =
+      match ns with
+      | Simulated x -> failwith "There is no displacement in Simulated displacement"
+      | RealData (_,_, x) -> x
     // byte is a number in the range [0,255], I use this because I expect I won't work on higher frequencies
 
     // Create the typres required to perform tracking of the 
